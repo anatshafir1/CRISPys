@@ -6,7 +6,7 @@ This is the standalone version of CRISPys, a tool for designing the most promisi
 
 Running instractions:
 
-dependencies: Python 3.5 oh higher with the Biopython module
+dependencies: Python 3.5 oh higher with the Biopython module; For designing the sgRNAs while considering genes homology, please install MAFFT (https://mafft.cbrc.jp/alignment/software/) and keep the Protdist (http://evolution.genetics.washington.edu/phylip/doc/protdist.html) execution file (supplied here for convenience) in the code directory as well.
 
 CMD running command:
 Python stage0.py path_of_input_file running_directory_path
@@ -14,7 +14,7 @@ Python stage0.py path_of_input_file running_directory_path
 Additional arguments that may be hendeled (under the following order; see the webserber and paper for detailed description of all of this arguments):
 
 
-alg (algorithm): ither A or E. Chooes A for the defluts CRISPys algorithm, or E for considering genes homology when desining the sgRNAs. Default: A.
+alg (algorithm): ither A or E. Chooes A for the defluts CRISPys algorithm, or E for considering genes homology when desining the sgRNAs. The considering homology option can run only on Unix. Default: A.
 
 where_in_gene: floating point number between 0 to 1. Search for targets only on the first 'where_in_gene' fraction  of the gene, in order to increase the liklihood that cleavage in the chosen target will be upstream to the active site and results in a loss of function mutation. Default: 1.
 
