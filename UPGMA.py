@@ -1,7 +1,7 @@
 import TreeConstruction_changed as TreeConstruction
 import math
 
-def d_f2(seq1,seq2):
+def d_f2(seq1,seq2, dicti = None):
 	'''a distance function. from the article CRISPER-Cas9 knockout screening in human cells'''
 	distance = 0
 	if len(seq2) < len(seq1): #putting the longer sequence as seq2
@@ -21,7 +21,7 @@ def d_f2(seq1,seq2):
 			Dmm = i
 	return distance/len(seq2)
 
-def p_distance(seq1,seq2):
+def p_distance(seq1,seq2, dicti = None):
 	'''the simplest distance function. will be use for tests'''
 	distance = 0
 	if len(seq2) < len(seq1): #putting the longer sequence as seq2
@@ -34,7 +34,7 @@ def p_distance(seq1,seq2):
 			distance += 1
 	return distance/len(seq2)
 
-def MITScore(seq1, seq2):
+def MITScore(seq1, seq2, dicti = None):
 	'''frm CRISPR-MIT
 	PAM cames at the end of the string'''
 	distance, first_mm, last_mm = 0, -1, -1
@@ -62,7 +62,7 @@ def MITScore(seq1, seq2):
 
 	return 1 - original_score
 
-def MITScore_alternative_imp(seq1, seq2):
+def MITScore_alternative_imp(seq1, seq2,dicti = None):
 	"""
 	shiran's implementation
 	:param seq1, seq2: sgRNA and off target with PAM seq
@@ -96,7 +96,7 @@ def MITScore_alternative_imp(seq1, seq2):
 
 	return score
 
-def ccTop(sgseq, target_seq):
+def ccTop(sgseq, target_seq, dicti = None):
 	assert len(sgseq) == len(target_seq)
 	max_score = sum([math.pow(1.2, i+1) for i in range(len(sgseq))])
 	mm = [i+1 if sgseq[i] != target_seq[i] else 0 for i in range(len(sgseq))]
@@ -154,10 +154,10 @@ def test_s_score():
 	c = "aaaaaaaaaaaagggggggg"
 	d = "GCCTCCCCAAAGCCTGGCCA"
 	e = "ACCTCCCCATAGCCTGGCCA"
-	print("real data test:", shalem_score(d,e))
-	print("the same:", shalem_score(c,c))
-	print("closer:", shalem_score(a,b))
-	print("farther:", shalem_score(a,c))
+	print("real data test:", MITScore(d,e))
+	print("the same:", MITScore(c,c))
+	print("closer:", MITScore(a,b))
+	print("farther:", MITScore(a,c))
 	print("p distance")
 	print("real data test:", p_distance(d,e))
 	print("closer:", p_distance(a,b))
@@ -166,7 +166,12 @@ def test_s_score():
 def test_p_dist():
 	s1 = "GGAATGAAAACTATGAGCAC"
 	s2 = "GGTCTTAAATCTAGTATCTT"
-	print(p_distance(s1,s2))
+	print(cc(s1,s2))
 
 def test_ccTop():
-	print(ccTop("AAAA", "CCAA"))
+	s1 = "GGAATGAAAACTATGAGCAC"
+	s2 = "GGAATGAAAACTATGAGCAC"
+	print(ccTop(s1,s2))
+
+#test_ccTop()
+#test_s_score()

@@ -346,7 +346,6 @@ genes_sg_dict = {}
 def print_res_to_file(res, input_sg_genes_dict, path='', homology = False):
 	''' input(res) format:	array of permutations_DS'''
 	##first, get genes set, for the file name:
-
 	genes_set = set()
 	for sg, genes in input_sg_genes_dict.items():  #genes  is a list of genes
 		for gene in genes:
@@ -355,7 +354,6 @@ def print_res_to_file(res, input_sg_genes_dict, path='', homology = False):
 		file_name = path+ "/output.txt"
 	else:
 		file_name = str(genes_set)[1:-1] + ".txt"
-	#print("output path = ", file_name)
 	f = open(file_name, "w")
 	for permDS in res:
 		f.write("SG:\n")
@@ -377,15 +375,9 @@ def print_res_to_file(res, input_sg_genes_dict, path='', homology = False):
 
 
 def print_res_to_json(res, input_sg_genes_dict, genesList, genesNames, path):
-	#pickle.dump(res, open("res.p","wb"))
-	#pickle.dump(genesList, open("genesList.p", "wb"))
-	#pickle.dump(genesNames, open("genesNames.p", "wb"))
-	#pickle.dump(path, "path.p")
 	res = pickle.load(open("res.p", "rb"))
 	genesList = pickle.load(open("genesList.p", "rb"))
 	genesNames = pickle.load(open("genesNames.p", "rb"))
-	#print(genesNames)
-	#print("json")
 	json_file_name = path + "/resultTree.json"
 	f = open(json_file_name, "w")
 	f.write("[\t{\n")
@@ -417,22 +409,14 @@ def print_res_to_json(res, input_sg_genes_dict, genesList, genesNames, path):
 				else:
 					to_write += '\n'
 				f.write(to_write)
-				#f.write('{\n"text": "' + site[0] + ' Position in gene: ' + site_position +'"\n},\n')
-
 			f.write(']\n}\n') #] ] is the end of the nodes. is the end of the gene.
 			if i != number_of_genes_of_candidate:
 				f.write(',\n')
 			else:
 				f.write('\n')
 		f.write(']\n}\n') # ] is the end of the nodes. } is the end of the sgRNA
-	#f.write("}")
 	f.write("]")
-
 	f.close()
-
-
-
-
 
 def print_res_to_csvV2(res, input_sg_genes_dict, genesList, genesNames, path, homology = False):
 	def do_it(res, input_sg_genes_dict, genesList, genesNames, f):
@@ -443,21 +427,11 @@ def print_res_to_csvV2(res, input_sg_genes_dict, genesList, genesNames, path, ho
 			for i in range(len(copy_mm_list)):
 				res += str(copy_mm_list[i]+1) + " " #first pos will be considered as 1
 			return res
-
-			
-
-
 		f.write("sgRNA, Sum of genes score, Targeted genes (score; mm; postions)\n")
-		#wr = csv.writer(f, quoting=csv.QUOTE_ALL)
 		for candidate in res:
-			#print("candidte: ", candidate)
 			#make the output in the wanted way
 			genes_for_Thefile = ""
-			#print("candidate ", candidate)
-			#print(candidate.genes_score_dict)
-			#print("\n\n\n\n")
 			genes = sorted(list(candidate.genes_score_dict.keys()), key = lambda gene: candidate.genes_score_dict[gene], reverse = True)
-			#print("genes: ", genes)
 			sites = candidate.targets_dict
 			for gene in genes:
 				geneIndex = genesNames.index(gene)
@@ -474,10 +448,8 @@ def print_res_to_csvV2(res, input_sg_genes_dict, genesList, genesNames, path, ho
 							genes_for_Thefile += "; "
 							mm = ''
 							for item in sites[site]:  #item here is a single match site
-								#print("item:", item)
 								if len(item[1].keys()) > 0:
 									genes_for_Thefile += str_of_mm(item[1].keys())#" " + str(list(map(lambda x: x+1, list(item[1].keys()))).sort())[1:-1].replace(",", "")
-								##
 								#find pos:
 								sg_position = str(genesList[geneIndex].find(item[0])) #item[0] is the target site seq
 								if sg_position == "-1":
@@ -485,23 +457,13 @@ def print_res_to_csvV2(res, input_sg_genes_dict, genesList, genesNames, path, ho
 
 								genes_for_Thefile += "; pos: " + str(sg_position)
 					genes_for_Thefile += ") "
-
 				else:
 					sg_position = str(genesList[geneIndex].find(candidate.seq))
 					if sg_position == "-1":
 						sg_position = str(CasSites.give_complementary(genesList[geneIndex]).find(candidate.seq)) + "R"
 					genes_for_Thefile += "1; perfect match; " + sg_position + ") "
-
-				##
-
-
 			row = candidate.seq + ", " + str(candidate.cut_expectation)+ ","  + genes_for_Thefile + "\n"
-			#row = candidate.seq + ", " + str(candidate.score_2) + ", " +str(candidate.cut_expectation)+ ","  + genes_for_Thefile + "\n"
-
 			f.write(row)
-			#wr.writerow(row)
-			#wr.writerow(str(sg).translate(None, '{[]}'))
-			
 			#end of do_it()
 	CSV_file_name = path+ "/output.csv"
 	f = open(CSV_file_name, "w")
@@ -511,8 +473,6 @@ def print_res_to_csvV2(res, input_sg_genes_dict, genesList, genesNames, path, ho
 		for subgroup in res:
 			f.write("genes of subgroup: " + str(subgroup.genes_lst)[1:-1].replace("'","") + "\n")#genes_of_subgroup(subgroup) + "\n")
 			do_it(subgroup.candidate_lst, input_sg_genes_dict, genesList, genesNames, f)
-		
-	
 	f.close()
 
 def genes_of_subgroup(subgroup):
@@ -522,15 +482,11 @@ def genes_of_subgroup(subgroup):
 			res.add(g)
 	return str(list(res))[1:-1]
 
-
 def print_res_to_csvV2_0(res, input_sg_genes_dict, genesList, genesNames, path, homology):
 	CSV_file_name = path+ "/output.csv"
 	f = open(CSV_file_name, "w")
-
 	f.write("sgRNA,score, genes (score; mm; postions)\n")
-	#wr = csv.writer(f, quoting=csv.QUOTE_ALL)
 	for candidate in res:
-		#print("candidte: ", candidate)
 		#make the output in the wanted way
 		genes_for_Thefile = ""
 		genes = candidate.genes_score_dict
@@ -547,45 +503,23 @@ def print_res_to_csvV2_0(res, input_sg_genes_dict, genesList, genesNames, path, 
 							#print("item:", item)
 							if len(item[1].keys()) > 0:
 								genes_for_Thefile += " " + str(list(map(lambda x: x+1, list(item[1].keys()))))[1:-1].replace(",", "")
-							##
 							#find pos:
 							sg_position = str(genesList[geneIndex].find(item[0])) #item[0] is the target site seq
 							if sg_position == "-1":
 								sg_position = str(CasSites.give_complementary(genesList[geneIndex]).find(item[0])) + "R"
-
 							genes_for_Thefile += "; pos: " + str(sg_position)  + ") "
-
 			else:
 				sg_position = str(genesList[geneIndex].find(candidate.seq))
 				if sg_position == "-1":
 					sg_position = str(CasSites.give_complementary(genesList[geneIndex]).find(candidate.seq)) + "R"
 				genes_for_Thefile += "1; perfect match; " + sg_position + ") "
-
-			##
-		'''
-			if len(site) > 0:
-				genes_for_Thefile += str(site[0])
-				for item in site[1]:
-					genes_for_Thefile += "(" + str(list(item[1].keys()))[1:-1] + ") "
-					#
-
-		if genes_for_Thefile == '':
-			row = sg[0] +", " + str(sg[2]) + "," + str(sg[3]) + "\n"
-		else:
-			row = sg[0] + ", " + str(sg[2])+ ","  + genes_for_Thefile + "\n"
-		'''
 		row = candidate.seq + ", " + str(candidate.cut_expectation)+ ","  + genes_for_Thefile + "\n"
 		f.write(row)
-		#wr.writerow(row)
-		#wr.writerow(str(sg).translate(None, '{[]}'))
 	f.close()
-
-
 
 def print_res_to_file_CSV(res, input_sg_genes_dict, genesList, genesNames, path='', homology = False):
 	''' input(res) format:	array of permutations_DS
 	including finding the position on the gene'''
-
 	##first, get genes set, for the file name:
 	genes_set = set()
 	for sg, genes in input_sg_genes_dict.items():  #genes is a list of genes
@@ -597,26 +531,14 @@ def print_res_to_file_CSV(res, input_sg_genes_dict, genesList, genesNames, path=
 		file_name = str(genes_set)[1:-1] + ".csv"
 	f = open(file_name, "w")
 	f.write("sgRNA,score, genes (score; mm; postions)\n")
-	#wr = csv.writer(f, quoting=csv.QUOTE_ALL)
 	for sg in res:
 		#make the output in the wanted way
 		sites = sg[4]
 		genes_for_Thefile = ""
-		'''
-		for site in sites:
-			print(site)
-			if len(site) > 0:
-				genes_for_Thefile += str(site[0])
-				for item in site[1]:
-					genes_for_Thefile += "(" + str(list(item[1].keys()))[1:-1] + ") "
-					#
-		'''
 		genes = sg[3]
 		sites = sg[4]
 		for gene in genes:
 			geneIndex = genesNames.index(gene[0])
-
-
 			genes_for_Thefile += gene[0] + " (" + str(gene[1])
 			if len(sites) > 0:
 				for site in sites:
@@ -630,52 +552,15 @@ def print_res_to_file_CSV(res, input_sg_genes_dict, genesList, genesNames, path=
 							sg_position = str(genesList[geneIndex].find(item[0])) #item[0] is the target site seq
 							if sg_position == -1:
 								sg_position = str(CasSites.give_complementary(genesList[geneIndex]).find(item[0])) + "R) "
-
 							genes_for_Thefile += "; pos: " + str(sg_position)
-
 			else:
 				sg_position = str(genesList[geneIndex].find(sg[0]))
 				if sg_position == -1:
 					sg_position = str(CasSites.give_complementary(genesList[geneIndex]).find(sg[0])) + "R) "
 				genes_for_Thefile += "1; perfect match; " + sg_position
-
-			##
-		'''
-			if len(site) > 0:
-				genes_for_Thefile += str(site[0])
-				for item in site[1]:
-					genes_for_Thefile += "(" + str(list(item[1].keys()))[1:-1] + ") "
-					#
-
-		if genes_for_Thefile == '':
-			row = sg[0] +", " + str(sg[2]) + "," + str(sg[3]) + "\n"
-		else:
-			row = sg[0] + ", " + str(sg[2])+ ","  + genes_for_Thefile + "\n"
-		'''
 		row = sg[0] + ", " + str(sg[2])+ ","  + genes_for_Thefile + "\n"
 		f.write(row)
-		#wr.writerow(row)
-		#wr.writerow(str(sg).translate(None, '{[]}'))
 	f.close()
-	'''
-	for permDS in res:
-		f.write("SG:\n")
-		f.write(permDS[0])
-		f.write("\n")
-		f.write("score:\n")
-		f.write(str(permDS[2]))
-		f.write("\n")
-		f.write("Cleaved genes:\n")
-		for gene_tup in permDS[3]:
-			f.write(gene_tup[0] + "  ")
-		f.write("\n")
-		f.write("cleavage site for each gene:\n")
-		next_line = str(permDS[4])
-		next_line = next_line.replace("RNAfile","")
-		f.write(next_line)
-		f.write("\n\n")
-	f.close()
-	'''
 
 def stopping_condition(current_best_perm):
 	'''rapper version: return True if need to stop'''
@@ -704,11 +589,9 @@ def bottem_up(node, current_sg_genes_dict, current_genes_sg_dict, sgList, sgName
 			if sg not in sgList:
 				sgList.append(sg)
 				sgNames.append(sg)
-
 	##second, find the key sequence##
 	current_res = None
 	if len(current_genes_sg_dict) < 2 :  #only one gene
-
 		current_best_perm, lowest_of_widest = Stage2.find_best_sg_for_single_gene(leaf.name, sgList )#lowest_of_widest is not in use in this function
 	else:
 		#get the set cover from the bottem up algorithm
@@ -729,24 +612,16 @@ def bottem_up(node, current_sg_genes_dict, current_genes_sg_dict, sgList, sgName
 	if (node.parent) and not(stopping_condition(current_best_perm)):
 		bottem_up(node.parent, current_sg_genes_dict, current_genes_sg_dict, sgList, sgNames, Omega)  ##this line is adopted to the rapper algorithm
 
-
-
 def remove_unrelevant_candidates(res):
 	'''
 	:param res:
 	:return: without only 1 genes to target (remove the adding of those, if this path will be chosen), and without candidates that there is another canidate which is equal of better then them on each gene.
 			#first, implementation in quradratic time, and see if it work
 	'''
-	#print("res:", res)
-	#print("\n\n")
 	if len(res) < 1:
 		return
 	candidates_to_del = []
 	for i in range(len(res) -1, -1,-1):
-	#	print(res, "\n\n")
-		#if res[i].cut_expectation < 1 or len(res[i].genes_score_dict) <2:
-		#	del res[i]
-			#candidates_to_del.append(i)
 		if i < len(res) - 1:
 			for j in range(i -1, -1, -1):
 				#print(i, j, len(res))
@@ -755,14 +630,6 @@ def remove_unrelevant_candidates(res):
 				#check if res[j] is better or equale than res[i] on all genes
 				if is_better_candidate(res[j], res[i]):
 					del res[i]
-				#if res[i].seq == res[j].seq: # there is no need in both of them. Who is sutable for more genes?
-					#print(candidate)
-					#print(dandidate2 + "\n\n")
-					#if len(res[i][3]) < len(res[j][3]): #in [3] there is the list of genes.
-					#if res[i].cut_expectation <= res[j].cut_expectation:
-					#	del res[i]
-					#else:
-					#	del res[j]
 
 def is_better_candidate(candidateA, candidateB):
 	'''
@@ -790,11 +657,8 @@ def call_it_all_wighted(genesList, genesNames, input_sg_genes_dict, input_genes_
 	sgList = list(input_sg_genes_dict.keys())
 	sgNames = copy.deepcopy(sgList)
 	best_permutations_DS = Stage2.call_it_all(sgList, sgNames, input_sg_genes_dict, Omega, df_targets)##call_it_all(sgList, sgNames, input_sg_genes_dict, Omega)## Naive.find_Uno_sgRNA(current
-
 	best_permutations_DS.sort(key = lambda item: len(item[3]), reverse=True)# or (len(item[2]) and item[1]))  . sort for the print
-
 	res =  find_w_set_cover(best_permutations_DS, distance_matrix)  ##if the output of the intermadiante is wanted
-
 	return res
 
 def call_it_all(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict, Omega, protodist_outfile, pylip_temps_path, df_targets, cfd_dict = None, PS_number = 12):
@@ -803,9 +667,7 @@ def call_it_all(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict,
 	sgList = list(input_sg_genes_dict.keys())
 	sgNames = copy.deepcopy(sgList)
 	best_permutations_DS = Stage2.call_it_all(sgList, sgNames, input_sg_genes_dict, Omega, df_targets, cfd_dict, PS_number)##call_it_all(sgList, sgNames, input_sg_genes_dict, Omega)## Naive.find_Uno_sgRNA(current
-
 	best_permutations_DS.sort(key = lambda item: item.cut_expectation, reverse=True)# or (len(item[2]) and item[1]))  . sort for the print
-
 	return best_permutations_DS
 
 
@@ -820,26 +682,20 @@ def find_set_cover(candidates_lst, genes_lst):
 	covered_genes = [0 for i in range(len(names_lst))] # 0 if not covered, 1 if covered
 	used_candidates = [0 for i in range(len(candidates_lst))]  # the same here
 	prices_lst = [0 for i in range(len(candidates_lst))]
-	#weight_lst = [dict() for i in range(len(candidates_lst))] # in each dict: key: tuples (i,j) of indexes in the candidates covered genes; value: the averaged of those genes being covered. weight[0,0] = weight of this set
 	while(0 in covered_genes):
-		#print(covered_genes)
 		for c in range(len(candidates_lst)): #going over all of the candidates
 			num_of_coveres_genes = 0
 			if used_candidates[c] == 1:#this candidate was allready chosen
 				continue
 			for i in range(len(candidates_lst[c][3])): #the covered genes lst by this candidate
 				if covered_genes[names_lst.index(candidates_lst[c][3][i][0])] == 0:# #for knowing which to include in take_into_agv list
-
 					num_of_coveres_genes += 1
 			if num_of_coveres_genes == 0:  #this candidate is irelevant for now
 				prices_lst[c] = 100000 #just a big number
 			else:
 				if num_of_coveres_genes > 1:
 					print("num_of_coveres_genes > 1")
-					#print(num_of_coveres_genes)
-					#print(covered_genes)
 				prices_lst[c] = 1/num_of_coveres_genes #unwighted set cover
-
 		#stage 2: find the minimal priced set
 		min_priced = [-1, max(prices_lst)] #index and price
 		for c in range(len(prices_lst)):
@@ -875,9 +731,6 @@ def find_w_set_cover_sevral(candidates_lst ,distance_matrix):
 			res.append([i/10,current_set_cover])
 	return res[0]
 
-	annealing_coef = 0.5
-	return find_w_set_cover_heated(candidates_lst ,distance_matrix, annealing_coef)
-
 def find_w_set_cover_heated(candidates_lst ,distance_matrix, annealing_coef):
 	'''	 the standard greedy aproximation algorithm
 	:param candidates_lst ; a toy example:  ([['ACGCACCC', 0.6, 3.7961971025899606e-06, [('gene1', 0.01608054522924407), ('gene2', 0.01424411400247827), ('gene4', 0.01657343550446999)], [['gene1', [('ACGTACGT', {3: {'C', 'T'}, 6: {'C', 'G'}, 7: {'C', 'T'}})]], ['gene2', [('ACGTAGCT', {3: {'C', 'T'}, 5: {'C', 'G'}, 7: {'C', 'T'}})]], ['gene3', [('ACGTATTG', {3: {'C', 'T'}, 5: {'C', 'T'}, 6: {'C', 'T'}, 7: {'C', 'G'}})]], ['gene4', [('ATGCACGT', {1: {'C', 'T'}, 6: {'C', 'G'}, 7: {'C', 'T'}})]], ['gene5', [('ATGCATGC', {1: {'C', 'T'}, 5: {'C', 'T'}, 6: {'C', 'G'}})]]]], ['ACGCACCT', 0.6, 4.393668496780193e-05, [('gene1', 0.036452247191011256), ('gene2', 0.03157967032967035), ('gene4', 0.03816764705882347)], [['gene1', [('ACGTACGT', {3: {'C', 'T'}, 6: {'C', 'G'}})]], ['gene2', [('ACGTAGCT', {3: {'C', 'T'}, 5: {'C', 'G'}})]], ['gene3', [('ACGTATTG', {3: {'C', 'T'}, 5: {'C', 'T'}, 6: {'C', 'T'}, 7: {'T', 'G'}})]], ['gene4', [('ATGCACGT', {1: {'C', 'T'}, 6: {'C', 'G'}})]], ['gene5', [('ATGCATGC', {1: {'C', 'T'}, 5: {'C', 'T'}, 6: {'C', 'G'}, 7: {'C', 'T'}})]]]] ...
@@ -909,9 +762,6 @@ def find_w_set_cover_heated(candidates_lst ,distance_matrix, annealing_coef):
 						continue
 					num_of_pairs += 1 # also = num_of_coveres_genes(num_of_coveres_genes-1)
 					single_gene_by_the_set = -1
-					#still need to normalise the 1/cut prob.
-					#weight += (distance_matrix[i,j]**annealing_coef) *(1/candidates_lst[c][3][i][1] + 1/candidates_lst[c][3][j][1])/2  # (1/cleaving_probobility_i+ 1/cleaving_proboblity_j)/2 # the distance times the avereged covering probobility is the weight
-					#in assuminig distance matrix is similarity matrix
 					if annealing_coef == 0:
 						weight += (candidates_lst[c][3][i][1] + candidates_lst[c][3][j][1])/2
 					else: #dosen't have to have the 'else' here
@@ -921,13 +771,9 @@ def find_w_set_cover_heated(candidates_lst ,distance_matrix, annealing_coef):
 				prices_lst[c] = 100000 #just a big number
 			else:
 				if num_of_coveres_genes == 1: #assuming taking an sgRNA with perfect mach to the target site
-					#weight = 1 #candidates_lst[single_gene_by_the_set] #cleaving_probobility_single_gene_by_the_set  #givn by the flage single_gene_by_the_set
 					weight = 2 - candidates_lst[c][3][single_gene_by_the_set][1]  #just for testing - have to find what to do with those perfect mached sg.
 				else:
 					weight = 2 - (weight/num_of_pairs)
-
-
-				#prices_lst[c] = weight/num_of_coveres_genes #standard weight by the set cover greedy algorithm
 				prices_lst[c] = 1/num_of_coveres_genes #unwighted set cover
 
 		#stage 2: find the minimal priced set
@@ -936,7 +782,6 @@ def find_w_set_cover_heated(candidates_lst ,distance_matrix, annealing_coef):
 			#print(prices_lst[c])
 			if used_candidates[c] == 0 and prices_lst[c] < min_priced[1]:
 				min_priced = [c, prices_lst[c]]
-				#print("temp_min_price", min_priced)
 		#add the result to the cover and update the covered genes:
 		print("min priced",min_priced)
 		res.append(candidates_lst[min_priced[0]])
@@ -946,8 +791,6 @@ def find_w_set_cover_heated(candidates_lst ,distance_matrix, annealing_coef):
 			gene_index = names_lst.index(candidates_lst[min_priced[0]][3][i][0])
 			covered_genes[gene_index] = 1
 	return res
-
-
 
 def find_set_cover_old(best_permutations_DS):
 	res = []
@@ -978,9 +821,7 @@ def find_set_cover_old(best_permutations_DS):
 			for gene_name in best_current_perm.genes_score_dict.keys():
 				if gene_name in uncovered_genes: #there is a probability that this gene had already been covered bya prevuis sgRNA
 					uncovered_genes.remove(gene_name)
-
 	return res
-
 
 def fill_sg_genes_dict(input_sg_genes_dict):
 	global sg_genes_dict
@@ -993,5 +834,3 @@ def fill_genes_sg_dict(input_genes_sg_dict):
 def test_tree_leavesDS(tree):
 	for l in tree.leaves_DS:
 		print(l)
-if __name__ == "__main__":
-	print_res_to_json(1,1,1,1,path = "D:\\Lab\\test_here")
