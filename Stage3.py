@@ -1,9 +1,6 @@
 __author__ = 'GH'
 
 #the naive algorithm - for a given family, with it's group of sgRNA, find the most promising sgRNAs
-
-import UPGMA
-import bisect
 import copy
 import Candidate
 import Stage2
@@ -40,12 +37,8 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 			num_of_cuts_per_gene = 0 #in use only in the single gene version
 			for target in targets_lst_of_gene:  ##targets_lst_of_gene: list of the target of the gene
 				distance_candidate_target = df(candidate_str, target, cfd_dict)
-				if distance_candidate_target == 0: 
-					continue
 				candidate_cut_prob = 1 - distance_candidate_target ##the distance is between 0 to 1. 0 is usually a perfect match, 1 is far
 				sg_site_differents = two_sequs_differeces(candidate_str, target)
-				if distance_candidate_target == 0: 
-					continue
 				list_of_targets.append([target, sg_site_differents])
 				prob_gene_will_not_cut = prob_gene_will_not_cut * (1- candidate_cut_prob)  #lowering the not cut prob in each sgRNA
 				num_of_cuts_per_gene += candidate_cut_prob
@@ -65,14 +58,13 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 			current_candidate = Candidate.Candidate(candidate_str, cut_expection, genes_score_dict, targets_dict)
 			perm_grades.append(current_candidate)
 	del list_of_perms_sequs
+	print(perm_grades)
 	return perm_grades
 
 def find_Uno_sgRNA_bottems_up_not_num_of_PS_stoppes(genes_sg_dict, Omega, df, node):
 	''' not Uno any more....
 	genes_sg_dict: keys are genes names, values are lists of sgRNA sequences sutable to this gene. clased = a list of the candidates DS of the children of the node '''
 	##stage one: make a list of all the sgRNAs##
-	print("node ",node)
-	print(node, type(node))
 	for clade in node.clades:
 		print("clade: ", type(clade))
 	list_of_sg = []

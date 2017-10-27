@@ -42,7 +42,7 @@ def top_down(best_permutations_DS, node, Omega, sg_genes_dict, targets_df, cfd_d
 	:param Omega: can be removed already??
 	:return:
 	'''
-	if len(node.polymorphic_sites_set) < 14: #change to 12!
+	if len(node.polymorphic_sites_set) < 12:
 		#make current_genes_sg_dict
 		current_genes_sg_dict = dict()
 		for target in node.node_targets_DS:
@@ -54,6 +54,7 @@ def top_down(best_permutations_DS, node, Omega, sg_genes_dict, targets_df, cfd_d
 				else:
 					current_genes_sg_dict[gene_name] = [target]
 		current_res = Stage3.find_Uno_sgRNA(current_genes_sg_dict, Omega, targets_df, node, cfd_dict, PS_number) #current best perm is a tuple with the perm and metedata of this perm. in this option, node.candidtes_DS is updated in the Naive
+		#print(current_genes_sg_dict)
 		if current_res:
 			best_permutations_DS  += current_res
 		return
@@ -118,7 +119,6 @@ def call_it_all(sgList, sgNames, input_sg_genes_dict, Omega, df_targets, cfd_dic
 		fill_leaves_sets(upgmaTree, input_sg_genes_dict)
 		fill_PS(upgmaTree.root)
 		top_down(best_permutations_DS,upgmaTree.root, Omega, input_sg_genes_dict, df_targets, cfd_dict, PS_number)
-		print(best_permutations_DS)
 	return  best_permutations_DS
 
 
