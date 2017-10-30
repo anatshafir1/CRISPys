@@ -20,27 +20,13 @@ class Candidate:
         :return:
         '''
         self.seq = seq
-        #self.fraction_of_cut = fraction_of_cut
         self.cut_expectation = cut_expectation
         self.genes_score_dict = genes_score_dict
         self.targets_dict = targets_dict #change the name to missmatch site dict.
-        #self.width = width
         self.score_2 = None  #the score for the objective function
         self.num_of_genes_above_thr = 0
-        self.cleave_all_above_thr = 1
-    '''
-    def setFractionOfNodesGenes(self,genes_fract):
-        self.FractionOfNodesGenes = genes_fract
+        self.cleave_all_above_thr = 1.0
 
-    def setScore(self, score):
-        self.score = score
-
-    def set_genes_lst(self, genes_lst):
-        self.genes_lst = genes_lst
-
-    def set_targets_lst(self, targets_lst):
-        self.targets_lst = targets_lst
-    '''
 
     def fill_default_fildes(self, gene_names):
         '''
@@ -49,13 +35,10 @@ class Candidate:
         :return:
         '''
         self.genes_score_dict = dict()
-        #print("gene names:" , gene_names)
-        #self.fraction_of_cut = 1
-        self.cut_expectation = 1
-        self.lowest_cut_site_prob = 1
-        #self.width = 1
+        self.cut_expectation = 1.0
+        self.lowest_cut_site_prob = 1.0
         for gene_name in gene_names:
-            self.genes_score_dict[gene_name] = 1
+            self.genes_score_dict[gene_name] = 1.0
             self.targets_dict = {gene_name:[[self.seq, {}]]}
 
 
@@ -64,8 +47,6 @@ class Candidate:
 
     def __repr__(self):
         return self.__str__()
-#(other_genes_score_dict, other_targets_dict[gene_name], gene_name)
-    #    def add_known_site(self, other_match_sites_dict, cleaving_probability, gene_name):
 
     def add_known_site(self, other_targets_dict, cleaving_probability, gene_name):
         '''
@@ -101,8 +82,6 @@ class Candidate:
             self.genes_score_dict[gene_name] = other_gene_cleaving_prob
             self.targets_dict[gene_name] = other_targets_dict[gene_name]
         else:
-            #print("here")
-            #print(self.genes_score_dict[gene_name],"agfdaf", other_gene_cleaving_prob)
             new_cleaving_prob = 1- (1-self.genes_score_dict[gene_name])*(1-other_gene_cleaving_prob)
             self.genes_score_dict[gene_name] = new_cleaving_prob
             self.targets_dict[gene_name] = self.targets_dict[gene_name] + other_targets_dict[gene_name]
@@ -126,7 +105,7 @@ class Candidate:
         :param len_genes_sg_dict:
         :return:
         '''
-        cut_prob = 1
+        cut_prob = 1.0
         num_of_cut_genes = 0
         for gene in self.genes_score_dict:
             if self.genes_score_dict[gene] > Omega:

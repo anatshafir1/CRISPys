@@ -104,16 +104,11 @@ def bottem_up_tree(upgmaTree, Omega, target_df, cfd_dict):
 def call_it_all(sgList, sgNames, input_sg_genes_dict, Omega, df_targets, cfd_dict = None, PS_number = 12):
 	best_permutations_DS = []
 	if len(sgList) == 1:
-		print("only one sgRNA")
+		print("only one sgRNA in the group")
 		genes = input_sg_genes_dict[sgList[0]]
-		genes_list = []
-		genes_score_dict = {}
-		match_sites_dict = {}
-		for gene in genes:
-			genes_list.append((gene,1))
-			genes_score_dict[gene] = 1
-			match_sites_dict[gene] = [sgList[0], {}]
-		best_permutations_DS.append(Candidate.Candidate(sgList[0], 1, genes_score_dict, match_sites_dict))
+		c = Candidate.Candidate(sgList[0])
+		c.fill_default_fildes(genes)
+		best_permutations_DS.append(c)
 	else:
 		upgmaTree = return_upgma(sgList,sgNames, df_targets, cfd_dict)
 		fill_leaves_sets(upgmaTree, input_sg_genes_dict)
