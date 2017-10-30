@@ -20,3 +20,5 @@ i: when choosing the consider homology option, this is the number of sgRNAs desi
 ps the maximal number of possible polymorphic sites in a target. Default: 12
 
 For any questions, please contect galhyams@gmail.com
+
+For any commercial use, please contact the author. 
