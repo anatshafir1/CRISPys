@@ -19,6 +19,6 @@ g: 1 if the target sites are obligated to start with a G codon or 0 otherwise. D
 i: when choosing the consider homology option, this is the number of sgRNAs designed for each homology sub-group. Default: 10
 ps the maximal number of possible polymorphic sites in a target. Default: 12
 
-For any questions, please contect galhyams@gmail.com
+For any questions, please contect the author at galhyams@gmail.com
 
 For any commercial use, please contact the author. 
