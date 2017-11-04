@@ -15,7 +15,7 @@ def find_Uno_sgRNA(genes_sg_dict, Omega, df, node, cfd_dict = None, PS_number = 
 		list_of_sg += val
 	##stage two: find the sutable sgRNA:
 	for_single_gene = False
-	return return_candidates(list_of_sg, list_of_sg[0], genes_sg_dict, Omega, df, node, cfd_dict, for_single_gene)
+	return return_candidates(list_of_sg, list_of_sg[0], genes_sg_dict, Omega, df, node, for_single_gene, cfd_dict)
 
 def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, node, for_single_gene = False, cfd_dict = None, PS_number = 12):
 	dict_of_different_places = wheres_the_differences_linear(list_of_targets) ##node_targets_DS is a python array. where_the_differences.
