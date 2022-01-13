@@ -1,4 +1,4 @@
-name: crispys_omer
+name: crispys_env
 channels:
   - bioconda
   - conda-forge
