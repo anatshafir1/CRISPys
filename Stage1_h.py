@@ -52,8 +52,8 @@ def fill_genes_sg_dict(input_genes_sg_dict):
 #############################################################################################################
 
 
-def call_it_all(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict, Omega, protodist_outfile, pylip_temps_path, df_targets, internal_node_candidates, cfd_dict = None, PS_number = 12):
-	upgmaTree, distance_matrix = Stage1.return_UPGMA(genesList, genesNames, protodist_outfile, pylip_temps_path) #to uncomment when using wighted
+def call_it_all(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict, Omega, protdist_outfile, pylip_temps_path, df_targets, internal_node_candidates, cfd_dict = None, PS_number = 12):
+	upgmaTree, distance_matrix = Stage1.return_UPGMA(genesList, genesNames, protdist_outfile, pylip_temps_path) #to uncomment when using wighted
 	write_newik_to_file(upgmaTree.root, pylip_temps_path)
 	tree_to_file(upgmaTree.root, pylip_temps_path)
 	Stage2.fill_leaves_sets_genes_tree(upgmaTree)  # as apposed to the intermediate algorithem, here leaves are genes
@@ -61,6 +61,7 @@ def call_it_all(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict,
 	fill_genes_sg_dict(input_genes_sg_dict)
 	#making the sgList for Algorithm B:
 	sgList = list(input_sg_genes_dict.keys())
+	print('sg list',sgList)
 	sgNames = copy.deepcopy(sgList)
 	res = []
 	#E_bottem_up_tree(res, upgmaTree, Omega, df_targets)
@@ -171,7 +172,7 @@ def E_bottem_up_tree(res, upgmaTree, Omega, df_targets):
 def tree_to_file(node, path):
 	lst = list()
 	tree_prerder(node,lst)
-	print(lst, file=open(path + "GenesTree.txt", 'w'))
+	print(lst, file=open(path + "/GenesTree.txt", 'w'))
 
 def tree_prerder(node, lst):
 	if not node:
@@ -241,8 +242,10 @@ def E_top_down(res, node, Omega, sg_genes_dict, df_targets, internal_node_candid
 		#res += current_best_perm
 		#res += [current_best_perm]
 		res.append(Subgroup_res(get_genes_list(best_permutations_DS) ,current_best_perm, node.name))
+		# print(res[0].genes_lst)
 
 	#else:
+
 	if not node.clades:
 		return
 	

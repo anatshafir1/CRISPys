@@ -99,9 +99,11 @@ def MITScore_alternative_imp(seq1, seq2,dicti = None):
 def ccTop(sgseq, target_seq, dicti = None):
 	assert len(sgseq) == len(target_seq)
 	max_score = sum([math.pow(1.2, i+1) for i in range(len(sgseq))])
+    #max score = sum(i = 1,lengh_sg){(1.2**(i+1))}
 	mm = [i+1 if sgseq[i] != target_seq[i] else 0 for i in range(len(sgseq))]
+    # if mismatch-> mm[i]=i+i else->mm[i]=0
 	curScore = sum(list(map(lambda x: pow(1.2, x) if x !=0 else 0, mm)))
-	return curScore/max_score
+	return curScore/max_score # a value between 0 and 1
 
 
 def make_UPGMA(dm):
@@ -124,6 +126,7 @@ def make_initiale_matrix(df,seqList):
 			row += [tempDistance]
 			j += 1
 		res += [row]
+	print(res) ##test print
 	return res
 
 def make_distance_matrix(names, initiale_matrix):

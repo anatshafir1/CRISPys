@@ -42,7 +42,7 @@ def FASTA_to_PHYLIP_old(in_file, out_file):
 	return out_file
 
 def FASTA_to_PHYLIP(in_f, out_f):
-	os.system('perl /groups/pupko/haim/pupkoSVN/trunk/scripts/convertMsaFormat.pl '+in_f + ' ' +out_f+' fasta phylip')
+	os.system('perl convertMsaFormat.pl '+in_f + ' ' +out_f+' fasta phylip')
 
 def call_protdist_using_q(phylip_file, protdist_file, outpath):
 	#print("protdist file = ",protdist_file)
@@ -94,7 +94,6 @@ def runIt(names_lst, seq_lst, protdist_outfile, out_path):
 
 def call_protdist1(phylip_file, protdist_outfile, outpath):
 	#os.system("protdist "+phylip_file)
-
 	os.chdir(outpath)
 	os.system('echo "Y\r\n" | protdist')  #for my file
 

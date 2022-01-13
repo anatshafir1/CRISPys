@@ -58,7 +58,7 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 			current_candidate = Candidate.Candidate(candidate_str, cut_expection, genes_score_dict, targets_dict)
 			perm_grades.append(current_candidate)
 	del list_of_perms_sequs
-	print(perm_grades)
+	#print(perm_grades)
 	return perm_grades
 
 def find_Uno_sgRNA_bottems_up_not_num_of_PS_stoppes(genes_sg_dict, Omega, df, node):

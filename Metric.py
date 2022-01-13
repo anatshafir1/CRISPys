@@ -21,7 +21,11 @@ def pos_in_metric_general(t, df, base, cfd_dict = None):
 def pos_in_metric_cfd(t, cfd_dict = None):
 	'''
 	:param t: target
-	 implement a version of the cfd score, in which
+	 construct a distance vector for a given target, using the cfd score dict
+	 example of a value in the cfd dic: ('rT:dA', 17): 0.6 means that the score of
+	 a mismatch between T (in Nucs) and A (in the target) at position 17 is 0.6
+	 @point example for a target with a G at position 1: [0.857142857,0.714285714,1,0.857142857,(...the scores in the other positions...)]
+	 the length of the vector should be 80 if the target length is 20
 	:return:
 	'''
 	if not dicti:
@@ -137,3 +141,5 @@ def test2_compre_to_shirans():
 	s1, s2 = 1-cfd_funct(t1, t2), 1- UPGMA.cfd_func(t1, t2)
 
 	print(s1, s2)
+
+

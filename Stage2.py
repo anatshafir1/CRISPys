@@ -110,7 +110,9 @@ def call_it_all(sgList, sgNames, input_sg_genes_dict, Omega, df_targets, cfd_dic
 		c.fill_default_fildes(genes)
 		best_permutations_DS.append(c)
 	else:
+        #create the distance matrix and perform UPGMA on it
 		upgmaTree = return_upgma(sgList,sgNames, df_targets, cfd_dict)
+        #
 		fill_leaves_sets(upgmaTree, input_sg_genes_dict)
 		fill_PS(upgmaTree.root)
 		top_down(best_permutations_DS,upgmaTree.root, Omega, input_sg_genes_dict, df_targets, cfd_dict, PS_number)
@@ -160,12 +162,15 @@ def return_upgma(seq_list, names_list, df, cfd_dict = None):
 		#base = seq_list
 		#metric_seq_list = list(map(lambda t: Metric.pos_in_metric_general(t,df,base, cfd_dict), seq_list))
 		
+        #create a list of target vectors
 		seq_list = list(map(lambda t: Metric.pos_in_metric_cfd_np(t, cfd_dict), seq_list)) #to uncomment
 
 	#	df = Metric.find_dist_t  #if prev line is not  is use #to uncomment
 		df = Metric.find_dist_np
+    #create the distance matrix
 	matrix = UPGMA.make_initiale_matrix(df, seq_list)
 	m2 = UPGMA.make_distance_matrix(names_list, matrix)  #shuold be m2 = UPGMA.make_distance_matrix(names_list, matrix)
+    #apply UPGMA, return a target tree
 	upgma1 = UPGMA.make_UPGMA(m2)
 	return upgma1
 

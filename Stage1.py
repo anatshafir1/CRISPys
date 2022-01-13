@@ -427,12 +427,16 @@ def print_res_to_csvV2(res, input_sg_genes_dict, genesList, genesNames, path, ho
 			for i in range(len(copy_mm_list)):
 				res += str(copy_mm_list[i]+1) + " " #first pos will be considered as 1
 			return res
-		f.write("sgRNA, Sum of genes score, Targeted genes (score; mm; postions)\n")
+		f.write("sgRNA, Sum of genes score, Targeted genes (best score| mm; postions)\n")
 		for candidate in res:
 			#make the output in the wanted way
 			genes_for_Thefile = ""
 			genes = sorted(list(candidate.genes_score_dict.keys()), key = lambda gene: candidate.genes_score_dict[gene], reverse = True)
 			sites = candidate.targets_dict
+			# sort the sites by number of mismatches (Udi)
+			for gene in sites.keys():
+				sites[gene] = sorted(sites[gene], key=lambda site: len(site[1]))
+
 			for gene in genes:
 				geneIndex = genesNames.index(gene)
 				score = str(candidate.genes_score_dict[gene])
@@ -442,14 +446,21 @@ def print_res_to_csvV2(res, input_sg_genes_dict, genesList, genesNames, path, ho
 				if len(sites) > 0:
 					site_index = 1
 					for site in sites.keys():
-						if site_index >1:
-							genes_for_Thefile += "; target_" + str(site_index) + ": "
+						# if site_index >1:
+						# 	genes_for_Thefile += "; target_" + str(site_index) + ": "
 						if site == gene:
 							genes_for_Thefile += "; "
 							mm = ''
+
 							for item in sites[site]:  #item here is a single match site
 								if len(item[1].keys()) > 0:
-									genes_for_Thefile += str_of_mm(item[1].keys())#" " + str(list(map(lambda x: x+1, list(item[1].keys()))).sort())[1:-1].replace(",", "")
+									# here I added the " " and now the output is more clear. Udi
+									genes_for_Thefile += " target_" + str(site_index) + ": " + str_of_mm(item[1].keys())#" " + str(list(map(lambda x: x+1, list(item[1].keys()))).sort())[1:-1].replace(",", "")
+									site_index += 1
+								else:
+									genes_for_Thefile += " target_" + str(site_index) + ": no mm"
+									site_index += 1
+
 								#find pos:
 								sg_position = str(genesList[geneIndex].find(item[0])) #item[0] is the target site seq
 								if sg_position == "-1":
@@ -462,7 +473,7 @@ def print_res_to_csvV2(res, input_sg_genes_dict, genesList, genesNames, path, ho
 					if sg_position == "-1":
 						sg_position = str(CasSites.give_complementary(genesList[geneIndex]).find(candidate.seq)) + "R"
 					genes_for_Thefile += "1; perfect match; " + sg_position + ") "
-			row = candidate.seq + ", " + str(candidate.cut_expectation)+ ","  + genes_for_Thefile + "\n"
+			row = candidate.seq + ", " + str(candidate.cut_expectation)+ "," + genes_for_Thefile + "\n"
 			f.write(row)
 			#end of do_it()
 	CSV_file_name = path+ "/output.csv"
@@ -648,8 +659,8 @@ def bottem_up_tree(upgmaTree, Omega):
 	for i in range(len(upgmaTree.leaves_DS)):
 		bottem_up(upgmaTree.leaves_DS[i], None,None,None,None, Omega)
 
-def call_it_all_wighted(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict, Omega, protodist_outfile, pylip_temps_path):
-	upgmaTree, distance_matrix = return_UPGMA(genesList, genesNames, protodist_outfile, pylip_temps_path) #to uncomment when using wighted
+def call_it_all_wighted(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict, Omega, protdist_outfile, pylip_temps_path):
+	upgmaTree, distance_matrix = return_UPGMA(genesList, genesNames, protdist_outfile, pylip_temps_path) #to uncomment when using wighted
 	Stage2.fill_leaves_sets(upgmaTree)  # as apposed to the intermediate algorithem, here leaves are genes
 	fill_sg_genes_dict(input_sg_genes_dict)
 	fill_genes_sg_dict(input_genes_sg_dict)
@@ -661,7 +672,7 @@ def call_it_all_wighted(genesList, genesNames, input_sg_genes_dict, input_genes_
 	res =  find_w_set_cover(best_permutations_DS, distance_matrix)  ##if the output of the intermadiante is wanted
 	return res
 
-def call_it_all(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict, Omega, protodist_outfile, pylip_temps_path, df_targets, cfd_dict = None, PS_number = 12):
+def call_it_all(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict, Omega, protdist_outfile, pylip_temps_path, df_targets, cfd_dict = None, PS_number = 12):
 	fill_sg_genes_dict(input_sg_genes_dict)
 	fill_genes_sg_dict(input_genes_sg_dict)
 	sgList = list(input_sg_genes_dict.keys())

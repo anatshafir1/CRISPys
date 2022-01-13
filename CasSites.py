@@ -2,6 +2,9 @@ __author__ = 'ItayM5'
 import re ##used to be regex
 import regex
 
+#1324
+#write simhing to test git commit-push-pull :
+
 def get_sites(gene, min_length=20, max_length=20, start_with_G=False, where_in_gene = 1):
 	'''
 	:param gene:
@@ -86,10 +89,11 @@ def get_targets_sites_from_exons_lst(exons_lst, original_range_in_gene = [0,1], 
 		print("The range of the lengths of the sgRNA is not in the right format")
 		exit(-1)
 	res = []
-	lengths = list(map(lambda x: len(x), exons_lst))
+	lengths = [len(exon) for exon in exons_lst]
 	gene_length = sum(lengths)
-	range_in_gene = list(map(lambda x: int(x * gene_length), original_range_in_gene))
-	exons_lst = list(map(lambda seq: seq.upper(), exons_lst)) #converting to upper-case
+    #where in gene - used for deciding what parts to consider in the gene
+	range_in_gene = [int(r*gene_length) for r in original_range_in_gene]
+	##exons_lst = list(map(lambda seq: seq.upper(), exons_lst)) #might be unneccesary
 
 	for i in range(1, len(lengths)):
 		lengths[i] = lengths[i-1] + lengths[i]
