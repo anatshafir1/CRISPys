@@ -93,7 +93,7 @@ def CRISPys_main(fasta_file, path , alg = 'A', where_in_gene = 1, use_thr = 0,  
     if df_targets == "CCTop" or df_targets == "ccTop" :
         df_targets = UPGMA.ccTop
     protodist_outfile = path + "/" + protodist_outfile
-    print(df_targets)
+    #print(df_targets)
     original_range_in_gene = [0, where_in_gene]
     genes_sg_dict = {}
     sg_genes_dict = {}
