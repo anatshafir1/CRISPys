@@ -5,6 +5,9 @@ import os
 from Bio.Align.Applications import MafftCommandline
 import time
 
+# get the absolute path of the script
+PATH = os.path.dirname(os.path.realpath(__file__))
+
 ####################################################################################################################################################################
 ##the pipeline: make FASTA file, run mafft on it to get the output in a fasta file, convert this FASTA to PHYLIP, and run PHYLIP's tool for making distance matrix##
 ####################################################################################################################################################################
@@ -42,7 +45,7 @@ def FASTA_to_PHYLIP_old(in_file, out_file):
 	return out_file
 
 def FASTA_to_PHYLIP(in_f, out_f):
-	os.system('perl convertMsaFormat.pl '+in_f + ' ' +out_f+' fasta phylip')
+	os.system('perl ' + PATH +  '/convertMsaFormat.pl '+in_f + ' ' +out_f+' fasta phylip')
 
 def call_protdist_using_q(phylip_file, protdist_file, outpath):
 	#print("protdist file = ",protdist_file)
