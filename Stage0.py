@@ -9,6 +9,9 @@ import pickle
 import Metric
 import argparse
 import os
+import random
+
+random.seed(1234)
 
 # get the path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))
@@ -147,7 +150,7 @@ def CRISPys_main(fasta_file, path , alg = 'A', where_in_gene = 1, use_thr = 0,  
     pickle.dump(res, open(path + "/res_in_lst.p", "wb"))
     pickle.dump(genesNames, open(path + "/genesNames.p", "wb"))
     stop = timeit.default_timer()
-    print("time: ", stop - start)
+    ("time: ", stop - start)
     time_file = open("time.txt", 'w')
     time_file.write(str(stop - start))
     time_file.close
