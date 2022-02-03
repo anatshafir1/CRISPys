@@ -3,6 +3,7 @@ __author__ = 'GH'
 
 import os
 from Bio.Align.Applications import MafftCommandline
+from Bio import SeqIO # app to read fasta files (added by Udi)
 import time
 
 # get the absolute path of the script
@@ -36,6 +37,14 @@ def call_mafft_0(in_file, out_file):
 def call_mafft_distout(in_file, out_file):
 	#mafft_exe = "D:\Gal\MultiCrisper\mafft-7.245-win64\mafft-win\mafft.bat"
 	#in_file = "../Doc/examples/opuntia.fasta"
+	cycles = 0
+	while not os.path.isfile(in_file):  # wait for the in_file to be created added by Udi 03022022
+		if cycles < 11:
+			time.sleep(10)
+			cycles += 1
+			if cycles == 10:
+				print(f"wheited for 100 seconds for {in_file} and couldnt find it, check out function 'call_mafft_distout' in mafft_and_phylip.py")
+				break
 	command = "mafft --distout" + in_file + " > "+  out_file
 	os.system(command)
 
@@ -46,6 +55,15 @@ def FASTA_to_PHYLIP_old(in_file, out_file):
 
 def FASTA_to_PHYLIP(in_f, out_f):
 	os.system('perl ' + PATH +  '/convertMsaFormat.pl '+in_f + ' ' +out_f+' fasta phylip')
+
+# def FASTA_to_PHYLIP(in_f, out_f):
+# 	'''
+# 	A new function to change format of the alignments from fasta to phylip using biopython
+# 	This function replace the old one that used a perl script (above)
+# 	written by Udi 25/01/22
+# 	'''
+# 	aligned_genes = list(SeqIO.parse(in_f, "fasta"))
+# 	SeqIO.write(aligned_genes, out_f, "phylip")
 
 def call_protdist_using_q(phylip_file, protdist_file, outpath):
 	#print("protdist file = ",protdist_file)

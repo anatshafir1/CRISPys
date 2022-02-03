@@ -6,6 +6,8 @@ import Candidate
 import Stage2
 import random
 
+random.seed(1234)
+
 def find_Uno_sgRNA(genes_sg_dict, Omega, df, node, cfd_dict = None, PS_number = 12):
 	''' not Uno any more....
 	genes_sg_dict: keys are genes names, values are lists of sgRNA sequences sutable to this gene. clased = a list of the candidates DS of the children of the node '''

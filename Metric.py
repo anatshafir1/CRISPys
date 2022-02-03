@@ -4,6 +4,7 @@ from functools import reduce
 import UPGMA
 import random
 import string
+random.seed(1234)
 
 def pos_in_metric_general(t, df, base, cfd_dict = None):
 	'''
