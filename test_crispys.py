@@ -217,15 +217,15 @@ def compare_output(old_res_folder, new_res_folder):
     res.close()
 
 
-def main(code_folder, res_folder, res_folder_new, state):
-    if state == "run_and_compare":
+def main(code_folder, res_folder, res_folder_new, mode):
+    if mode == "run_and_compare":
         run_crispys_test(code_folder, res_folder_new)
         compare_output(res_folder, res_folder_new)
 
-    if state == "run":
+    if mode == "run":
         run_crispys_test(code_folder, res_folder_new)
 
-    if state == "compare":
+    if mode == "compare":
         compare_output(res_folder, res_folder_new)
 
 
@@ -233,7 +233,7 @@ def parse_arguments(parser):
     parser.add_argument('--code_folder', '-code', type=str, help='The path to the crispys code folder')
     parser.add_argument('--res_folder', '-ref', type=str, help='The path to the crispys results (reference)')
     parser.add_argument('--res_folder_new', '-new', type=str, help='The path to the new crispys results')
-    parser.add_argument('--state', '-s', default="run_and_compare", type=str, help="mode of action, choose between 'run_and_compare', 'run' and 'compare'")
+    parser.add_argument('--mode', '-m', default="run_and_compare", type=str, help="mode of action, choose between 'run_and_compare', 'run' and 'compare'")
     args = parser.parse_args()
     return args
 
@@ -244,8 +244,12 @@ if __name__ == "__main__":
     main(code_folder = args.code_folder,
                  res_folder = args.res_folder,
                  res_folder_new = args.res_folder_new,
-                 state = args.state)
+                 mode = args.mode)
 
 
-
+# run_crispys_test("/groups/itay_mayrose/udiland/crispys_code/CRISPys",
+#                    "/groups/itay_mayrose/udiland/crispys_test/test_files_git/res")
+#
+# compare_output("/groups/itay_mayrose/udiland/crispys_test/test_files_git",
+#                "/groups/itay_mayrose/udiland/crispys_test/test_files_git/res")
 
