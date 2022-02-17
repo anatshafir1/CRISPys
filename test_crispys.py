@@ -247,9 +247,5 @@ if __name__ == "__main__":
                  mode = args.mode)
 
 
-# run_crispys_test("/groups/itay_mayrose/udiland/crispys_code/CRISPys",
-#                    "/groups/itay_mayrose/udiland/crispys_test/test_files_git/res")
-#
-# compare_output("/groups/itay_mayrose/udiland/crispys_test/test_files_git",
-#                "/groups/itay_mayrose/udiland/crispys_test/test_files_git/res")
+
 
