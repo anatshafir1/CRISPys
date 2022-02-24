@@ -174,7 +174,7 @@ def compare_output(old_res_folder, new_res_folder):
 
          # if there is a file, read it and the old version and compare the them
          if os.path.isfile(new_res_folder + "/" + folder + "/output.csv"):
-
+            time.sleep(15)
             # open the crispys outputs
             with open(new_res_folder + "/" + folder + "/output.csv", "r") as new, open(
                     old_res_folder + "/" + folder + "/output.csv", "r") as old:
@@ -217,13 +217,13 @@ def compare_output(old_res_folder, new_res_folder):
     res.close()
 
 
-def main(code_folder, res_folder, res_folder_new, mode):
+def main(code_folder, res_folder, res_folder_new=None, mode="run_and_compare"):
     if mode == "run_and_compare":
         run_crispys_test(code_folder, res_folder_new)
         compare_output(res_folder, res_folder_new)
 
     if mode == "run":
-        run_crispys_test(code_folder, res_folder_new)
+        run_crispys_test(code_folder, res_folder)
 
     if mode == "compare":
         compare_output(res_folder, res_folder_new)
@@ -246,6 +246,10 @@ if __name__ == "__main__":
                  res_folder_new=args.res_folder_new,
                  mode=args.mode)
 
+# main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
+#      res_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git",
+#      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
+#      mode="run_and_compare")
 
 
 
