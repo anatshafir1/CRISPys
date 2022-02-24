@@ -53,6 +53,7 @@ def fill_genes_sg_dict(input_genes_sg_dict):
 
 
 def call_it_all(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict, Omega, protdist_outfile, pylip_temps_path, df_targets, internal_node_candidates, cfd_dict = None, PS_number = 12):
+	# make a tree and distance matrix of the genes
 	upgmaTree, distance_matrix = Stage1.return_UPGMA(genesList, genesNames, protdist_outfile, pylip_temps_path) #to uncomment when using wighted
 	write_newik_to_file(upgmaTree.root, pylip_temps_path)
 	tree_to_file(upgmaTree.root, pylip_temps_path)

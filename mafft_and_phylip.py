@@ -53,17 +53,17 @@ def FASTA_to_PHYLIP_old(in_file, out_file):
 	os.system("perl Fasta2Phylip.pl "+ in_file + " " + out_file)
 	return out_file
 
-def FASTA_to_PHYLIP(in_f, out_f):
-	os.system('perl ' + PATH +  '/convertMsaFormat.pl '+in_f + ' ' +out_f+' fasta phylip')
-
 # def FASTA_to_PHYLIP(in_f, out_f):
-# 	'''
-# 	A new function to change format of the alignments from fasta to phylip using biopython
-# 	This function replace the old one that used a perl script (above)
-# 	written by Udi 25/01/22
-# 	'''
-# 	aligned_genes = list(SeqIO.parse(in_f, "fasta"))
-# 	SeqIO.write(aligned_genes, out_f, "phylip")
+# 	os.system('perl ' + PATH +  '/convertMsaFormat.pl '+in_f + ' ' +out_f+' fasta phylip')
+
+def FASTA_to_PHYLIP(in_f, out_f):
+	'''
+	A new function to change format of the alignments from fasta to phylip using biopython
+	This function replace the old one that used a perl script (above)
+	written by Udi 25/01/22
+	'''
+	aligned_genes = list(SeqIO.parse(in_f, "fasta"))
+	SeqIO.write(aligned_genes, out_f, "phylip")
 
 def call_protdist_using_q(phylip_file, protdist_file, outpath):
 	#print("protdist file = ",protdist_file)

@@ -42,7 +42,7 @@ def top_down(best_permutations_DS, node, Omega, sg_genes_dict, targets_df, cfd_d
 	:param Omega: can be removed already??
 	:return:
 	'''
-	if len(node.polymorphic_sites_set) < 12:
+	if len(node.polymorphic_sites_set) < PS_number: # was hardcoded to be 12, change it to be the PS_number argument Udi 24/02/22
 		#make current_genes_sg_dict
 		current_genes_sg_dict = dict()
 		for target in node.node_targets_DS:
@@ -110,7 +110,7 @@ def call_it_all(sgList, sgNames, input_sg_genes_dict, Omega, df_targets, cfd_dic
 		c.fill_default_fildes(genes)
 		best_permutations_DS.append(c)
 	else:
-        #create the distance matrix and perform UPGMA on it
+        #create the distance matrix of sgRNAs and perform UPGMA on it
 		upgmaTree = return_upgma(sgList,sgNames, df_targets, cfd_dict)
         #
 		fill_leaves_sets(upgmaTree, input_sg_genes_dict)
