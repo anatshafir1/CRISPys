@@ -246,10 +246,12 @@ def two_sequs_differeces_int(seq1,seq2):
 def two_sequs_differeces_set(seq1,seq2):
 	'''return a list of where the two sequences are different'''
 	differences = set()  ##key: place of disagreement. value: the suggestions of each side
-	if len(seq2) < len(seq1): #putting the longer sequence as seq2
-		temp = seq1
-		seq1 = seq2
-		seq2 = temp
+	seq1 = seq1[:20]
+	seq2 = seq2[:20] # the pam is not considered when computing PS sites
+#	if len(seq2) < len(seq1): #putting the longer sequence as seq2.
+#		temp = seq1
+#		seq1 = seq2
+#		seq2 = temp
 	for i in range(1,len(seq2) - len(seq1)):
 		differences.add(len(seq2) - i)
 	for i in range(len(seq1)):

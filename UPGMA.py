@@ -126,7 +126,6 @@ def make_initiale_matrix(df,seqList):
 			row += [tempDistance]
 			j += 1
 		res += [row]
-	print(res) ##test print
 	return res
 
 def make_distance_matrix(names, initiale_matrix):

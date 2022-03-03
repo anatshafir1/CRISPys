@@ -313,7 +313,7 @@ def wheres_the_differences_not_naive(leave_DS):
 					not_to_check.add(i)
 
 def all_perms(initial_seq, list_of_sequs, list_of_differences):
-	'''each recursive call add the next part to the sequnces. the resuls is sequnces off each of the parms
+	'''each recursive call add the next part to the sequnces. the result is sequnces off each of the parms
 	list of differences : list of tuples: (place, set of letters)'''
 	if len(list_of_differences) == 0:  ##the stopping condition
 		if(list_of_sequs):
@@ -333,7 +333,7 @@ def all_perms(initial_seq, list_of_sequs, list_of_differences):
 				if len(list_of_differences) > 1:
 					new_list_of_sequs.append(seq + letter + initial_seq[len(seq)+1 :list_of_differences[1][0]]) #the place of the next versital letter place
 				else:
-					new_list_of_sequs.append(seq + letter + initial_seq[len(seq)+1 :])
+					new_list_of_sequs.append(seq + letter + initial_seq[len(seq)+1 :20])
 		del list_of_sequs
 		return all_perms(initial_seq, new_list_of_sequs, list_of_differences[1:])
 
@@ -356,12 +356,14 @@ def wheres_the_differences_specific(leave_DS):
 def two_sequs_differeces(seq1,seq2):
 	'''return a list of where the two sequences are different'''
 	differences = {}  ##key: place of disagreement. value: the suggestions of each side
-	if len(seq2) < len(seq1): #putting the longer sequence as seq2
-		temp = seq1
-		seq1 = seq2
-		seq2 = temp
-	for i in range(1,len(seq2) - len(seq1)):
-		differences[len(seq2) - i] = seq2[len(seq2) -i]
+#	if len(seq2) < len(seq1): #putting the longer sequence as seq2
+#		temp = seq1
+#		seq1 = seq2
+#		seq2 = temp
+	seq1 = seq1[:20]
+	seq2 = seq2[:20] # in cases the PAM is not sliced - don't take PAM into account
+#	for i in range(1,len(seq2) - len(seq1)):
+#		differences[len(seq2) - i] = seq2[len(seq2) -i]
 	for i in range(len(seq1)):
 		if seq1[i] != seq2[i]:
 			differences[i] = [seq1[i], seq2[i]]
