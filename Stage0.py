@@ -143,12 +143,15 @@ def CRISPys_main(fasta_file, path , alg = 'A', where_in_gene = 1, use_thr = 0,  
     else:
         sort_expectation(res, alg == 'E')
     #remove the folowing two lines when using CRISPysCover
-    if len(res)>200:
-        res = res[:200]
+    # if len(res)>200: #commented by Udi 03032022
+    #     res = res[:200]
+
     Stage1.print_res_to_csvV2(res, sg_genes_dict, genesList, genesNames, path, alg == 'E')
     Stage1.print_res_to_csvV3(res, sg_genes_dict, genesList, genesNames, path, alg =='E')
     pickle.dump(res, open(path + "/res_in_lst.p", "wb"))
     pickle.dump(genesNames, open(path + "/genesNames.p", "wb"))
+    # add saving the geneList in pickle in order to produce the results like in the server version - Udi 28/02/22
+    pickle.dump(genesList, open(path + '/genesList.p', 'wb'))
     stop = timeit.default_timer()
     ("time: ", stop - start)
     time_file = open("time.txt", 'w')

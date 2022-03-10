@@ -95,6 +95,7 @@ def get_targets_sites_from_exons_lst(exons_lst, original_range_in_gene = [0,1], 
 	range_in_gene = [int(r*gene_length) for r in original_range_in_gene]
 	##exons_lst = list(map(lambda seq: seq.upper(), exons_lst)) #might be unneccesary
 
+	#accumolate the length of exons
 	for i in range(1, len(lengths)):
 		lengths[i] = lengths[i-1] + lengths[i]
 	for i in range(len(exons_lst)):
