@@ -62,7 +62,7 @@ def call_it_all(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict,
 	fill_genes_sg_dict(input_genes_sg_dict)
 	#making the sgList for Algorithm B:
 	sgList = list(input_sg_genes_dict.keys())
-	print('sg list',sgList)
+	#print('sg list',sgList)
 	sgNames = copy.deepcopy(sgList)
 	res = []
 	#E_bottem_up_tree(res, upgmaTree, Omega, df_targets)
@@ -193,7 +193,6 @@ def E_top_down(res, node, Omega, sg_genes_dict, df_targets, internal_node_candid
 	:param Omega: can be removed already??
 	:return:
 	'''
-	print(cfd_dict == None)
 	#if len(node.polymorphic_sites_set) < 11: #change to 12!
 			##making the genes_sg dict for this subtree and the sg_genes_dict to send to the intermadiate algorithm
 	current_sg_genes_dict = dict()
@@ -249,8 +248,6 @@ def E_top_down(res, node, Omega, sg_genes_dict, df_targets, internal_node_candid
 
 	if not node.clades:
 		return
-	
-	print(cfd_dict == None)
 
 	if node.clades[0]:
 		E_top_down(res, node.clades[0], Omega, sg_genes_dict, df_targets, internal_node_candidates, cfd_dict, PS_number)

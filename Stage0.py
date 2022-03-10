@@ -78,7 +78,7 @@ def remove_repetitions_in_targets_sites(res):
         del res[to_remove[index]]
 
 
-def CRISPys_main(fasta_file, path , alg = 'A', where_in_gene = 1, use_thr = 0,  Omega = 1, df_targets = Metric.cfd_funct, protodist_outfile = "outfile", min_length= 20, max_length = 20,start_with_G = False, internal_node_candidates = 10, PS_number = 12):
+def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Omega = 1, df_targets = Metric.cfd_funct, protdist_outfile ="outfile", min_length= 20, max_length = 20, start_with_G = False, internal_node_candidates = 10, PS_number = 12):
     start = timeit.default_timer()
     cfd_dict = None
     if isinstance(where_in_gene, str):
@@ -95,7 +95,7 @@ def CRISPys_main(fasta_file, path , alg = 'A', where_in_gene = 1, use_thr = 0,  
         cfd_dict = pickle.load(open(PATH + "/cfd_dict.p",'rb'))
     if df_targets == "CCTop" or df_targets == "ccTop" :
         df_targets = UPGMA.ccTop
-    protodist_outfile = path + "/" + protodist_outfile
+    protdist_outfile = path + "/" + protdist_outfile
     #print(df_targets)
     original_range_in_gene = [0, where_in_gene]
     genes_sg_dict = {}
@@ -124,7 +124,7 @@ def CRISPys_main(fasta_file, path , alg = 'A', where_in_gene = 1, use_thr = 0,  
         i+=1
     #stage 2: find the target sites
     for gene_name in genes_exons_dict.keys():
-        genes_sg_dict[gene_name] = CasSites.get_targets_sites_from_exons_lst(genes_exons_dict[gene_name], original_range_in_gene, min_length, max_length,start_with_G)
+        genes_sg_dict[gene_name] = CasSites.get_targets_sites_from_exons_lst(genes_exons_dict[gene_name],df_targets, original_range_in_gene, min_length, max_length,start_with_G)
         genesNames.append(gene_name)
         genesList.append("".join(genes_exons_dict[gene_name]))
         #filling up the sg_genes_dict
@@ -134,10 +134,10 @@ def CRISPys_main(fasta_file, path , alg = 'A', where_in_gene = 1, use_thr = 0,  
             else:
                 sg_genes_dict[sg] = [gene_name]
     if alg == 'E':
-        res = Stage1_h.call_it_all(genesList, genesNames, sg_genes_dict, genes_sg_dict, Omega, protodist_outfile, path, df_targets, internal_node_candidates, cfd_dict, PS_number)
+        res = Stage1_h.call_it_all(genesList, genesNames, sg_genes_dict, genes_sg_dict, Omega, protdist_outfile, path, df_targets, internal_node_candidates, cfd_dict, PS_number)
 
     else:
-        res = Stage1.call_it_all(genesList, genesNames, sg_genes_dict, genes_sg_dict, Omega, protodist_outfile, path, df_targets, cfd_dict, PS_number) #thies line have been change to be sutable for wrapper
+        res = Stage1.call_it_all(genesList, genesNames, sg_genes_dict, genes_sg_dict, Omega, protdist_outfile, path, df_targets, cfd_dict, PS_number) #thies line have been change to be sutable for wrapper
     if use_thr:
         sort_thr(res, Omega, alg == 'E')
     else:
@@ -160,7 +160,7 @@ def CRISPys_main(fasta_file, path , alg = 'A', where_in_gene = 1, use_thr = 0,  
 
 
 def parse_arguments(parser):
-    #def CRISPys_main(fasta_file, path , alg = 'A', where_in_gene = 1, use_thr = 0,  Omega = 1, df_targets = Metric.cfd_funct, protodist_outfile = "outfile", min_length= 20, max_length = 20,start_with_G = False, internal_node_candidates = 10, PS_number = 12):
+    #def CRISPys_main(fasta_file, path , alg = 'A', where_in_gene = 1, use_thr = 0,  Omega = 1, df_targets = Metric.cfd_funct, protdist_outfile = "outfile", min_length= 20, max_length = 20,start_with_G = False, internal_node_candidates = 10, PS_number = 12):
     parser.add_argument('fasta_file', type=str, metavar='<fasta_file>', help='The path to the input fasta file')
     parser.add_argument('path', type=str, metavar='<path>', help='THe path to the directory in which the output files will be written')
     parser.add_argument('--alg', type=str, default='A', help='Choose E for considering homology')
@@ -187,7 +187,7 @@ if __name__ == "__main__":
                  use_thr = args.t,
                  Omega=args.v,
                  df_targets = args.s,
-                 protodist_outfile = args.p,
+                 protdist_outfile= args.p,
                  min_length=args.l,
                  max_length=args.m,
                  start_with_G = args.g,
