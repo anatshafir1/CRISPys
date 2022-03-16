@@ -218,7 +218,7 @@ def E_top_down(res, node, Omega, sg_genes_dict, df_targets, internal_node_candid
 
 	#if len(current_genes_sg_dict) > 1 :  #more then one gene
 	#print("num of sg: ", len(current_sg_genes_dict))
-	if len(node.node_targets_DS) < 9 and len(node.node_targets_DS) > 1: #should change the first parameter to at least 10
+	if len(node.node_targets_DS) < 11 and len(node.node_targets_DS) > 1: #should change the first parameter to at least 10 #change to 11 from 9 to match the srever version Udi 9/3/22
 		#current_set_cover = bottemsUpAlgorithm.find_best_sg_for_single_gene(leaf.name, sgList )#lowest_of_widest is not in use in this function
 	#else:
 		#get the set cover from the bottem up algorithm
