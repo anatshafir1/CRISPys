@@ -1,4 +1,4 @@
-import UPGMA
+import Distance_matrix_and_UPGMA
 import Stage3
 import copy
 import math
@@ -53,6 +53,8 @@ def top_down(best_permutations_DS, node, Omega, sg_genes_dict, targets_df, cfd_d
 						current_genes_sg_dict[gene_name] += [target]
 				else:
 					current_genes_sg_dict[gene_name] = [target]
+		if len(current_genes_sg_dict.keys()) <=1:
+			return # in case of singletons, don't call stage 3
 		current_res = Stage3.find_Uno_sgRNA(current_genes_sg_dict, Omega, targets_df, node, cfd_dict, PS_number) #current best perm is a tuple with the perm and metedata of this perm. in this option, node.candidtes_DS is updated in the Naive
 		#print(current_genes_sg_dict)
 		if current_res:
@@ -168,10 +170,10 @@ def return_upgma(seq_list, names_list, df, cfd_dict = None):
 	#	df = Metric.find_dist_t  #if prev line is not  is use #to uncomment
 		df = Metric.find_dist_np
     #create the distance matrix
-	matrix = UPGMA.make_initiale_matrix(df, seq_list)
-	m2 = UPGMA.make_distance_matrix(names_list, matrix)  #shuold be m2 = UPGMA.make_distance_matrix(names_list, matrix)
+	matrix = Distance_matrix_and_UPGMA.make_initiale_matrix(df, seq_list)
+	m2 = Distance_matrix_and_UPGMA.make_distance_matrix(names_list, matrix)  #shuold be m2 = Distance_matrix_and_UPGMA.make_distance_matrix(names_list, matrix)
     #apply UPGMA, return a target tree
-	upgma1 = UPGMA.make_UPGMA(m2)
+	upgma1 = Distance_matrix_and_UPGMA.make_UPGMA(m2)
 	return upgma1
 
 def find_distance_from_leaf_naive(node):
@@ -387,12 +389,12 @@ def test_fill_distance():
 	c = "brdw"
 	seq_list = [a,b,c]
 	names = ["a", "b", "c"]
-	matrix = UPGMA.make_initiale_matrix(UPGMA.p_distance,seq_list)
-	m2 = UPGMA.make_distance_matrix(names, matrix)
+	matrix = Distance_matrix_and_UPGMA.make_initiale_matrix(Distance_matrix_and_UPGMA.p_distance,seq_list)
+	m2 = Distance_matrix_and_UPGMA.make_distance_matrix(names, matrix)
 	print("names")
 	print(m2.names)
 	m3 = m2.__repr__()
-	upgma1 = UPGMA.make_UPGMA(m2)
+	upgma1 = Distance_matrix_and_UPGMA.make_UPGMA(m2)
 	fill_leaves_sets(upgma1)
 	fill_distance_from_leaves(upgma1)
 	node = list(upgma1.root.leaves_DS)[0]

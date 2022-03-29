@@ -2,7 +2,7 @@ __author__ = 'ItayM5'
 import re ##used to be regex
 import regex
 import Metric
-import UPGMA
+import Distance_matrix_and_UPGMA
 
 #1324
 #write simhing to test git commit-push-pull :
@@ -28,9 +28,11 @@ def get_sites(gene, df, min_length=20, max_length=20, start_with_G=False, where_
 		where_in_gene = int(len(gene)*where_in_gene)
 		founds_sense = regex.findall(compiled, gene[:where_in_gene], overlapped=True)
 		founds_antisense = regex.findall(compiled, give_complementary(gene)[:where_in_gene], overlapped=True)
-		if df == Metric.cfd_funct or df == UPGMA.ccTop or df == UPGMA.MITScore: # fuinctions that take targets of length 20
+		# functions that take targets of length 20
+		if df == Metric.cfd_funct or df == Distance_matrix_and_UPGMA.ccTop or df == Distance_matrix_and_UPGMA.MITScore:
 			founds = [seq[:-3] for seq in founds_sense if 'N' not in seq[:-3]] + [seq[:-3] for seq in founds_antisense if 'N' not in seq[:-3]]
-		else:
+		# functions that take targets of length 23
+		elif df == Distance_matrix_and_UPGMA.gold_off_func:
 			founds = [seq for seq in founds_sense if 'N' not in seq] + [seq for seq in founds_antisense if 'N' not in seq]
 		res += founds
 	#print(res)

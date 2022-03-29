@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 from functools import reduce
-import UPGMA
+import Distance_matrix_and_UPGMA
 import random
 import string
 random.seed(1234)
@@ -76,7 +76,7 @@ def cfd_funct(sgRNA, target, dicti = None):
 		dicti = pickle.load(open("cfd_dict.p",'rb'))
 
 	return 1 - reduce(lambda x, y: x*y, map(lambda i: dicti[('r'+sgRNA[i]+':d'+target[i], i+1)] if sgRNA[i] != target[i] else 1, [j for j in range(0, 20)]))
-	#multiple all of this in one frase. didn't did it yet. it is calleed reduce
+	#multiply all of this in one frase. didn't did it yet. it is calleed reduce
 
 
 
@@ -84,6 +84,16 @@ def find_dist(p1, p2):
 	return (sum([(p1[i] - p2[i])**2 for i in range(len(p1))]))**0.5
 
 def find_dist_np(p1, p2):
+	"""
+	scoring function used when useing the cfd scoring function
+	to calculate distance.
+	Args:
+		p1: vector of length 80 of the 1st seq
+		p2: vector of length 80 of the 2nd seq
+
+	Returns: the distance between p1 and p2
+
+	"""
 	return np.linalg.norm(p1 - p2)
 
 
@@ -125,21 +135,6 @@ def test_pos_in_metric():
 	print(find_dist(p2, p2))
 
 
-def test_compre_to_shirans():
-	Nuc = ["A", "G", "C", "T"]
-
-	seq_lst = [ ''.join(random.choice(Nuc) for _ in range(20)) for i in range(200)]
-	for s1 in seq_lst:
-		for s2 in seq_lst:
-			if cfd_funct(s1, s2) != UPGMA.cfd_func(s1, s2):
-				print("different: ", s1, s2)
-				print("scores :",cfd_funct(s1, s2), UPGMA.cfd_func(s1, s2))
-
-def test2_compre_to_shirans():
-	t1 = "ACGTACGTACGTACGTACGG"
-	t2 = "GCGTACGTACGTACGTACGG"
-
-	s1, s2 = 1-cfd_funct(t1, t2), 1- UPGMA.cfd_func(t1, t2)
 
 	print(s1, s2)
 

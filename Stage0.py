@@ -3,7 +3,7 @@ import sys
 import CasSites
 import Stage1
 import Stage1_h
-import UPGMA
+import Distance_matrix_and_UPGMA #from UPGMA.py, more informative name
 import timeit
 import pickle
 import Metric
@@ -26,7 +26,7 @@ def sort_expectation(candidates_DS, homology):
             sort_subgroup(candidates_DS[i].candidate_lst)
 
 def sort_thr(candidates_DS, Omega, homology):
-    '''dort the candidates DS by num of genes with cut prob> Omega and then by the probobility to cleave all of these genes'''
+    '''sort the candidates DS by num of genes with cut prob> Omega and then by the probobility to cleave all of these genes'''
     def sort_subgroup(candidates_DS, Omega):
         for candidate in candidates_DS:
             num_of_genes_above_thr = 0
@@ -88,13 +88,16 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
     if isinstance(use_thr, str):
         use_thr = int(use_thr.strip())
     #choosing the distance function
+    if df_targets == "gold_off" or df_targets == "goldoff":
+       df_targets = Distance_matrix_and_UPGMA.gold_off_func
     if df_targets == "MITScore" or df_targets == "CrisprMIT":
-        df_targets = UPGMA.MITScore
-    if df_targets == "cfd_funct" or df_targets == Metric.cfd_funct:
+        df_targets = Distance_matrix_and_UPGMA.MITScore
+    if df_targets == "cfd_funct" or df_targets == "cfd_func" or df_targets == "cfd"\
+            or df_targets == Metric.cfd_funct:
         df_targets = Metric.cfd_funct
         cfd_dict = pickle.load(open(PATH + "/cfd_dict.p",'rb'))
-    if df_targets == "CCTop" or df_targets == "ccTop" :
-        df_targets = UPGMA.ccTop
+    if df_targets == "CCTop" or df_targets == "ccTop":
+        df_targets = Distance_matrix_and_UPGMA.ccTop
     protdist_outfile = path + "/" + protdist_outfile
     #print(df_targets)
     original_range_in_gene = [0, where_in_gene]
@@ -143,7 +146,7 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
     else:
         sort_expectation(res, alg == 'E')
     #remove the folowing two lines when using CRISPysCover
-    if len(res)>200:
+    if len(res)>200: #why is this here? when will we ever get a family with 200 subgroups? Omer Caldararu 24/03
         res = res[:200]
     Stage1.print_res_to_csvV2(res, sg_genes_dict, genesList, genesNames, path, alg == 'E')
     Stage1.print_res_to_csvV3(res, sg_genes_dict, genesList, genesNames, path, alg =='E')

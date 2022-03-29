@@ -3,6 +3,8 @@ __author__ = 'GH'
 #the naive algorithm - for a given family, with it's group of sgRNA, find the most promising sgRNAs
 import copy
 import Candidate
+import Distance_matrix_and_UPGMA
+import Metric
 import Stage2
 import random
 
@@ -19,32 +21,60 @@ def find_Uno_sgRNA(genes_sg_dict, Omega, df, node, cfd_dict = None, PS_number = 
 	for_single_gene = False
 	return return_candidates(list_of_sg, list_of_sg[0], genes_sg_dict, Omega, df, node, for_single_gene, cfd_dict)
 
+
+def generate_scores(genes_sg_dict, list_of_candidates, df, cfd_dict = None): #Omer caldararu 24/3
+	"""
+	generates a data structure that contains the candidates and their off-target scores.
+	the intention of this function is to reduce the number of function calls for df
+	(in the case of gold off, or any other function that can accept several sgRNA's in a single call)
+	Args:
+		genes_sg_dict: a dictionary : gene name -> targets within the gene
+		list_of_candidates: a list of all possible candidates, given by all_perms()
+		df: the scoring function
+		cfd_dict: cfd dictionary used for the cfd function
+
+	Returns: grade_dict = {gene : [(target,candidates_target_scores) for target in the gene]}
+	"""
+	grade_dict = {}
+	for gene in genes_sg_dict:
+		grade_dict[gene] = []
+		for target in genes_sg_dict[gene]:
+			if df == Distance_matrix_and_UPGMA.gold_off_func:
+				candidates_target_scores = df(list_of_candidates,target) # this line applies the df between each target against the whole list of candidates
+			elif df == Distance_matrix_and_UPGMA.ccTop or df == Distance_matrix_and_UPGMA.MITScore or df == Metric.cfd_funct:
+				candidates_target_scores = list(map(lambda sg: df(sg, target, cfd_dict), list_of_candidates)) # this line applies the df() on each candidate
+			grade_dict[gene].append((target, candidates_target_scores))
+	return grade_dict
+
 def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, node, for_single_gene = False, cfd_dict = None, PS_number = 12):
 	dict_of_different_places = wheres_the_differences_linear(list_of_targets) ##node_targets_DS is a python array. where_the_differences.
 	node.polymorphic_sites = dict_of_different_places
 	#list_of_different_places = list(node.polymorphic_sites)
-	if len(dict_of_different_places) > 12 : #change to 12
-		return None
+	#if len(dict_of_different_places) > 12 : #change to ps number! Omer Caldararu 27/3
+	#	return None
 	list_of_different_places = list(dict_of_different_places.items())
 	list_of_different_places.sort(key=lambda item: item[0])
 	##going over all the permutations
 	list_of_perms_sequs = all_perms(initial_seq, None, list_of_different_places)
 	perm_grades = []  #a list of tuples: (candidate_str,fraction_of_cut, cut_expectation, genes_list)
-	for candidate_str in list_of_perms_sequs:
+	grade_dict = generate_scores(genes_sg_dict, list_of_perms_sequs, df, cfd_dict)
+	for i in range(len(list_of_perms_sequs)):
 		targets_dict = {} # a list of tuples: (gene name, list of target of this gene that might be cut by the candidate_str)
 		genes_covering = []  #a list of tuples: (gene name, probability to be cut).
-		for gene, targets_lst_of_gene in genes_sg_dict.items(): ##find out if this gene i couched by the sgRNA seq
-			prob_gene_will_not_cut = 1  ##eazier to calculate
-			list_of_targets = []  ##for later knowing where the candidate_str might cut in each gene
+		for gene in grade_dict.keys():
+			prob_gene_will_not_cut = 1  ##the probability that a gene will not be cut by the candidate
+			list_of_targets = []  ##for later knowing where the candidate_str might cut in each gene (when writing the output)
 			num_of_cuts_per_gene = 0 #in use only in the single gene version
-			for target in targets_lst_of_gene:  ##targets_lst_of_gene: list of the target of the gene
-				distance_candidate_target = df(candidate_str, target, cfd_dict)
-				candidate_cut_prob = 1 - distance_candidate_target ##the distance is between 0 to 1. 0 is usually a perfect match, 1 is far
-				sg_site_differents = two_sequs_differeces(candidate_str, target)
+			for target, candidates_target_scores in grade_dict[gene]:
+				candidate_cut_prob = 1 - candidates_target_scores[i]
+				sg_site_differents = two_sequs_differeces(list_of_perms_sequs[i], target) ## the differences between the ith candidate and the target
 				list_of_targets.append([target, sg_site_differents])
 				prob_gene_will_not_cut = prob_gene_will_not_cut * (1- candidate_cut_prob)  #lowering the not cut prob in each sgRNA
 				num_of_cuts_per_gene += candidate_cut_prob
 			prob_gene_cut = 1 - prob_gene_will_not_cut
+			# if  prob_gene_cut is smaller than Omega, don't add this gene to the list of genes covered by this target. Omer Caldararu 28/03
+			if prob_gene_cut < Omega:
+				continue
 			if len(list_of_targets) > 0:
 				targets_dict[gene] = list_of_targets  #targets of this gene to be cleaved by the current candidate
 			if (for_single_gene):
@@ -56,11 +86,11 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 		for tuple in genes_covering:  #tuple : (gene name, probability to be cut)
 			cut_expection += tuple[1]  ## the prob to cut all the genes
 			genes_score_dict[tuple[0]] = tuple[1]
-		if cut_expection >= 1: #is this condition necessary?
-			current_candidate = Candidate.Candidate(candidate_str, cut_expection, genes_score_dict, targets_dict)
+		# if the candidate is not a singleton, add it to the result. Omer Caldararu 28/3
+		if len(genes_score_dict.keys()) > 1:
+			current_candidate = Candidate.Candidate(list_of_perms_sequs[i], cut_expection, genes_score_dict, targets_dict)
 			perm_grades.append(current_candidate)
 	del list_of_perms_sequs
-	#print(perm_grades)
 	return perm_grades
 
 def find_Uno_sgRNA_bottems_up_not_num_of_PS_stoppes(genes_sg_dict, Omega, df, node):
