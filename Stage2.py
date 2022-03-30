@@ -53,8 +53,6 @@ def top_down(best_permutations_DS, node, Omega, sg_genes_dict, targets_df, cfd_d
 						current_genes_sg_dict[gene_name] += [target]
 				else:
 					current_genes_sg_dict[gene_name] = [target]
-		if len(current_genes_sg_dict.keys()) <=1:
-			return # in case of singletons, don't call stage 3
 		current_res = Stage3.find_Uno_sgRNA(current_genes_sg_dict, Omega, targets_df, node, cfd_dict, PS_number) #current best perm is a tuple with the perm and metedata of this perm. in this option, node.candidtes_DS is updated in the Naive
 		#print(current_genes_sg_dict)
 		if current_res:

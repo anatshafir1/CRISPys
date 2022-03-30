@@ -72,9 +72,6 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 				prob_gene_will_not_cut = prob_gene_will_not_cut * (1- candidate_cut_prob)  #lowering the not cut prob in each sgRNA
 				num_of_cuts_per_gene += candidate_cut_prob
 			prob_gene_cut = 1 - prob_gene_will_not_cut
-			# if  prob_gene_cut is smaller than Omega, don't add this gene to the list of genes covered by this target. Omer Caldararu 28/03
-			if prob_gene_cut < Omega:
-				continue
 			if len(list_of_targets) > 0:
 				targets_dict[gene] = list_of_targets  #targets of this gene to be cleaved by the current candidate
 			if (for_single_gene):
@@ -86,10 +83,6 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 		for tuple in genes_covering:  #tuple : (gene name, probability to be cut)
 			cut_expection += tuple[1]  ## the prob to cut all the genes
 			genes_score_dict[tuple[0]] = tuple[1]
-		# if the candidate is not a singleton, add it to the result. Omer Caldararu 28/3
-		if len(genes_score_dict.keys()) > 1:
-			current_candidate = Candidate.Candidate(list_of_perms_sequs[i], cut_expection, genes_score_dict, targets_dict)
-			perm_grades.append(current_candidate)
 	del list_of_perms_sequs
 	return perm_grades
 
