@@ -7,6 +7,7 @@ import Stage1
 import Stage2
 import copy
 from subgroup_res import Subgroup_res
+from globals import *
 
 def print_res_to_file_E(res, input_sg_genes_dict, path=''):
 	''' input(res) format:	array of permutations_DS'''
@@ -218,7 +219,7 @@ def E_top_down(res, node, Omega, sg_genes_dict, df_targets, internal_node_candid
 
 	#if len(current_genes_sg_dict) > 1 :  #more then one gene
 	#print("num of sg: ", len(current_sg_genes_dict))
-	if len(node.node_targets_DS) < 11 and len(node.node_targets_DS) > 1: #should change the first parameter to at least 10 #change to 11 from 9 to match the srever version Udi 9/3/22
+	if len(node.node_targets_DS) <= N_genes_in_node and len(node.node_targets_DS) > 1: #I added the 'N_genes_in_node' from globals.py. Udi 16/03/22
 		#current_set_cover = bottemsUpAlgorithm.find_best_sg_for_single_gene(leaf.name, sgList )#lowest_of_widest is not in use in this function
 	#else:
 		#get the set cover from the bottem up algorithm
