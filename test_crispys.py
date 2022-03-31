@@ -417,7 +417,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     args = parse_arguments( parser )
     main( code_folder=args.code_folder,
-          res_folder=args.res_folder,
+          ref_folder=args.ref_folder,
           res_folder_new=args.res_folder_new,
           mode=args.mode,
           compare=args.compare )
