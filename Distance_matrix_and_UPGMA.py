@@ -3,6 +3,7 @@ import TreeConstruction_changed as TreeConstruction
 import math
 import gold_off
 from os.path import dirname, abspath, isfile
+import globals
 
 def d_f2(seq1,seq2, dicti = None):
 	'''a distance function. from the article CRISPER-Cas9 knockout screening in human cells'''
@@ -60,10 +61,11 @@ def gold_off_func(sg_seq, target_seq, dicti = "GS_TL_add_classifier_xgb_model_fo
 	script_path = dirname(abspath(__file__))
 	xgb_model_path = script_path+"/"+dicti
 	#important: set n_process to 1 when debugging, otherwise the code can get stuck
-	n_process = 10
-	# when running the df on a list of sgrna's. this happens in stage 3 in  generate_scores when calculating df on the possible candidates
+	n_process = globals.n_cores_for_gold_off
+	# when running the distance function on a list of sgrna's. this happens in stage 3 in  generate_scores when calculating df on the possible candidates
 	if type(sg_seq) == list and type(target_seq) == str:
-		return [1-score for score in list(gold_off.predict(sg_seq, [target_seq]*len(sg_seq), xgb_model_path, n_process = n_process))]
+		list_of_scores = list(gold_off.predict(sg_seq, [target_seq]*len(sg_seq), xgb_model_path, n_process = n_process))
+		return [1-score for score in list_of_scores]
 	# when running the df on a list of targets. this happens in make_initiale_matrix when calculating the distances between the targets
 	elif type(sg_seq) == list and type(target_seq) == list:
 		return [1-score for score in list(gold_off.predict(sg_seq, target_seq, xgb_model_path, n_process = n_process))]
@@ -151,21 +153,20 @@ def make_initiale_matrix(df,seqList):
 	'''
 	res = [] # an array of arrays: a matrix
 	if df == gold_off_func:
-		# In case df can take lists as inputs.
-		# This reduces the number of df calls to a single call
-		sg_list = []
-		target_list = []
+		# This reduces the number of distance function calls to a single call
+		row_list = []
+		col_list = []
 		#fill two input lists
 		for i in range(len(seqList)):
-			sg_list+=[seqList[i]]*(i+1)
-			target_list+=seqList[:i+1]
-		#apply df on the lists
-		scores_list = df(sg_list, target_list)
+			row_list+=[seqList[i]]*(i+1)
+			col_list+=seqList[:i+1]
+		#apply distance function on the lists
+		flat_scores_matrix = df(row_list, col_list)
 		j = 0
 		#reshape the flat distance matrix into a triangular matrix
 		for i in range(len(seqList)):
-			res += [scores_list[j:j+i+1]]
-			j = j+i+1
+			res += [flat_scores_matrix[j:j+i+1]] #add the new row
+			j = j+i+1 #move to the next row
 
 	elif df == Metric.find_dist_np or df == ccTop or df == MITScore:
 		for i in range(len(seqList)):
