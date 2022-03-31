@@ -40,9 +40,9 @@ def generate_scores(genes_sg_dict, list_of_candidates, df, cfd_dict = None): #Om
 		grade_dict[gene] = []
 		for target in genes_sg_dict[gene]:
 			if df == Distance_matrix_and_UPGMA.gold_off_func:
-				candidates_target_scores = df(list_of_candidates,target) # this line applies the df between each target against the whole list of candidates
+				candidates_target_scores = df(list_of_candidates,target)
 			elif df == Distance_matrix_and_UPGMA.ccTop or df == Distance_matrix_and_UPGMA.MITScore or df == Metric.cfd_funct:
-				candidates_target_scores = list(map(lambda sg: df(sg, target, cfd_dict), list_of_candidates)) # this line applies the df() on each candidate
+				candidates_target_scores = list(map(lambda sg: df(sg, target, cfd_dict), list_of_candidates))
 			grade_dict[gene].append((target, candidates_target_scores))
 	return grade_dict
 
