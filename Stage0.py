@@ -174,7 +174,7 @@ def parse_arguments(parser):
     parser.add_argument('--where_in_gene', type=float, default=1, help='input a number between 0 to 1 in order to ignore targets sites downstream to the corresponding gene prefix')
     parser.add_argument('--t', type=bool, default=0, help='for using sgRNA to gain maximal gaining score among all of the input genes or 1 for the maximal cleavage likelihood only among genes with score higher than the average. Default: 0.')
     parser.add_argument('--v', type=float, default=0.43, help='the value of the threshold. A number between 0 to 1 (included). Default: 0.43')
-    parser.add_argument('--s', type=str, default='cfd_funct', help='the scoring function of the targets. Optional scoring systems are: cfd_funct (default), CrisprMIT and CCtop. Additinal scoring function may be added by the user or by request.')
+    parser.add_argument('--s', type=str, default='cfd_funct', help='the scoring function of the targets. Optional scoring systems are: cfd_funct (default), gold_off, CrisprMIT and CCtop. Additinal scoring function may be added by the user or by request.')
     parser.add_argument('--p', type=str, default='outfile', help='protDist output file name. Default: "outfile"')
     parser.add_argument('--l', type=int, default=20, help='minimal length of the target site. Default:20')
     parser.add_argument('--m', type=bool, default=20, help = 'maximal length of the target site, Default:20')
