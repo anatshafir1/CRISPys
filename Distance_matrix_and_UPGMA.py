@@ -68,7 +68,8 @@ def gold_off_func(sg_seq, target_seq, dicti = "GS_TL_add_classifier_xgb_model_fo
 		return [1-score for score in list_of_scores]
 	# when running the df on a list of targets. this happens in make_initiale_matrix when calculating the distances between the targets
 	elif type(sg_seq) == list and type(target_seq) == list:
-		return [1-score for score in list(gold_off.predict(sg_seq, target_seq, xgb_model_path, n_process = n_process))]
+		list_of_scores = list(gold_off.predict(sg_seq, target_seq, xgb_model_path, n_process = n_process))
+		return [1-score for score in list_of_scores]
 def MITScore(seq1, seq2, dicti = None):
 	'''frm CRISPR-MIT
 	PAM cames at the end of the string'''
