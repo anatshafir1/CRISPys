@@ -70,6 +70,7 @@ def gold_off_func(sg_seq, target_seq, dicti = "GS_TL_add_classifier_xgb_model_fo
 	elif type(sg_seq) == list and type(target_seq) == list:
 		list_of_scores = list(gold_off.predict(sg_seq, target_seq, xgb_model_path, n_process = n_process))
 		return [1-score for score in list_of_scores]
+
 def MITScore(seq1, seq2, dicti = None):
 	'''frm CRISPR-MIT
 	PAM cames at the end of the string'''
@@ -149,24 +150,39 @@ def make_UPGMA(dm):
 	return tree
 
 def make_initiale_matrix(df,seqList):
-	'''input: df: distance_function. seqList: list of sequences, in the order coresponding to the names of sequences
-		output: the distance according to the given distance function, arranged as list of lists: a lower triangle matrix
-	'''
+	"""
+	calculates a distance matrix for a list of targets. The matrix is then used to construct the target tree.
+	Args:
+		df: the scoring function
+		seqList: a list of target sequences (in the case where the distance function is cfd, a list of vectors of length 80)
+
+
+	Returns: a triangular distance matrix where matrix[i][j] = distance function(i,j)
+
+	"""
+
 	res = [] # an array of arrays: a matrix
 	if df == gold_off_func:
-		# This reduces the number of distance function calls to a single call
+		"""This code will take the list of sequences and will make two lists that can be loaded to the gold_off
+		scoring function such that all target combinations will be processed.
+		row_list = [t0,t1,t1,t2,t2,t2,...]
+		collist = [t0,t0,t1,t0,t1,t2,...]
+		gold_off_func(row_list, col_list) will return a list of distances for each target pairing 
+		flat_distance_matrix =  [df(t0,t0),df(t1,t0),df(t1,t1),df(t2,t0),df(t2,t1),df(t2,t2),...]
+		the flat matrix is then reshaped into a triangular matrix
+		this procedure allows a single call of gold_off.
+		"""
 		row_list = []
 		col_list = []
-		#fill two input lists
 		for i in range(len(seqList)):
 			row_list+=[seqList[i]]*(i+1)
 			col_list+=seqList[:i+1]
 		#apply distance function on the lists
-		flat_scores_matrix = df(row_list, col_list)
+		flat_distance_matrix = gold_off_func(row_list, col_list)
 		j = 0
 		#reshape the flat distance matrix into a triangular matrix
 		for i in range(len(seqList)):
-			res += [flat_scores_matrix[j:j+i+1]] #add the new row
+			res += [flat_distance_matrix[j:j+i+1]] #add the new row
 			j = j+i+1 #move to the next row
 
 	elif df == Metric.find_dist_np or df == ccTop or df == MITScore:
@@ -181,45 +197,8 @@ def make_initiale_matrix(df,seqList):
 	return res
 
 
-
-
 def make_distance_matrix(names, initiale_matrix):
 	'''input: list of names of the sequences, and the output of 'make_initiale_matrix'
 	output: a distance matrix, in a format adequate to the UPGMA function'''
 	m = TreeConstruction._DistanceMatrix(names, initiale_matrix)
 	return m
-
-
-def test1():
-	a = "aret"
-	b = "ardw"
-	c = "brdw"
-	seq_list = [a,b,c]
-	names = ["a", "b", "c"]
-	matrix = make_initiale_matrix(d_f2,seq_list)
-	#print(matrix)
-	m2 = make_distance_matrix(names, matrix)
-	#print(m2)
-	m3 = m2.__repr__()
-	#print(m3)
-	upgma1 = make_UPGMA(m2)
-	return upgma1
-
-def test_s_score():
-	a = "aaaaaaaaaaaaaaaaaaaa"
-	b = "agaaaaaaaaaaaaaaaaaa"
-	c = "aaaaaaaaaaaagggggggg"
-	d = "GCCTCCCCAAAGCCTGGCCA"
-	e = "ACCTCCCCATAGCCTGGCCA"
-	print("real data test:", MITScore(d,e))
-	print("the same:", MITScore(c,c))
-	print("closer:", MITScore(a,b))
-	print("farther:", MITScore(a,c))
-	print("p distance")
-	print("real data test:", p_distance(d,e))
-	print("closer:", p_distance(a,b))
-	print("farther:", p_distance(a,c))
-
-
-#test_ccTop()
-#test_s_score()

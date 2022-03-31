@@ -298,24 +298,6 @@ def fill_sg_genes_dict(input_sg_genes_dict):
 	global sg_genes_dict
 	sg_genes_dict = input_sg_genes_dict
 
-def test_call_il_all():
-	#sg_genes_dict = {"acgtacgt": ["gene1", "gene2"], "acgtagct": ["gene1"], "acgtattg":["gene2"], "atgcacgt": ["gene2", "gene3"], "atgcatgc":["gene3"]}  # a more complex one
-	#genes_sg_dict = {"gene1":["acgtacgt","acgtagct"], "gene2":["acgtacgt", "acgtattg", "atgcacgt"], "gene3":["atgcacgt", "atgcatgc"]}
-	genes_sg_dict = {"gene1": ["acgtacgt"], "gene2": ["acgtagct"], "gene3": ["acgtattg"], "gene4": ["atgcacgt"], "gene5": ["atgcatgc"]}
-	sg_genes_dict = {"acgtacgt" : ["gene1"], "acgtagct" : ["gene2"] , "acgtattg":["gene3"] , "atgcacgt": ["gene4"] , "atgcatgc": ["gene5"]}
-	sgNames = ["acgtacgt", "acgtagct", "acgtattg", "atgcacgt", "atgcatgc"]
-	sgList = ["acgtacgt", "acgtagct", "acgtattg", "atgcacgt", "atgcatgc"]
-	print("using upgma result", call_it_all(sgList, sgNames, sg_genes_dict, 0.11))
-	print("naive algo result", Stage3.find_Uno_sgRNA(genes_sg_dict, 0.11))
-
-def test_call_il_all_length20():
-	genes_sg_dict = {"gene1": ["acgtacgtgtacgtacgtgt"], "gene2": ["acgtagctctacgtagctct"], "gene3": ["acgtattgtgacgtattgtg"], "gene4": ["atgcacgtgtatgcacgtgt"], "gene5": ["atatgcatgcatgcatgc"]}
-	sg_genes_dict = {"acgtacgtgtacgtacgtgt" : ["gene1"], "acgtagctctacgtagctct" : ["gene2"] , "acgtattgtgacgtattgtg":["gene3"] , "atgcacgtgtatgcacgtgt": ["gene4"] , "atatgcatgcatgcatgc": ["gene5"]}
-	sgNames = ["acgtacgtgtacgtacgtgt", "acgtagctctacgtagctct", "acgtattgtgacgtattgtg", "atgcacgtgtatgcacgtgt", "atatgcatgcatgcatgc"]
-	sgList = ["acgtacgtgtacgtacgtgt", "acgtagctctacgtagctct", "acgtattgtgacgtattgtg", "atgcacgtgtatgcacgtgt", "atatgcatgcatgcatgc"]
-	print("using upgma result", call_it_all(sgList, sgNames, sg_genes_dict))
-	print("naive algo result", Naive.find_Uno_sgRNA(genes_sg_dict, Omega))
-
 
 
 def find_best_sg_for_single_gene(gene_name,sg_lst):
@@ -380,21 +362,3 @@ def wheres_the_differences(leave_DS):
 				else:
 					differences[t] = current_differences[t]
 	return differences
-
-def test_fill_distance():
-	a = "aret"
-	b = "ardw"
-	c = "brdw"
-	seq_list = [a,b,c]
-	names = ["a", "b", "c"]
-	matrix = Distance_matrix_and_UPGMA.make_initiale_matrix(Distance_matrix_and_UPGMA.p_distance,seq_list)
-	m2 = Distance_matrix_and_UPGMA.make_distance_matrix(names, matrix)
-	print("names")
-	print(m2.names)
-	m3 = m2.__repr__()
-	upgma1 = Distance_matrix_and_UPGMA.make_UPGMA(m2)
-	fill_leaves_sets(upgma1)
-	fill_distance_from_leaves(upgma1)
-	node = list(upgma1.root.leaves_DS)[0]
-	while(node):
-		node = node.parent

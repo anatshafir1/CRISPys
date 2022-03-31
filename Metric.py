@@ -101,15 +101,11 @@ def find_dist_t(t1, t2, cfd_dict = None):
 	p1, p2 = pos_in_metric_cfd(t1, cfd_dict), pos_in_metric_cfd(t2, cfd_dict)
 	return find_dist(p1, p2)
 
-def test_cfd_funct():
-	sg = 'CCGTACGTACGTACGTACGG'
-	t = 'ACGTACGTACGTACGTACGT'
-	print(cfd_funct(sg,t))
 
 
 def make_pos_dict(inpath = "D:\\Lab\\Cdata\\Relevant articles\\STable 19 FractionActive_dlfc_lookup.txt"):
 	'''
-	the dictionary manufacter here is sutable for comparing the match when the RNA sequence is represented as it's complement
+	the dictionary manufacter here is sutable for comparing the match when the RNA sequence is represented as it's complementary
 	'''
 	give_compl = lambda x: 'G' if x == 'C' else 'C' if x == 'G' else 'T' if x == 'A' else 'A'
 	infile = open(inpath, 'r')
@@ -122,20 +118,4 @@ def make_pos_dict(inpath = "D:\\Lab\\Cdata\\Relevant articles\\STable 19 Fractio
 		type, pos, score = line_as_array[0], line_as_array[1], line_as_array[5]
 		dicti[(type, int(pos))] = float(score)
 	pickle.dump(dicti, open("cfd_dict.p",'wb'))
-
-
-def test_pos_in_metric():
-	t1 = "ACGTACGTACGTACGTACGT"
-	t2 = "ACGTACCCCCGTACGTACCC"
-	#t3 = "ACGTACCCCCGTACGTACCC"
-	p1, p2 = pos_in_metric_cfd(t1), pos_in_metric_cfd(t2)
-	dist = find_dist(p1, p2)
-	print(dist)
-
-	print(find_dist(p2, p2))
-
-
-
-	print(s1, s2)
-
 
