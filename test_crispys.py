@@ -144,7 +144,7 @@ def run_crispys_test(code_folder, res_folder):
 
     # algo/A
     header = createHeaderJob(res_folder + "/algo/A", "algo_A")
-    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000632/HOM04D000632.txt {res_folder}/algo/A --alg A --t 0 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
+    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000632/HOM04D000632.txt {res_folder}/algo/A --alg A --t 0 --v 0.1 --i 200 --where_in_gene 0.8 --s cfd_funct"
     with open(res_folder + "/algo/A/Crispys.sh", "w") as f:
         f.write(header + "\n" + cmd)
     os.system("qsub " + res_folder + "/algo/A/Crispys.sh")

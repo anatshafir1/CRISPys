@@ -83,9 +83,9 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 		for tuple in genes_covering:  #tuple : (gene name, probability to be cut)
 			cut_expection += tuple[1]  ## the prob to cut all the genes
 			genes_score_dict[tuple[0]] = tuple[1]
-		#if cut_expection >= 1: #is this condition necessary? commented out for now since some functions would return an empty input. Omer Caldararu 30/3
-		current_candidate = Candidate.Candidate(list_of_perms_sequs[i], cut_expection, genes_score_dict, targets_dict)
-		perm_grades.append(current_candidate)
+		if cut_expection >= 1: #is this condition necessary? should be commented out since some functions would return an empty input. Omer Caldararu 30/3
+			current_candidate = Candidate.Candidate(list_of_perms_sequs[i], cut_expection, genes_score_dict, targets_dict)
+			perm_grades.append(current_candidate)
 	del list_of_perms_sequs
 	return perm_grades
 

@@ -145,9 +145,9 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
         sort_thr(res, Omega, alg == 'E')
     else:
         sort_expectation(res, alg == 'E')
-    #remove the folowing two lines when using CRISPysCover
-    if len(res)>200: #why is this here? when will we ever get a family with 200 subgroups? Omer Caldararu 24/03
-        res = res[:200]
+
+    # if len(res)>200 and alg == 'A'
+    #    res = res[:200]
     Stage1.print_res_to_csvV2(res, sg_genes_dict, genesList, genesNames, path, alg == 'E')
     Stage1.print_res_to_csvV3(res, sg_genes_dict, genesList, genesNames, path, alg =='E')
     pickle.dump(res, open(path + "/res_in_lst.p", "wb"))
