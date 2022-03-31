@@ -32,7 +32,7 @@ def createHeaderJob(path, job_name, ncpu=1, mem=16):
 
 
 test_folders = ["gain_score/t_1", "gain_score/t_0", "N_internal_node/10",
-                "N_internal_node/200", "scoring/CrisprMIT", "scoring/CCtop", "scoring/gold_off", "scoring/cfd",
+                "N_internal_node/200", "scoring/CrisprMIT", "scoring/CCtop", "scoring/CCtop", "scoring/cfd",
                 "where_in_gene/0.8", "where_in_gene/0.4", "algo/E", "algo/A", "threshold/th_0.8",
                 "threshold/th_0.45", "N_poly_sites/12", "N_poly_sites/2"]
 
@@ -142,13 +142,6 @@ def run_crispys_test(code_folder, res_folder, code="git"):
         f.write(header + "\n" + cmd)
     os.system("qsub " + res_folder + "/scoring/CCtop/Crispys.sh")
 
-    # scoring/gold_off
-    header = createHeaderJob(res_folder + "/scoring/gold_off", "fun_gold_off")
-    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/gold_off --alg E --t 0 --v 0.3 --i 200 --where_in_gene 0.8 --s gold_off"
-    with open(res_folder + "/scoring/gold_off/Crispys.sh", "w") as f:
-        f.write(header + "\n" + cmd)
-    os.system("qsub " + res_folder + "/scoring/gold_off/Crispys.sh")
-
     # scoring/cfd
     header = createHeaderJob(res_folder + "/scoring/cfd", "fun_cfd")
     if code == "git":
@@ -195,7 +188,6 @@ def run_crispys_test(code_folder, res_folder, code="git"):
 
     # algo/A
     header = createHeaderJob(res_folder + "/algo/A", "algo_A")
-
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000632/HOM04D000632.txt {res_folder}/algo/A --alg A --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
