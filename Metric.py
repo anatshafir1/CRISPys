@@ -50,9 +50,7 @@ def pos_in_metric_cfd_np(t, dicti):
 	:param t: target
 	 implement a version of the cfd score, in which
 	:return:
-
-
-	there is a bug here - the code and the dictinary dose not fit.
+	there is a bug here - the code and the dictinary do not fit. -which bug?? omer  2/4
 	'''
 	if not dicti:
 		dicti = pickle.load(open("cfd_dict.p",'rb'))

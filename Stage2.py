@@ -161,7 +161,7 @@ def return_upgma(seq_list, names_list, df, cfd_dict = None):
 	if df == Metric.cfd_funct:
 		#base = seq_list
 		#metric_seq_list = list(map(lambda t: Metric.pos_in_metric_general(t,df,base, cfd_dict), seq_list))
-		
+		"""just noticed that the wrong metric is applied. should be changed to pos_in_metric_general omer 2/4"""
         #create a list of target vectors
 		seq_list = list(map(lambda t: Metric.pos_in_metric_cfd_np(t, cfd_dict), seq_list)) #to uncomment
 
