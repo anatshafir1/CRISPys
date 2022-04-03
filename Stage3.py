@@ -22,7 +22,7 @@ def find_Uno_sgRNA(genes_sg_dict, Omega, df, node, cfd_dict = None, PS_number = 
 	return return_candidates(list_of_sg, list_of_sg[0], genes_sg_dict, Omega, df, node, for_single_gene, cfd_dict)
 
 
-def generate_scores(genes_sg_dict, list_of_candidates, df, cfd_dict = None): #Omer caldararu 24/3
+def generate_scores(genes_sg_dict, list_of_candidates, scoring_function, cfd_dict = None): #Omer caldararu 24/3
 	"""
 	generates a data structure that contains the candidates and their off-target scores.
 	the intention of this function is to reduce the number of function calls for df
@@ -30,19 +30,40 @@ def generate_scores(genes_sg_dict, list_of_candidates, df, cfd_dict = None): #Om
 	Args:
 		genes_sg_dict: a dictionary : gene name -> targets within the gene
 		list_of_candidates: a list of all possible candidates, given by all_perms()
-		df: the scoring function
+		scoring_function: the scoring function
 		cfd_dict: cfd dictionary used for the cfd function
 
 	Returns: grade_dict = {gene : [(target,candidates_target_scores) for target in the gene]}
 	"""
 	grade_dict = {}
-	for gene in genes_sg_dict:
+	if scoring_function == Distance_matrix_and_UPGMA.gold_off_func:
+		"""
+		if gold off is the scoring function, create an input traget list and an input candidate list:
+		gold_off_targets_list = [target1,target1,...,target2,target2,...]
+		gold_off_candidates_list = [candidate1,candidate2,...,candidate1,candidate2,...]
+		that way gold off is applied once on all the possible candidate and target combinations. 
+		"""
+		genes_list = list(genes_sg_dict.keys())
+		gold_off_targets_list = []
+		gold_off_candidates_list = []
+		for gene in genes_list:
+			for target in genes_sg_dict[gene]:
+				gold_off_targets_list += [target] * len(list_of_candidates)
+			gold_off_candidates_list += list_of_candidates*len(genes_sg_dict[gene])
+		list_of_all_scores = Distance_matrix_and_UPGMA.gold_off_func(gold_off_candidates_list, gold_off_targets_list)
+		i = 0
+		for gene in genes_list:
+			grade_dict[gene] = []
+			for target in genes_sg_dict[gene]:
+				candidates_target_scores = list_of_all_scores[i:i+len(list_of_candidates)]
+				grade_dict[gene].append((target, candidates_target_scores))
+				i += len(list_of_candidates)
+		return grade_dict
+	for gene in genes_sg_dict.keys():
 		grade_dict[gene] = []
 		for target in genes_sg_dict[gene]:
-			if df == Distance_matrix_and_UPGMA.gold_off_func:
-				candidates_target_scores = df(list_of_candidates,target)
-			elif df == Distance_matrix_and_UPGMA.ccTop or df == Distance_matrix_and_UPGMA.MITScore or df == Metric.cfd_funct:
-				candidates_target_scores = list(map(lambda sg: df(sg, target, cfd_dict), list_of_candidates))
+			if scoring_function == Distance_matrix_and_UPGMA.ccTop or scoring_function == Distance_matrix_and_UPGMA.MITScore or scoring_function == Metric.cfd_funct:
+				candidates_target_scores = list(map(lambda sg: scoring_function(sg, target, cfd_dict), list_of_candidates))
 			grade_dict[gene].append((target, candidates_target_scores))
 	return grade_dict
 
@@ -56,7 +77,7 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 	list_of_different_places.sort(key=lambda item: item[0])
 	##going over all the permutations
 	list_of_perms_sequs = all_perms(initial_seq, None, list_of_different_places)
-	perm_grades = []  #a list of tuples: (candidate_str,fraction_of_cut, cut_expectation, genes_list)
+	list_of_candididates = []  #a list of tuples: (candidate_str,fraction_of_cut, cut_expectation, genes_list)
 	grade_dict = generate_scores(genes_sg_dict, list_of_perms_sequs, df, cfd_dict)
 	for i in range(len(list_of_perms_sequs)):
 		targets_dict = {} # a list of tuples: (gene name, list of target of this gene that might be cut by the candidate_str)
@@ -85,9 +106,9 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 			genes_score_dict[tuple[0]] = tuple[1]
 		if cut_expection >= 1: #is this condition necessary? should be commented out since some functions would return an empty input. Omer Caldararu 30/3
 			current_candidate = Candidate.Candidate(list_of_perms_sequs[i], cut_expection, genes_score_dict, targets_dict)
-			perm_grades.append(current_candidate)
+			list_of_candididates.append(current_candidate)
 	del list_of_perms_sequs
-	return perm_grades
+	return list_of_candididates
 
 def find_Uno_sgRNA_bottems_up_not_num_of_PS_stoppes(genes_sg_dict, Omega, df, node):
 	''' not Uno any more....
@@ -112,10 +133,10 @@ def find_Uno_sgRNA_bottems_up_not_num_of_PS_stoppes(genes_sg_dict, Omega, df, no
 
 def make_candidates_dict(candidates_list):
 	'''takes a list of candidate, and return a dictionary of candidates, with the seq as the key'''
-	res = dict()
+	candidates_dict = dict()
 	for candidate in candidates_list:
-		res[candidate.seq] = candidate
-	return res
+		candidates_dict[candidate.seq] = candidate
+	return candidates_dict
 
 def marge_children_candidates_DS(genes_sg_dict, Omega, df, node):
 	'''

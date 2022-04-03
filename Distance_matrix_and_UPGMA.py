@@ -38,7 +38,7 @@ def p_distance(seq1,seq2, dicti = None):
 			distance += 1
 	return distance/len(seq2)
 
-def gold_off_func(sg_seq, target_seq, dicti = "GS_TL_add_classifier_xgb_model_fold_0_without_Kfold_imbalanced.xgb"): #Omer Caldararu 28/3
+def gold_off_func(sg_seq, target_seq, dicti = None): #Omer Caldararu 28/3
 	"""
 	Scoring function based on gold-off classifier. This function uses a model
 	.xgb file.
@@ -59,8 +59,7 @@ def gold_off_func(sg_seq, target_seq, dicti = "GS_TL_add_classifier_xgb_model_fo
 		sg_seq = [sgrna +"GGG" for sgrna in sg_seq]
 	#get the xgb model path
 	script_path = dirname(abspath(__file__))
-	xgb_model_path = script_path+"/"+dicti
-	#important: set n_process to 1 when debugging, otherwise the code can get stuck
+	xgb_model_path = script_path+"/"+globals.xgb_model_name
 	n_process = globals.n_cores_for_gold_off
 	# when running the distance function on a list of sgrna's. this happens in stage 3 in  generate_scores when calculating df on the possible candidates
 	if type(sg_seq) == list and type(target_seq) == str:
@@ -110,7 +109,7 @@ def MITScore_alternative_imp(seq1, seq2,dicti = None):
 	mm_positions = []
 	n = len(seq1) - 3
 	M = [0, 0, 0, 0, 0, 0.14, 0, 0, 0.395, 0.317, 0, 0.398, 0.079, 0.445, 0.508, 0.613, 0.851, 0.723, 0.828, 0.615, 0.804, 0.685, 0.583]
-	M = M[-len(seq1):] # was cheaged from M = M[-len(seq1)+3:]
+	M = M[-len(seq1):] # was changed from M = M[-len(seq1)+3:]
 	score = 1
 	#first term
 	for i in range(max(n-len(seq1)-1, 0), n):
@@ -157,11 +156,11 @@ def make_initiale_matrix(df,seqList):
 		seqList: a list of target sequences (in the case where the distance function is cfd, a list of vectors of length 80)
 
 
-	Returns: a triangular distance matrix where matrix[i][j] = distance function(i,j)
+	Returns: a triangular distance matrix where matrix[i][j] = distance_function(i,j)
 
 	"""
 
-	res = [] # an array of arrays: a matrix
+	distance_matrix = [] # an array of arrays: a matrix
 	if df == gold_off_func:
 		"""This code will take the list of sequences and will make two lists that can be loaded to the gold_off
 		scoring function such that all target combinations will be processed.
@@ -182,7 +181,7 @@ def make_initiale_matrix(df,seqList):
 		j = 0
 		#reshape the flat distance matrix into a triangular matrix
 		for i in range(len(seqList)):
-			res += [flat_distance_matrix[j:j+i+1]] #add the new row
+			distance_matrix += [flat_distance_matrix[j:j+i+1]] #add the new row
 			j = j+i+1 #move to the next row
 
 	elif df == Metric.find_dist_np or df == ccTop or df == MITScore:
@@ -193,8 +192,8 @@ def make_initiale_matrix(df,seqList):
 					tempDistance = df(seqList[i],seqList[j])
 					row += [tempDistance]
 					j += 1
-				res += [row]
-	return res
+				distance_matrix += [row]
+	return distance_matrix
 
 
 def make_distance_matrix(names, initiale_matrix):
