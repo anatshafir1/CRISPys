@@ -3,7 +3,7 @@ import sys
 import CasSites
 import Stage1
 import Stage1_h
-import UPGMA
+import Distance_matrix_and_UPGMA #from UPGMA.py, more informative name
 import timeit
 import pickle
 import Metric
@@ -26,7 +26,7 @@ def sort_expectation(candidates_DS, homology):
             sort_subgroup(candidates_DS[i].candidate_lst)
 
 def sort_thr(candidates_DS, Omega, homology):
-    '''dort the candidates DS by num of genes with cut prob> Omega and then by the probobility to cleave all of these genes'''
+    '''sort the candidates DS by num of genes with cut prob> Omega and then by the probobility to cleave all of these genes'''
     def sort_subgroup(candidates_DS, Omega):
         for candidate in candidates_DS:
             num_of_genes_above_thr = 0
@@ -88,13 +88,16 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
     if isinstance(use_thr, str):
         use_thr = int(use_thr.strip())
     #choosing the distance function
+    if df_targets == "gold_off" or df_targets == "goldoff":
+       df_targets = Distance_matrix_and_UPGMA.gold_off_func
     if df_targets == "MITScore" or df_targets == "CrisprMIT":
-        df_targets = UPGMA.MITScore
-    if df_targets == "cfd_funct" or df_targets == Metric.cfd_funct:
+        df_targets = Distance_matrix_and_UPGMA.MITScore
+    if df_targets == "cfd_funct" or df_targets == "cfd_func" or df_targets == "cfd"\
+            or df_targets == Metric.cfd_funct:
         df_targets = Metric.cfd_funct
         cfd_dict = pickle.load(open(PATH + "/cfd_dict.p",'rb'))
-    if df_targets == "CCTop" or df_targets == "ccTop" :
-        df_targets = UPGMA.ccTop
+    if df_targets == "CCTop" or df_targets == "ccTop":
+        df_targets = Distance_matrix_and_UPGMA.ccTop
     protdist_outfile = path + "/" + protdist_outfile
     #print(df_targets)
     original_range_in_gene = [0, where_in_gene]
@@ -142,6 +145,7 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
         sort_thr(res, Omega, alg == 'E')
     else:
         sort_expectation(res, alg == 'E')
+
     #remove the folowing two lines when using CRISPysCover
     # if len(res)>200: #commented by Udi 03032022
     #     res = res[:200]
@@ -170,7 +174,7 @@ def parse_arguments(parser):
     parser.add_argument('--where_in_gene', type=float, default=1, help='input a number between 0 to 1 in order to ignore targets sites downstream to the corresponding gene prefix')
     parser.add_argument('--t', type=bool, default=0, help='for using sgRNA to gain maximal gaining score among all of the input genes or 1 for the maximal cleavage likelihood only among genes with score higher than the average. Default: 0.')
     parser.add_argument('--v', type=float, default=0.43, help='the value of the threshold. A number between 0 to 1 (included). Default: 0.43')
-    parser.add_argument('--s', type=str, default='cfd_funct', help='the scoring function of the targets. Optional scoring systems are: cfd_funct (default), CrisprMIT and CCtop. Additinal scoring function may be added by the user or by request.')
+    parser.add_argument('--s', type=str, default='cfd_funct', help='the scoring function of the targets. Optional scoring systems are: cfd_funct (default), gold_off, CrisprMIT and CCtop. Additinal scoring function may be added by the user or by request.')
     parser.add_argument('--p', type=str, default='outfile', help='protDist output file name. Default: "outfile"')
     parser.add_argument('--l', type=int, default=20, help='minimal length of the target site. Default:20')
     parser.add_argument('--m', type=bool, default=20, help = 'maximal length of the target site, Default:20')

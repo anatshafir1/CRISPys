@@ -1,4 +1,4 @@
-import UPGMA
+import Distance_matrix_and_UPGMA
 import Stage3
 import copy
 import math
@@ -53,10 +53,10 @@ def top_down(best_permutations_DS, node, Omega, sg_genes_dict, targets_df, cfd_d
 						current_genes_sg_dict[gene_name] += [target]
 				else:
 					current_genes_sg_dict[gene_name] = [target]
-		current_res = Stage3.find_Uno_sgRNA(current_genes_sg_dict, Omega, targets_df, node, cfd_dict, PS_number) #current best perm is a tuple with the perm and metedata of this perm. in this option, node.candidtes_DS is updated in the Naive
+		list_of_candidates = Stage3.find_Uno_sgRNA(current_genes_sg_dict, Omega, targets_df, node, cfd_dict, PS_number) #current best perm is a tuple with the perm and metedata of this perm. in this option, node.candidtes_DS is updated in the Naive
 		#print(current_genes_sg_dict)
-		if current_res:
-			best_permutations_DS  += current_res
+		if list_of_candidates:
+			best_permutations_DS  += list_of_candidates
 		return
 	else:
 		top_down(best_permutations_DS, node.clades[0], Omega, sg_genes_dict, targets_df, cfd_dict, PS_number)
@@ -161,17 +161,17 @@ def return_upgma(seq_list, names_list, df, cfd_dict = None):
 	if df == Metric.cfd_funct:
 		#base = seq_list
 		#metric_seq_list = list(map(lambda t: Metric.pos_in_metric_general(t,df,base, cfd_dict), seq_list))
-		
+		"""just noticed that the wrong metric is applied. should be changed to pos_in_metric_general omer 2/4"""
         #create a list of target vectors
 		seq_list = list(map(lambda t: Metric.pos_in_metric_cfd_np(t, cfd_dict), seq_list)) #to uncomment
 
 	#	df = Metric.find_dist_t  #if prev line is not  is use #to uncomment
 		df = Metric.find_dist_np
     #create the distance matrix
-	matrix = UPGMA.make_initiale_matrix(df, seq_list)
-	m2 = UPGMA.make_distance_matrix(names_list, matrix)  #shuold be m2 = UPGMA.make_distance_matrix(names_list, matrix)
+	matrix = Distance_matrix_and_UPGMA.make_initiale_matrix(df, seq_list)
+	m2 = Distance_matrix_and_UPGMA.make_distance_matrix(names_list, matrix)  #shuold be m2 = Distance_matrix_and_UPGMA.make_distance_matrix(names_list, matrix)
     #apply UPGMA, return a target tree
-	upgma1 = UPGMA.make_UPGMA(m2)
+	upgma1 = Distance_matrix_and_UPGMA.make_UPGMA(m2)
 	return upgma1
 
 def find_distance_from_leaf_naive(node):
@@ -298,24 +298,6 @@ def fill_sg_genes_dict(input_sg_genes_dict):
 	global sg_genes_dict
 	sg_genes_dict = input_sg_genes_dict
 
-def test_call_il_all():
-	#sg_genes_dict = {"acgtacgt": ["gene1", "gene2"], "acgtagct": ["gene1"], "acgtattg":["gene2"], "atgcacgt": ["gene2", "gene3"], "atgcatgc":["gene3"]}  # a more complex one
-	#genes_sg_dict = {"gene1":["acgtacgt","acgtagct"], "gene2":["acgtacgt", "acgtattg", "atgcacgt"], "gene3":["atgcacgt", "atgcatgc"]}
-	genes_sg_dict = {"gene1": ["acgtacgt"], "gene2": ["acgtagct"], "gene3": ["acgtattg"], "gene4": ["atgcacgt"], "gene5": ["atgcatgc"]}
-	sg_genes_dict = {"acgtacgt" : ["gene1"], "acgtagct" : ["gene2"] , "acgtattg":["gene3"] , "atgcacgt": ["gene4"] , "atgcatgc": ["gene5"]}
-	sgNames = ["acgtacgt", "acgtagct", "acgtattg", "atgcacgt", "atgcatgc"]
-	sgList = ["acgtacgt", "acgtagct", "acgtattg", "atgcacgt", "atgcatgc"]
-	print("using upgma result", call_it_all(sgList, sgNames, sg_genes_dict, 0.11))
-	print("naive algo result", Stage3.find_Uno_sgRNA(genes_sg_dict, 0.11))
-
-def test_call_il_all_length20():
-	genes_sg_dict = {"gene1": ["acgtacgtgtacgtacgtgt"], "gene2": ["acgtagctctacgtagctct"], "gene3": ["acgtattgtgacgtattgtg"], "gene4": ["atgcacgtgtatgcacgtgt"], "gene5": ["atatgcatgcatgcatgc"]}
-	sg_genes_dict = {"acgtacgtgtacgtacgtgt" : ["gene1"], "acgtagctctacgtagctct" : ["gene2"] , "acgtattgtgacgtattgtg":["gene3"] , "atgcacgtgtatgcacgtgt": ["gene4"] , "atatgcatgcatgcatgc": ["gene5"]}
-	sgNames = ["acgtacgtgtacgtacgtgt", "acgtagctctacgtagctct", "acgtattgtgacgtattgtg", "atgcacgtgtatgcacgtgt", "atatgcatgcatgcatgc"]
-	sgList = ["acgtacgtgtacgtacgtgt", "acgtagctctacgtagctct", "acgtattgtgacgtattgtg", "atgcacgtgtatgcacgtgt", "atatgcatgcatgcatgc"]
-	print("using upgma result", call_it_all(sgList, sgNames, sg_genes_dict))
-	print("naive algo result", Naive.find_Uno_sgRNA(genes_sg_dict, Omega))
-
 
 
 def find_best_sg_for_single_gene(gene_name,sg_lst):
@@ -380,21 +362,3 @@ def wheres_the_differences(leave_DS):
 				else:
 					differences[t] = current_differences[t]
 	return differences
-
-def test_fill_distance():
-	a = "aret"
-	b = "ardw"
-	c = "brdw"
-	seq_list = [a,b,c]
-	names = ["a", "b", "c"]
-	matrix = UPGMA.make_initiale_matrix(UPGMA.p_distance,seq_list)
-	m2 = UPGMA.make_distance_matrix(names, matrix)
-	print("names")
-	print(m2.names)
-	m3 = m2.__repr__()
-	upgma1 = UPGMA.make_UPGMA(m2)
-	fill_leaves_sets(upgma1)
-	fill_distance_from_leaves(upgma1)
-	node = list(upgma1.root.leaves_DS)[0]
-	while(node):
-		node = node.parent

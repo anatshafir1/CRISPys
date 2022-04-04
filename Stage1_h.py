@@ -65,11 +65,11 @@ def call_it_all(genesList, genesNames, input_sg_genes_dict, input_genes_sg_dict,
 	sgList = list(input_sg_genes_dict.keys())
 	#print('sg list',sgList)
 	sgNames = copy.deepcopy(sgList)
-	res = []
-	#E_bottem_up_tree(res, upgmaTree, Omega, df_targets)
-	E_top_down(res, upgmaTree.root, Omega, sg_genes_dict, df_targets, internal_node_candidates, cfd_dict, PS_number)
+	list_of_subgroups = []
+	#E_bottem_up_tree(list_of_subgroups, upgmaTree, Omega, df_targets)
+	E_top_down(list_of_subgroups, upgmaTree.root, Omega, sg_genes_dict, df_targets, internal_node_candidates, cfd_dict, PS_number)
 
-	return res
+	return list_of_subgroups
 
 
 def write_newik_to_file(node, path):
