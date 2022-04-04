@@ -12,7 +12,7 @@ N_genes_in_node = 10
 n_cores_for_gold_off = 1
 
 
-# this variable stores the name of the model used used by gold_off_func the file needs to be in the code directory
+# this variable stores the name of the model used by gold_off_func the file needs to be in the code directory
 # important: set n_process to 1 when debugging, otherwise the code can get stuck
 # it's used in Distance_matrix_and_UPGMA.gold_off_func:
 xgb_model_name = "GS_TL_add_classifier_xgb_model_fold_0_without_Kfold_imbalanced.xgb"

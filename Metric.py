@@ -86,11 +86,10 @@ def find_dist_np(p1, p2):
 	scoring function used when useing the cfd scoring function
 	to calculate distance.
 	Args:
-		p1: vector of length 80 of the 1st seq
-		p2: vector of length 80 of the 2nd seq
+		p1: vector of the 1st seq
+		p2: vector of the 2nd seq
 
 	Returns: the distance between p1 and p2
-
 	"""
 	return np.linalg.norm(p1 - p2)
 

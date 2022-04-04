@@ -38,40 +38,29 @@ def p_distance(seq1,seq2, dicti = None):
 			distance += 1
 	return distance/len(seq2)
 
-def gold_off_func(sg_seq, target_seq, dicti = None): #Omer Caldararu 28/3
+def gold_off_func(sg_seq_list, target_seq_list, dicti = None): #Omer Caldararu 28/3
 	"""
 	Scoring function based on gold-off classifier. This function uses a model
 	.xgb file.
 	Args:
-		sg: sgRNA sequence or a list of sequences
-		target: off-target sequence of length 23 or a list of sequences
-		dicti: the .xgb model_name. of the format 'model.xgb'.
+		sg_seq_list: a list of sgRNA sequence or sequences
+		target_seq_list: a list of target sequences
+		dicti: None
 
-	Returns: the off target score - a value between 0 and 1
+	Returns: A list of scores where list[i] = score between the ith sgRNA and the ith target
 
 	"""
-
-	'''gold-off takes an sgRNA that includes PAM (the different N at the NGG of the sgRNA does not affect the score),
-	 the next two lines handle the case where the score is calculated between a candidate (of length 20) and a target (of length 23) '''
-	if type(sg_seq) == str and (sg_seq) == 20:
-		sg_seq+="GGG"
-	elif type(sg_seq) == list and len(sg_seq[0]) == 20:
-		sg_seq = [sgrna +"GGG" for sgrna in sg_seq]
+	if len(sg_seq_list[0]) == 20:
+		for i in range(len(sg_seq_list)):
+			sg_seq_list[i] = sg_seq_list[i]+target_seq_list[i][-3:]
 	#get the xgb model path
 	script_path = dirname(abspath(__file__))
 	xgb_model_path = script_path+"/"+globals.xgb_model_name
-	n_process = globals.n_cores_for_gold_off
-	# when running the distance function on a list of sgrna's. this happens in stage 3 in  generate_scores when calculating df on the possible candidates
-	if type(sg_seq) == list and type(target_seq) == str:
-		list_of_scores = list(gold_off.predict(sg_seq, [target_seq]*len(sg_seq), xgb_model_path, n_process = n_process))
-		return [1-score for score in list_of_scores]
-	# when running the df on a list of targets. this happens in make_initiale_matrix when calculating the distances between the targets
-	elif type(sg_seq) == list and type(target_seq) == list:
-		list_of_scores = list(gold_off.predict(sg_seq, target_seq, xgb_model_path, n_process = n_process))
-		return [1-score for score in list_of_scores]
+	list_of_scores = list(gold_off.predict(sg_seq_list, target_seq_list, xgb_model_path, n_process = globals.n_cores_for_gold_off))
+	return [1-score for score in list_of_scores]
 
 def MITScore(seq1, seq2, dicti = None):
-	'''frm CRISPR-MIT
+	'''from CRISPR-MIT
 	PAM cames at the end of the string'''
 	distance, first_mm, last_mm = 0, -1, -1
 

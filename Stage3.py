@@ -25,7 +25,6 @@ def find_Uno_sgRNA(genes_sg_dict, Omega, df, node, cfd_dict = None, PS_number = 
 def generate_scores(genes_sg_dict, list_of_candidates, scoring_function, cfd_dict = None): #Omer caldararu 24/3
 	"""
 	generates a data structure that contains the candidates and their off-target scores.
-	the intention of this function is to reduce the number of function calls for df
 	(in the case of gold off, or any other function that can accept several sgRNA's in a single call)
 	Args:
 		genes_sg_dict: a dictionary : gene name -> targets within the gene
@@ -33,60 +32,64 @@ def generate_scores(genes_sg_dict, list_of_candidates, scoring_function, cfd_dic
 		scoring_function: the scoring function
 		cfd_dict: cfd dictionary used for the cfd function
 
-	Returns: grade_dict = {gene : [(target,candidates_target_scores) for target in the gene]}
+	Returns: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]}
 	"""
-	grade_dict = {}
+	scores_dict = {}
 	if scoring_function == Distance_matrix_and_UPGMA.gold_off_func:
-		"""
-		if gold off is the scoring function, create an input traget list and an input candidate list:
-		gold_off_targets_list = [target1,target1,...,target2,target2,...]
-		gold_off_candidates_list = [candidate1,candidate2,...,candidate1,candidate2,...]
-		that way gold off is applied once on all the possible candidate and target combinations. 
-		"""
-		genes_list = list(genes_sg_dict.keys())
-		gold_off_targets_list = []
-		gold_off_candidates_list = []
-		for gene in genes_list:
-			for target in genes_sg_dict[gene]:
-				gold_off_targets_list += [target] * len(list_of_candidates)
-			gold_off_candidates_list += list_of_candidates*len(genes_sg_dict[gene])
-		list_of_all_scores = Distance_matrix_and_UPGMA.gold_off_func(gold_off_candidates_list, gold_off_targets_list)
-		i = 0
-		for gene in genes_list:
-			grade_dict[gene] = []
-			for target in genes_sg_dict[gene]:
-				candidates_target_scores = list_of_all_scores[i:i+len(list_of_candidates)]
-				grade_dict[gene].append((target, candidates_target_scores))
-				i += len(list_of_candidates)
-		return grade_dict
+		return generate_scores_one_batch(genes_sg_dict, list_of_candidates, scoring_function, scores_dict)
 	for gene in genes_sg_dict.keys():
-		grade_dict[gene] = []
+		scores_dict[gene] = []
 		for target in genes_sg_dict[gene]:
 			if scoring_function == Distance_matrix_and_UPGMA.ccTop or scoring_function == Distance_matrix_and_UPGMA.MITScore or scoring_function == Metric.cfd_funct:
 				candidates_target_scores = list(map(lambda sg: scoring_function(sg, target, cfd_dict), list_of_candidates))
-			grade_dict[gene].append((target, candidates_target_scores))
-	return grade_dict
+			scores_dict[gene].append((target, candidates_target_scores))
+	return scores_dict
+
+def generate_scores_one_batch(genes_sg_dict, list_of_candidates, scoring_function, scores_dict):
+	"""
+	generates a data structure that contains the candidates and their off-target scores,
+	using a single call of the scoring function.
+	Args:
+		genes_sg_dict: a dictionary : gene name -> targets within the gene
+		list_of_candidates: a list of all possible candidates, given by all_perms()
+		scoring_function: the scoring function
+		scores_dict: an empty dictionary
+	Returns: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]},
+	"""
+	genes_list = list(genes_sg_dict.keys())
+	batch_targets_list = []
+	batch_candidates_list = []
+	for gene in genes_list:
+		for target in genes_sg_dict[gene]:
+			batch_targets_list += [target] * len(list_of_candidates)
+		batch_candidates_list += list_of_candidates * len(genes_sg_dict[gene])
+	list_of_all_scores = scoring_function(batch_candidates_list, batch_targets_list)
+	i = 0
+	for gene in genes_list:
+		scores_dict[gene] = []
+		for target in genes_sg_dict[gene]:
+			candidates_target_scores = list_of_all_scores[i:i + len(list_of_candidates)]
+			scores_dict[gene].append((target, candidates_target_scores))
+			i += len(list_of_candidates)
+	return scores_dict
 
 def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, node, for_single_gene = False, cfd_dict = None, PS_number = 12):
 	dict_of_different_places = wheres_the_differences_linear(list_of_targets) ##node_targets_DS is a python array. where_the_differences.
 	node.polymorphic_sites = dict_of_different_places
-	#list_of_different_places = list(node.polymorphic_sites)
-	#if len(dict_of_different_places) > 12 : #change to ps number! Omer Caldararu 27/3
-	#	return None
 	list_of_different_places = list(dict_of_different_places.items())
 	list_of_different_places.sort(key=lambda item: item[0])
 	##going over all the permutations
 	list_of_perms_sequs = all_perms(initial_seq, None, list_of_different_places)
 	list_of_candididates = []  #a list of tuples: (candidate_str,fraction_of_cut, cut_expectation, genes_list)
-	grade_dict = generate_scores(genes_sg_dict, list_of_perms_sequs, df, cfd_dict)
+	scores_dict = generate_scores(genes_sg_dict, list_of_perms_sequs, df, cfd_dict)
 	for i in range(len(list_of_perms_sequs)):
 		targets_dict = {} # a list of tuples: (gene name, list of target of this gene that might be cut by the candidate_str)
 		genes_covering = []  #a list of tuples: (gene name, probability to be cut).
-		for gene in grade_dict.keys():
+		for gene in scores_dict.keys():
 			prob_gene_will_not_cut = 1  ##the probability that a gene will not be cut by the candidate
 			list_of_targets = []  ##for later knowing where the candidate_str might cut in each gene (when writing the output)
 			num_of_cuts_per_gene = 0 #in use only in the single gene version
-			for target, candidates_target_scores in grade_dict[gene]:
+			for target, candidates_target_scores in scores_dict[gene]:
 				candidate_cut_prob = 1 - candidates_target_scores[i]
 				sg_site_differents = two_sequs_differeces(list_of_perms_sequs[i], target) ## the differences between the ith candidate and the target
 				list_of_targets.append([target, sg_site_differents])
