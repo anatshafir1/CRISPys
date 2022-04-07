@@ -3,21 +3,64 @@ import numpy as np
 from functools import reduce
 import Distance_matrix_and_UPGMA
 import random
+from os.path import dirname, abspath, isfile
 import string
+
+import Metric
+
 random.seed(1234)
 
-def pos_in_metric_general(t, df, base, cfd_dict = None):
-	'''
-	:param t: target
-	:param df: distance function
-	:param base: a list of strings, spreading the space. each string is an sgRNA
+
+def pos_in_metric_general_single_batch(list_of_targets, distance_function):
+	"""
+	This function takes a list of targets and creates a new list of vectors,
+	where each target is converted into a point in number-of-targets dimensional space.
+	This function calls distance_function on all the possible target combination.
+	:param list_of_targets: a list of targets
+	:param distance_function: the distance function used
 	:return: a vector of distances between those strings
-	'''
-	if cfd_dict:
-		Vetorize = np.vectorize(lambda sg: df(sg, t, cfd_dict))
-	else:
-		Vetorize = np.vectorize(lambda sg: df(sg,t))
-	return Vetorize(base)
+	input_target_list = [target1, target1, target1,..., target2...]
+	input_other_targets_list = [target1, target2, target3, ...]
+	concatenated_vectors_list = the result of the distance function, which is then divided into smaller lists.
+	output_format : [distance_function(target_1,target_1),distance_function(target_2,target_1),...,distance_function(target_j,target_i)]
+	"""
+	input_target_list = []
+	input_other_targets_list = []
+	for target in list_of_targets:
+		input_target_list.extend([target]*len(list_of_targets))
+		input_other_targets_list.extend(list_of_targets)
+	concatenated_vectors_list = distance_function(input_other_targets_list,input_target_list)
+	output_vectors_list = []
+	for i in range(0,len(concatenated_vectors_list),len(list_of_targets)):
+		output_vectors_list.append(concatenated_vectors_list[i:i+len(list_of_targets)])
+	return output_vectors_list
+
+def pos_in_metric_general(list_of_targets, distance_function):
+	"""
+	This function takes a list of targets and creates a new list of vectors,
+	where each target is converted into a point in number-of-targets dimensional space.
+	That way the properties of distance (e.g. symmetry and the triangle inequality)
+	are kept when creating the distance matrix.
+
+	Args:
+		list_of_targets: a list of all targets
+		distance_function: the distance function
+	Returns: a list of vectors, each representing the location of the target in a
+	multidimensional space
+
+	vectors_list[i] = [distance_function(1,i),distance_function(2,i),...]
+	"""
+	if distance_function == Distance_matrix_and_UPGMA.gold_off_func:
+		return pos_in_metric_general_single_batch(list_of_targets, distance_function)
+	elif distance_function == cfd_funct or distance_function == Distance_matrix_and_UPGMA.ccTop \
+		or distance_function == Distance_matrix_and_UPGMA.MITScore:
+		list_of_vectors = []
+		for i in range(len(list_of_targets)):
+			target_vector = []
+			for j in range(len(list_of_targets)):
+				target_vector.append(distance_function(list_of_targets[j], list_of_targets[i]))
+			list_of_vectors.append(target_vector)
+		return list_of_vectors
 
 def pos_in_metric_cfd(t, cfd_dict = None):
 	'''
@@ -71,7 +114,8 @@ def pos_in_metric_cfd_np(t, dicti):
 def cfd_funct(sgRNA, target, dicti = None):
 	'''my implementation of this function'''
 	if not dicti:
-		dicti = pickle.load(open("cfd_dict.p",'rb'))
+		script_path = dirname(abspath(__file__))
+		dicti = pickle.load(open(script_path+"/cfd_dict.p",'rb')) #added full path to cfd omer 7/4
 
 	return 1 - reduce(lambda x, y: x*y, map(lambda i: dicti[('r'+sgRNA[i]+':d'+target[i], i+1)] if sgRNA[i] != target[i] else 1, [j for j in range(0, 20)]))
 	#multiply all of this in one frase. didn't did it yet. it is calleed reduce
@@ -83,7 +127,7 @@ def find_dist(p1, p2):
 
 def find_dist_np(p1, p2):
 	"""
-	scoring function used when useing the cfd scoring function
+	scoring function used when using the cfd scoring function
 	to calculate distance.
 	Args:
 		p1: vector of the 1st seq
@@ -91,7 +135,8 @@ def find_dist_np(p1, p2):
 
 	Returns: the distance between p1 and p2
 	"""
-	return np.linalg.norm(p1 - p2)
+	return np.linalg.norm(np.array(p1) - np.array(p2))
+
 
 
 def find_dist_t(t1, t2, cfd_dict = None):
