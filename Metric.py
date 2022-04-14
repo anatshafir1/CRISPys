@@ -52,8 +52,12 @@ def pos_in_metric_general(list_of_targets, distance_function):
 	"""
 	if distance_function == Distance_matrix_and_UPGMA.gold_off_func:
 		return pos_in_metric_general_single_batch(list_of_targets, distance_function)
-	elif distance_function == cfd_funct or distance_function == Distance_matrix_and_UPGMA.ccTop \
-		or distance_function == Distance_matrix_and_UPGMA.MITScore:
+	elif distance_function == cfd_funct:
+		list_of_vectors = []
+		for target in list_of_targets:
+			list_of_vectors.append(pos_in_metric_cfd_np(target, dicti=None))
+		return list_of_vectors
+	elif distance_function == Distance_matrix_and_UPGMA.ccTop or distance_function == Distance_matrix_and_UPGMA.MITScore:
 		list_of_vectors = []
 		for i in range(len(list_of_targets)):
 			target_vector = []
@@ -96,7 +100,8 @@ def pos_in_metric_cfd_np(t, dicti):
 	there is a bug here - the code and the dictinary do not fit. -which bug?? omer  2/4
 	'''
 	if not dicti:
-		dicti = pickle.load(open("cfd_dict.p",'rb'))
+		script_path = dirname(abspath(__file__))
+		dicti = pickle.load(open(script_path+"/cfd_dict.p",'rb')) #added full path to cfd omer 14/4
 	Nucs = ['A','C','G', 'U']
 	point = np.zeros(len(t)*len(Nucs))
 	#point = [0 for i in range(len(t)*len(Nucs))]
@@ -109,7 +114,7 @@ def pos_in_metric_cfd_np(t, dicti):
 			else:
 				point[i] = 1
 			i += 1
-	return point
+	return list(point)
 
 def cfd_funct(sgRNA, target, dicti = None):
 	'''my implementation of this function'''
