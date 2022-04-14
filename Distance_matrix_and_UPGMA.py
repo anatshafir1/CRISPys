@@ -137,51 +137,21 @@ def make_UPGMA(dm):
 	tree = constructor.upgma(dm)
 	return tree
 
-def make_initiale_matrix(df,seqList):
+def make_initial_matrix(vectors_list):
 	"""
-	calculates a distance matrix for a list of targets. The matrix is then used to construct the target tree.
+	calculates a distance matrix for a list of points. The matrix is then used to construct the target tree.
 	Args:
-		df: the scoring function
-		seqList: a list of target sequences (in the case where the distance function is cfd, a list of vectors of length 80)
-
-
-	Returns: a triangular distance matrix where matrix[i][j] = distance_function(i,j)
-
+		vectors_list: a list of vectors where the ith vector is the position of the ith target
+		in a len(vectors_list) dimensional space.
+	Returns: a triangular distance matrix where matrix[i][j] <- distance(vector_i,vector_j)
 	"""
-
-	distance_matrix = [] # an array of arrays: a matrix
-	if df == gold_off_func:
-		"""This code will take the list of sequences and will make two lists that can be loaded to the gold_off
-		scoring function such that all target combinations will be processed.
-		row_list = [t0,t1,t1,t2,t2,t2,...]
-		collist = [t0,t0,t1,t0,t1,t2,...]
-		gold_off_func(row_list, col_list) will return a list of distances for each target pairing 
-		flat_distance_matrix =  [df(t0,t0),df(t1,t0),df(t1,t1),df(t2,t0),df(t2,t1),df(t2,t2),...]
-		the flat matrix is then reshaped into a triangular matrix
-		this procedure allows a single call of gold_off.
-		"""
-		row_list = []
-		col_list = []
-		for i in range(len(seqList)):
-			row_list+=[seqList[i]]*(i+1)
-			col_list+=seqList[:i+1]
-		#apply distance function on the lists
-		flat_distance_matrix = gold_off_func(row_list, col_list)
-		j = 0
-		#reshape the flat distance matrix into a triangular matrix
-		for i in range(len(seqList)):
-			distance_matrix += [flat_distance_matrix[j:j+i+1]] #add the new row
-			j = j+i+1 #move to the next row
-
-	elif df == Metric.find_dist_np or df == ccTop or df == MITScore:
-		for i in range(len(seqList)):
-				j = 0
-				row = []
-				while j <= i:
-					tempDistance = df(seqList[i],seqList[j])
-					row += [tempDistance]
-					j += 1
-				distance_matrix += [row]
+	distance_matrix = []
+	for i in range(len(vectors_list)):
+		row = []
+		for j in range(i + 1):
+			tempDistance = Metric.find_dist_np(vectors_list[i], vectors_list[j])
+			row.append(tempDistance)
+		distance_matrix += [row]
 	return distance_matrix
 
 

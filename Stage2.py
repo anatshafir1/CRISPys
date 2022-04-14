@@ -154,21 +154,13 @@ def find_set_cover():
 					uncovered_genes.remove(gene)
 	return res
 
-def return_upgma(seq_list, names_list, df, cfd_dict = None):
+def return_upgma(seq_list, names_list, distance_function, cfd_dict = None):
 	'''input:  a list of names and a list of sequences, calibrated
 	output: an upgma instance.
 	'''
-	if df == Metric.cfd_funct:
-		#base = seq_list
-		#metric_seq_list = list(map(lambda t: Metric.pos_in_metric_general(t,df,base, cfd_dict), seq_list))
-		"""just noticed that the wrong metric is applied. should be changed to pos_in_metric_general omer 2/4"""
-        #create a list of target vectors
-		seq_list = list(map(lambda t: Metric.pos_in_metric_cfd_np(t, cfd_dict), seq_list)) #to uncomment
-
-	#	df = Metric.find_dist_t  #if prev line is not  is use #to uncomment
-		df = Metric.find_dist_np
+	vectors_list = Metric.pos_in_metric_general(seq_list, distance_function)
     #create the distance matrix
-	matrix = Distance_matrix_and_UPGMA.make_initiale_matrix(df, seq_list)
+	matrix = Distance_matrix_and_UPGMA.make_initial_matrix(vectors_list)
 	m2 = Distance_matrix_and_UPGMA.make_distance_matrix(names_list, matrix)  #shuold be m2 = Distance_matrix_and_UPGMA.make_distance_matrix(names_list, matrix)
     #apply UPGMA, return a target tree
 	upgma1 = Distance_matrix_and_UPGMA.make_UPGMA(m2)
