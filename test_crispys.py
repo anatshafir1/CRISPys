@@ -37,7 +37,6 @@ test_folders = ["gain_score/t_1", "gain_score/t_0", "N_internal_node/10",
                 "threshold/th_0.45", "N_poly_sites/12", "N_poly_sites/2", "PAM/pams_GG", "PAM/pams_GGAG"]
 
 
-
 def run_crispys_test(code_folder, res_folder, code="git"):
     """
     This function will run crispys with different partametrs with provided code
@@ -55,18 +54,18 @@ def run_crispys_test(code_folder, res_folder, code="git"):
 
     #### run cripys for each test
     # gain score t1:
-    header = createHeaderJob( res_folder + "/gain_score/t_1", "gain_t1" )
+    header = createHeaderJob(res_folder + "/gain_score/t_1", "gain_t1")
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000012_7/HOM04D000012_7.txt {res_folder}/gain_score/t_1 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
         cmd = f"python {code_folder}/call_MULTICRISPR_Wrapper.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000012_7/HOM04D000012_7.txt {res_folder}/gain_score/t_1 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
 
-    with open( res_folder + "/gain_score/t_1/Crispys.sh", "w" ) as f:
-        f.write( header + "\n" + cmd )
-    os.system( "qsub " + res_folder + "/gain_score/t_1/Crispys.sh" )
+    with open(res_folder + "/gain_score/t_1/Crispys.sh", "w") as f:
+        f.write(header + "\n" + cmd)
+    os.system("qsub " + res_folder + "/gain_score/t_1/Crispys.sh")
 
     # gain score t0:
-    header = createHeaderJob( res_folder + "/gain_score/t_0", "gain_t0" )
+    header = createHeaderJob(res_folder + "/gain_score/t_0", "gain_t0")
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000012_7/HOM04D000012_7.txt {res_folder}/gain_score/t_0 --alg E --t 0 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
@@ -79,9 +78,9 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     # N_poly_sites/12
     header = createHeaderJob( res_folder + "/N_poly_sites/12", "poly_12" )
     if code == "git":
-        cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000034/HOM04D000034.txt {res_folder}/N_poly_sites/12 --alg E --t 1 --v 0.8 --i 20 --where_in_gene 0.8 --s cfd_funct --ps 12"
+        cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D004565/HOM04D004565.txt {res_folder}/N_poly_sites/12 --alg E --t 1 --v 0.8 --i 20 --where_in_gene 0.8 --s cfd_funct --ps 12"
     if code == "server":
-        cmd = f"python {code_folder}/call_MULTICRISPR_Wrapper.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000034/HOM04D000034.txt {res_folder}/N_poly_sites/12 --alg E --t 1 --v 0.8 --i 20 --where_in_gene 0.8 --s cfd_funct --ps 12"
+        cmd = f"python {code_folder}/call_MULTICRISPR_Wrapper.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D004565/HOM04D004565.txt {res_folder}/N_poly_sites/12 --alg E --t 1 --v 0.8 --i 20 --where_in_gene 0.8 --s cfd_funct --ps 12"
 
     with open( res_folder + "/N_poly_sites/12/Crispys.sh", "w" ) as f:
         f.write( header + "\n" + cmd )
@@ -90,9 +89,9 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     # N_poly_sites/2
     header = createHeaderJob(res_folder + "/N_poly_sites/2", "poly_2")
     if code == "git":
-        cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000034/HOM04D000034.txt {res_folder}/N_poly_sites/2 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct --ps 2"
+        cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D004565/HOM04D004565.txt {res_folder}/N_poly_sites/2 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct --ps 2"
     if code == "server":
-        cmd = f"python {code_folder}/call_MULTICRISPR_Wrapper.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000034/HOM04D000034.txt {res_folder}/N_poly_sites/2 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct --ps 2"
+        cmd = f"python {code_folder}/call_MULTICRISPR_Wrapper.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D004565/HOM04D004565.txt {res_folder}/N_poly_sites/2 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct --ps 2"
 
     with open(res_folder + "/N_poly_sites/2/Crispys.sh", "w") as f:
         f.write(header + "\n" + cmd)
@@ -150,13 +149,13 @@ def run_crispys_test(code_folder, res_folder, code="git"):
         cmd = f"python {code_folder}/call_MULTICRISPR_Wrapper.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/cfd --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
 
     with open(res_folder + "/scoring/cfd/Crispys.sh", "w") as f:
-        f.write( header + "\n" + cmd )
+        f.write(header + "\n" + cmd)
     os.system("qsub " + res_folder + "/scoring/cfd/Crispys.sh")
 
     # scoring/gold_off
     header = createHeaderJob(res_folder + "/scoring/gold_off", "gold_off")
     if code == "git":
-        cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/cfd --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s gold_off"
+        cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/gold_off --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s gold_off"
 
     with open( res_folder + "/scoring/gold_off/Crispys.sh", "w" ) as f:
         f.write(header + "\n" + cmd)
@@ -261,20 +260,20 @@ def compare_output(old_res_folder, new_res_folder):
         :return: The function will write a tsv file with the differences between the two outputs in each test.
         """
     # open file to store results
-    res = open( new_res_folder + "/diff_res" + ".tsv", "w" )
+    res = open(new_res_folder + "/diff_res" + ".tsv", "w")
 
     # go over each result file and compare it with reference results
     for folder in test_folders:
         # wait for the file to be written
         while not os.path.exists( new_res_folder + "/" + folder + "/output.csv" ):
-            time.sleep( 15 )
+            time.sleep(15)
 
         # if there is a file, read it and the old version and compare the them
         if os.path.isfile( new_res_folder + "/" + folder + "/output.csv" ):
             time.sleep( 15 )
             # open the crispys outputs
-            with open( new_res_folder + "/" + folder + "/output.csv", "r" ) as new, open(
-                    old_res_folder + "/" + folder + "/output.csv", "r" ) as old:
+            with open(new_res_folder + "/" + folder + "/output.csv", "r") as new, open(
+                    old_res_folder + "/" + folder + "/output.csv", "r") as old:
 
                 # read the old results lines as list of lines
                 old_cri_code = old.readlines()
@@ -327,20 +326,20 @@ def compare_output_with_server(old_res_folder, new_res_folder):
         :return: The function will write a tsv file with the differences between the two outputs in each test.
         """
     # open file to store results
-    res = open( new_res_folder + "/diff_res" + ".tsv", "w" )
+    res = open(new_res_folder + "/diff_res" + ".tsv", "w")
 
     # go over each result file and compare it with reference results
     for folder in test_folders:
         # wait for the file to be written
-        while not os.path.exists( new_res_folder + "/" + folder + "/CRISPys_output.csv" ):
-            time.sleep( 15 )
+        while not os.path.exists(new_res_folder + "/" + folder + "/CRISPys_output.csv"):
+            time.sleep(15)
 
         # if there is a file, read it and the old version and compare the them
-        if os.path.isfile( new_res_folder + "/" + folder + "/CRISPys_output.csv" ):
+        if os.path.isfile(new_res_folder + "/" + folder + "/CRISPys_output.csv"):
             time.sleep( 15 )
             # open the crispys outputs
             with open( new_res_folder + "/" + folder + "/CRISPys_output.csv", "r" ) as new, open(
-                    old_res_folder + "/" + folder + "/output.csv", "r" ) as old:
+                    old_res_folder + "/" + folder + "/CRISPys_output.csv", "r" ) as old:
 
                 # read the old results lines as list of lines
                 old_cri_code = old.readlines()
@@ -399,6 +398,99 @@ def compare_output_with_server(old_res_folder, new_res_folder):
     res.close()
 
 
+def compare_output_new_format(old_res_folder, new_res_folder):
+    """
+        This function will take the results of a new crispys server version run and check for any difference in the
+        output files compared to an existing output of crispys git version
+        :param old_res_folder: The path to existing crispys test results (made by 'run_crispys_test()')
+        :param new_res_folder: The path to 'new' output of crispys server results on the test data.
+        :return: The function will write a tsv file with the differences between the two outputs in each test.
+        """
+    # open file to store results
+    res = open(new_res_folder + "/diff_res" + ".tsv", "w")
+
+    # go over each result file and compare it with reference results
+    for folder in test_folders:
+        # wait for the file to be written
+        while not os.path.exists(new_res_folder + "/" + folder + "/CRISPys_output.csv"):
+            time.sleep(15)
+
+        # if there is a file, read it and the old version and compare with new
+        if os.path.isfile(new_res_folder + "/" + folder + "/CRISPys_output.csv"):
+            time.sleep( 15 )
+            # open the crispys outputs
+            with open( new_res_folder + "/" + folder + "/CRISPys_output.csv", "r" ) as new, open(
+                    old_res_folder + "/" + folder + "/CRISPys_output.csv", "r" ) as old:
+
+                # read the old results lines as list of lines
+                old_cri_code = old.readlines()
+                # take only lines of that starts with digit
+                old_cri_code = [line.split( "," ) for line in old_cri_code if (line[0].isdigit())]
+                # convert to data frame in order to clean the table
+                df = pd.DataFrame(old_cri_code,
+                                   columns=['sgRNA index', 'sgRNA', 'Score', 'Genes', 'Genes score', 'Target site',
+                                            '#mms', 'Position'])
+                # remove empty lines
+                sg_lst = df['sgRNA'].dropna().tolist()
+                # remove empty string
+                sg_lst = list(filter(None, sg_lst))
+                # convert to set
+                sg_old = set(sg_lst)
+
+                # make a list of all sgrnas and their scores
+                df = df.dropna()
+
+                def get_sg_score(row):
+                    if row['sgRNA']:
+                        return (row['sgRNA'], row['Score'])
+
+                sg_and_score_old = df.apply(get_sg_score, axis=1)
+                sg_and_score_old = sg_and_score_old.tolist()
+                sg_and_score_old = list(filter(None, sg_and_score_old))
+
+                # read the new results lines as list of lines
+                new_cri_code = new.readlines()
+                # take only lines of that starts with digit
+                new_cri_code = [line.split( "," ) for line in new_cri_code if (line[0].isdigit())]
+                # convert to data frame in order to clean the table
+                df = pd.DataFrame( new_cri_code,
+                                   columns=['sgRNA index', 'sgRNA', 'Score', 'Genes', 'Genes score', 'Target site',
+                                            '#mms', 'Position'] )
+                # rmeove empty lines
+                server_sg_lst = df['sgRNA'].dropna().tolist()
+                # remove empty string
+                server_sg_lst = list( filter( None, server_sg_lst ) )
+                # convert to set
+                sg_new = set( server_sg_lst )
+
+                # make a list of all sgrnas and their scores
+                df = df.dropna()
+
+                sg_and_score_new = df.apply(get_sg_score, axis=1)
+                sg_and_score_new = sg_and_score_new.tolist()
+                sg_and_score_new = list(filter(None, sg_and_score_new))
+
+                # check if sg in old but not in new
+                if sg_new.difference(sg_old):
+                    sg_diff_add = sg_new.difference(sg_old)  # give a set of sgrnas that are in the new results only
+                    l = [sg for sg in sg_and_score_new if
+                         sg[0] in sg_diff_add]  # take a list of new added sg's and their score
+                    # write the new added sg and there score
+                    res.write(f"in {folder} these sgRNA were added:\t {l}\n")
+
+                if (sg_old.difference(sg_new)):
+                    sg_diff_miss = sg_old.difference(
+                        sg_new)  # give a set of sgrnas that are in the old results only (missing from new results)
+                    l = [sg for sg in sg_and_score_old if
+                         sg[0] in sg_diff_miss]  # take a list of missing sg's and their score
+                    # write the new added sg and there score
+                    res.write(f"in {folder} these sgRNA were missing:\t {l}\n")
+
+                else:
+                    res.write(f"No difference in {folder}\n")
+
+    res.close()
+
 def main(ref_folder, code_folder=None, res_folder_new=None, mode="run_and_compare", compare="git"):
     """
     Main function that run the tests
@@ -411,27 +503,17 @@ def main(ref_folder, code_folder=None, res_folder_new=None, mode="run_and_compar
     :param compare: type of results we use for comparison (what is the format of the 'new' results). can be 'git' or 'server'.
     :return: depend on the option. can create new folders with crispys results and a summary of the comparison.
     """
+
     if compare == "git":
         if mode == "run_and_compare":
             run_crispys_test(code_folder, res_folder_new)
-            compare_output(ref_folder, res_folder_new)
+            compare_output_new_format(ref_folder, res_folder_new)
 
         if mode == "run":
             run_crispys_test(code_folder, ref_folder)
 
         if mode == "compare":
-            compare_output(ref_folder, res_folder_new)
-
-    if compare == "server":
-        if mode == "run_and_compare":
-            run_crispys_test(code_folder, res_folder_new, code="server")
-            compare_output_with_server(ref_folder, res_folder_new)
-
-        if mode == "run":
-            run_crispys_test(code_folder, ref_folder, code="server")
-
-        if mode == "compare":
-            compare_output_with_server(ref_folder, res_folder_new)
+            compare_output_new_format(ref_folder, res_folder_new)
 
 
 def parse_arguments(parser):
@@ -446,24 +528,24 @@ def parse_arguments(parser):
     return args
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    args = parse_arguments( parser )
-    main( code_folder=args.code_folder,
-          ref_folder=args.ref_folder,
-          res_folder_new=args.res_folder_new,
-          mode=args.mode,
-          compare=args.compare )
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser()
+#     args = parse_arguments( parser )
+#     main( code_folder=args.code_folder,
+#           ref_folder=args.ref_folder,
+#           res_folder_new=args.res_folder_new,
+#           mode=args.mode,
+#           compare=args.compare )
 
 # main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
 #      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
 #      mode="run_and_compare")
 
-# main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
-#      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
-#      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
-#      mode="run_and_compare")
+main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
+     ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
+     res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
+     mode="run_and_compare")
 
 # run crispys code to create reference folders
 # main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
@@ -471,7 +553,7 @@ if __name__ == "__main__":
 #      mode="run")
 
 # run crispys with server code and compare to existing git results
-# main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_server",
+# main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
 #      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/compare_server_git/compare_res",
 #      mode="run_and_compare",

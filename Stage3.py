@@ -91,7 +91,7 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 			num_of_cuts_per_gene = 0 #in use only in the single gene version
       
 			for target, candidates_target_scores in scores_dict[gene]:
-        if candidates_target_scores[i] == 1: #in case the distance is 1 (it means that the score is 0 and there isnt attachment of the guide and target nad no cut event) dont consider the guide
+				if candidates_target_scores[i] == 1: #in case the distance is 1 (it means that the score is 0 and there isnt attachment of the guide and target nad no cut event) dont consider the target
 					continue
 				candidate_cut_prob = 1 - candidates_target_scores[i]
 				sg_site_differents = two_sequs_differeces(list_of_perms_sequs[i], target) ## the differences between the ith candidate and the target
