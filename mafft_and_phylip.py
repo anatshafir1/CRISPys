@@ -118,26 +118,3 @@ def call_protdist1(phylip_file, protdist_outfile, outpath):
 	os.chdir(outpath)
 	os.system('echo "Y\r\n" | protdist')  #for my file
 
-
-def test1():
-	names_lst = ['s1','s2','s3']
-	seq_lst = ['ACGT', 'ACGG', 'ACGA']
-	runIt(names_lst,seq_lst)
-def test2():
-    genesNames = ["acggacgtgtacgtacgtgtt", "acggagctctacgtagctctt", "acggattgtgacgtattgtgt", "atgcacgtgtatgcacgtgtt", "ataggcatgcatgcatgctgg"]
-    genesList = ["acggacgtgtacgtacgtgtt", "acggagctctacgtagctctt", "acggattgtgacgtattgtgt", "atgcacgtgtatgcacgtgtt", "ataggcatgcatgcatgctgg"]
-    runIt(genesNames,genesList)
-
-def test_mafft_distout():
-	names_lst = ['s1','s2','s3']
-	seq_lst = ['ACGT', 'ACGG', 'ACGA']
-	fasta_outfile, aligned_file, phylip_file = "fasta_outfile.fa", "aligned_mattf.fa",  "phylip_file.ph"
-	make_fasta_file(names_lst, seq_lst, fasta_outfile)
-	call_mafft_distout(fasta_outfile, aligned_file)
-
-
-
-if __name__ == '__main__':
-	test1()
-	#test_mafft_distout()
-	#out_path = os.path.dirname(os.path.realpath(__file__)) #deafult out_path for windows

@@ -320,23 +320,6 @@ def return_UPGMA(seq_list, names_list, protdist_outfile, pylip_temps_path):
 
 
 
-
-def test_DNA_to_prot():
-    path = "test_DNA_to_prot.txt"
-    print(DNA_to_prot("AGGAGGAGAGGAGGAA"))
-    DNA_to_prot("AGGAGGAGAGGAGGAA")
-
-
-def test_UPGMA():
-    lst = ["AGGAGGAGAGGAGGAA", "AGGAGGAGAGGATTAA","AGGAGGAGCCCAGGAA"]
-    return_UPGMA(lst)
-
-def test_df():
-    seq1 = "GGCA"
-    seq2 = "GGTC"
-    print(df(seq1, seq2))
-
-
 ###until here: the nj. from here: the rapper algorithm###
 
 #best_permutations_DS = []  #list of tuples: (max_seq, max_fraction, max_cut_prob, genes_list)
@@ -841,7 +824,3 @@ def fill_sg_genes_dict(input_sg_genes_dict):
 def fill_genes_sg_dict(input_genes_sg_dict):
 	global genes_sg_dict
 	genes_sg_dict = input_genes_sg_dict
-
-def test_tree_leavesDS(tree):
-	for l in tree.leaves_DS:
-		print(l)
