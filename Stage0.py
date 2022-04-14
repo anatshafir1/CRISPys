@@ -78,7 +78,9 @@ def remove_repetitions_in_targets_sites(res):
         del res[to_remove[index]]
 
 
-def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Omega = 1, df_targets = Metric.cfd_funct, protdist_outfile ="outfile", min_length= 20, max_length = 20, start_with_G = False, internal_node_candidates = 10, PS_number = 12):
+
+def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Omega = 1, df_targets = Metric.cfd_funct, protdist_outfile = "outfile", min_length= 20, max_length = 20,start_with_G = False, internal_node_candidates = 10, PS_number = 12, PAMs=0):
+
     start = timeit.default_timer()
     cfd_dict = None
     if isinstance(where_in_gene, str):
@@ -96,9 +98,16 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
             or df_targets == Metric.cfd_funct:
         df_targets = Metric.cfd_funct
         cfd_dict = pickle.load(open(PATH + "/cfd_dict.p",'rb'))
-    if df_targets == "CCTop" or df_targets == "ccTop":
+        
+    if df_targets == "CCTop" or df_targets == "ccTop" :
         df_targets = Distance_matrix_and_UPGMA.ccTop
+    # add an option to different pam (taken from server version by Udi)
+    if PAMs == 0:
+        PAMs = ['GG']
+    elif PAMs == 1:
+        PAMs = ['GG', 'AG']
     protdist_outfile = path + "/" + protdist_outfile
+
     #print(df_targets)
     original_range_in_gene = [0, where_in_gene]
     genes_sg_dict = {}
@@ -127,7 +136,8 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
         i+=1
     #stage 2: find the target sites
     for gene_name in genes_exons_dict.keys():
-        genes_sg_dict[gene_name] = CasSites.get_targets_sites_from_exons_lst(genes_exons_dict[gene_name],df_targets, original_range_in_gene, min_length, max_length,start_with_G)
+
+        genes_sg_dict[gene_name] = CasSites.get_targets_sites_from_exons_lst(genes_exons_dict[gene_name],df_targets, original_range_in_gene, min_length, max_length,start_with_G, PAMs)
         genesNames.append(gene_name)
         genesList.append("".join(genes_exons_dict[gene_name]))
         #filling up the sg_genes_dict
@@ -181,6 +191,8 @@ def parse_arguments(parser):
     parser.add_argument('--g', type=bool, default=0, help='1 if the target sites are obligated to start with a G codon or 0 otherwise. Default: 0.')
     parser.add_argument('--i', type=int, default=10, help='when choosing the consider homology option, this is the number of sgRNAs designed for each homology sub-group. Default: 10')
     parser.add_argument('--ps', type=int, default=12, help='the maximal number of possible polymorphic sites in a target. Default: 12')
+    parser.add_argument('--PAMs', type=int, default=0, help='0 to search NGG pam or 1 to search for NAA and NAG. Default: 0')
+
     args = parser.parse_args()
     return args
 
@@ -199,6 +211,7 @@ if __name__ == "__main__":
                  max_length=args.m,
                  start_with_G = args.g,
                  internal_node_candidates=args.i,
-                 PS_number = args.ps)
+                 PS_number=args.ps,
+                 PAMs=args.PAMs)
     #CRISPys_main(*sys.argv[1:])
 
