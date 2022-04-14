@@ -38,7 +38,9 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 			list_of_targets = []  ##for later knowing where the candidate_str might cut in each gene
 			num_of_cuts_per_gene = 0 #in use only in the single gene version
 			for target in targets_lst_of_gene:  ##targets_lst_of_gene: list of the target of the gene
-				distance_candidate_target = df(candidate_str, target, cfd_dict)
+				distance_candidate_target = df(candidate_str, target, cfd_dict) # candidate_str is the sequence of the guide, target is the target on the DNA
+				if distance_candidate_target == 1: #in case the distance is 1 (it means that the score is 0 and there isnt attachment of the guide and target nad no cut event) dont consider the guide
+					continue
 				candidate_cut_prob = 1 - distance_candidate_target ##the distance is between 0 to 1. 0 is usually a perfect match, 1 is far
 				sg_site_differents = two_sequs_differeces(candidate_str, target)
 				list_of_targets.append([target, sg_site_differents])

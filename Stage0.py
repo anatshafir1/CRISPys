@@ -10,6 +10,7 @@ import Metric
 import argparse
 import os
 import random
+import make_tree_display_CSV
 
 random.seed(1234)
 
@@ -140,7 +141,6 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0,  O
                 sg_genes_dict[sg] = [gene_name]
     if alg == 'E':
         res = Stage1_h.call_it_all(genesList, genesNames, sg_genes_dict, genes_sg_dict, Omega, protodist_outfile, path, df_targets, internal_node_candidates, cfd_dict, PS_number)
-
     else:
         res = Stage1.call_it_all(genesList, genesNames, sg_genes_dict, genes_sg_dict, Omega, protodist_outfile, path, df_targets, cfd_dict, PS_number) #thies line have been change to be sutable for wrapper
     if use_thr:
@@ -151,12 +151,18 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0,  O
     # if len(res)>200: #commented by Udi 03032022
     #     res = res[:200]
 
-    Stage1.print_res_to_csvV2(res, sg_genes_dict, genesList, genesNames, path, alg == 'E')
-    Stage1.print_res_to_csvV3(res, sg_genes_dict, genesList, genesNames, path, alg =='E')
+    # old output function. commented by Udi 13/04/2022
+    # Stage1.print_res_to_csvV2(res, sg_genes_dict, genesList, genesNames, path, alg == 'E')
+    # Stage1.print_res_to_csvV3(res, sg_genes_dict, genesList, genesNames, path, alg =='E')
+
     pickle.dump(res, open(path + "/res_in_lst.p", "wb"))
     pickle.dump(genesNames, open(path + "/genesNames.p", "wb"))
     # add saving the geneList in pickle in order to produce the results like in the server version - Udi 28/02/22
     pickle.dump(genesList, open(path + '/genesList.p', 'wb'))
+
+    # new output function taken from the crispys server code. Udi 13/04/2022
+    make_tree_display_CSV.tree_display(path, alg == 'E')
+
     stop = timeit.default_timer()
     ("time: ", stop - start)
     time_file = open("time.txt", 'w')
