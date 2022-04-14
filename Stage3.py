@@ -89,9 +89,13 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 			prob_gene_will_not_cut = 1  ##the probability that a gene will not be cut by the candidate
 			list_of_targets = []  ##for later knowing where the candidate_str might cut in each gene (when writing the output)
 			num_of_cuts_per_gene = 0 #in use only in the single gene version
+      
 			for target, candidates_target_scores in scores_dict[gene]:
+        if candidates_target_scores[i] == 1: #in case the distance is 1 (it means that the score is 0 and there isnt attachment of the guide and target nad no cut event) dont consider the guide
+					continue
 				candidate_cut_prob = 1 - candidates_target_scores[i]
 				sg_site_differents = two_sequs_differeces(list_of_perms_sequs[i], target) ## the differences between the ith candidate and the target
+
 				list_of_targets.append([target, sg_site_differents])
 				prob_gene_will_not_cut = prob_gene_will_not_cut * (1- candidate_cut_prob)  #lowering the not cut prob in each sgRNA
 				num_of_cuts_per_gene += candidate_cut_prob
