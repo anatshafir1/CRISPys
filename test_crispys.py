@@ -18,7 +18,7 @@ def createHeaderJob(path, job_name, ncpu=1, mem=16):
     text += "#!/bin/bash\n\n"
     text += "#PBS -S /bin/bash\n"
     text += "#PBS -r y\n"
-    text += "#PBS -q itaymaa\n"
+    text += "#PBS -q itaym\n"
     text += "#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH\n"
     text += "#PBS -N " + job_name + "\n"
     text += "#PBS -e " + path + "/" + job_name + ".ER" + "\n"
