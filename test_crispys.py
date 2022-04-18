@@ -18,7 +18,7 @@ def createHeaderJob(path, job_name, ncpu=1, mem=16):
     text += "#!/bin/bash\n\n"
     text += "#PBS -S /bin/bash\n"
     text += "#PBS -r y\n"
-    text += "#PBS -q itaym\n"
+    text += "#PBS -q itaymaa\n"
     text += "#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH\n"
     text += "#PBS -N " + job_name + "\n"
     text += "#PBS -e " + path + "/" + job_name + ".ER" + "\n"
@@ -35,6 +35,7 @@ test_folders = ["gain_score/t_1", "gain_score/t_0", "N_internal_node/10",
                 "N_internal_node/200", "scoring/CrisprMIT", "scoring/CCtop", "scoring/gold_off", "scoring/cfd",
                 "where_in_gene/0.8", "where_in_gene/0.4", "algo/E", "algo/A", "threshold/th_0.8",
                 "threshold/th_0.45", "N_poly_sites/12", "N_poly_sites/2", "PAM/pams_GG", "PAM/pams_GGAG"]
+
 
 
 def run_crispys_test(code_folder, res_folder, code="git"):
@@ -247,9 +248,10 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     if code == "server":
         cmd = f"python {code_folder}/call_MULTICRISPR_Wrapper.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D004565/HOM04D004565.txt {res_folder}/PAM/pams_GGAG --alg E --t 1 --v 0.45 --i 200 --where_in_gene 0.8, --s cfd_funct --PAMs 1"
 
-    with open( res_folder + "/PAM/pams_GGAG/Crispys.sh", "w" ) as f:
+    with open(res_folder + "/PAM/pams_GGAG/Crispys.sh", "w") as f:
         f.write( header + "\n" + cmd )
-    os.system( "qsub " + res_folder + "/PAM/pams_GGAG/Crispys.sh" )
+    os.system("qsub " + res_folder + "/PAM/pams_GGAG/Crispys.sh")
+
 
 def compare_output(old_res_folder, new_res_folder):
     """
@@ -265,11 +267,11 @@ def compare_output(old_res_folder, new_res_folder):
     # go over each result file and compare it with reference results
     for folder in test_folders:
         # wait for the file to be written
-        while not os.path.exists( new_res_folder + "/" + folder + "/output.csv" ):
-            time.sleep(15)
+        while not os.path.exists(new_res_folder + "/" + folder + "/output.csv"):
+            time.sleep(5)
 
         # if there is a file, read it and the old version and compare the them
-        if os.path.isfile( new_res_folder + "/" + folder + "/output.csv" ):
+        if os.path.isfile( new_res_folder + "/" + folder + "/output.csv"):
             time.sleep( 15 )
             # open the crispys outputs
             with open(new_res_folder + "/" + folder + "/output.csv", "r") as new, open(
@@ -332,11 +334,11 @@ def compare_output_with_server(old_res_folder, new_res_folder):
     for folder in test_folders:
         # wait for the file to be written
         while not os.path.exists(new_res_folder + "/" + folder + "/CRISPys_output.csv"):
-            time.sleep(15)
+            time.sleep(5)
 
         # if there is a file, read it and the old version and compare the them
         if os.path.isfile(new_res_folder + "/" + folder + "/CRISPys_output.csv"):
-            time.sleep( 15 )
+            time.sleep(5)
             # open the crispys outputs
             with open( new_res_folder + "/" + folder + "/CRISPys_output.csv", "r" ) as new, open(
                     old_res_folder + "/" + folder + "/CRISPys_output.csv", "r" ) as old:
@@ -401,7 +403,7 @@ def compare_output_with_server(old_res_folder, new_res_folder):
 def compare_output_new_format(old_res_folder, new_res_folder):
     """
         This function will take the results of a new crispys server version run and check for any difference in the
-        output files compared to an existing output of crispys git version
+        output files compared to an existing output of crispys ## This is updated to the latest format (server)
         :param old_res_folder: The path to existing crispys test results (made by 'run_crispys_test()')
         :param new_res_folder: The path to 'new' output of crispys server results on the test data.
         :return: The function will write a tsv file with the differences between the two outputs in each test.
@@ -413,23 +415,29 @@ def compare_output_new_format(old_res_folder, new_res_folder):
     for folder in test_folders:
         # wait for the file to be written
         while not os.path.exists(new_res_folder + "/" + folder + "/CRISPys_output.csv"):
-            time.sleep(15)
+            time.sleep(5)
 
         # if there is a file, read it and the old version and compare with new
         if os.path.isfile(new_res_folder + "/" + folder + "/CRISPys_output.csv"):
-            time.sleep( 15 )
+            time.sleep(15) # the file is created and then written so it might be analyze before the finish. so I added wait time
             # open the crispys outputs
-            with open( new_res_folder + "/" + folder + "/CRISPys_output.csv", "r" ) as new, open(
-                    old_res_folder + "/" + folder + "/CRISPys_output.csv", "r" ) as old:
+            with open(new_res_folder + "/" + folder + "/CRISPys_output.csv", "r") as new, open(
+                    old_res_folder + "/" + folder + "/CRISPys_output.csv", "r") as old:
 
                 # read the old results lines as list of lines
                 old_cri_code = old.readlines()
-                # take only lines of that starts with digit
-                old_cri_code = [line.split( "," ) for line in old_cri_code if (line[0].isdigit())]
+                # take only lines of that starts with digit (because this is the line of sgrna)
+                old_cri_code = [line.split(",") for line in old_cri_code if (line[0].isdigit())]
                 # convert to data frame in order to clean the table
                 df = pd.DataFrame(old_cri_code,
                                    columns=['sgRNA index', 'sgRNA', 'Score', 'Genes', 'Genes score', 'Target site',
                                             '#mms', 'Position'])
+
+                # check if the table is empty
+                if df.empty:
+                    print(f"no results for {folder}")
+                    res.write(f"no results for {folder}")
+                    continue
                 # remove empty lines
                 sg_lst = df['sgRNA'].dropna().tolist()
                 # remove empty string
@@ -453,15 +461,15 @@ def compare_output_new_format(old_res_folder, new_res_folder):
                 # take only lines of that starts with digit
                 new_cri_code = [line.split( "," ) for line in new_cri_code if (line[0].isdigit())]
                 # convert to data frame in order to clean the table
-                df = pd.DataFrame( new_cri_code,
+                df = pd.DataFrame(new_cri_code,
                                    columns=['sgRNA index', 'sgRNA', 'Score', 'Genes', 'Genes score', 'Target site',
-                                            '#mms', 'Position'] )
+                                            '#mms', 'Position'])
                 # rmeove empty lines
                 server_sg_lst = df['sgRNA'].dropna().tolist()
                 # remove empty string
-                server_sg_lst = list( filter( None, server_sg_lst ) )
+                server_sg_lst = list(filter(None, server_sg_lst))
                 # convert to set
-                sg_new = set( server_sg_lst )
+                sg_new = set(server_sg_lst)
 
                 # make a list of all sgrnas and their scores
                 df = df.dropna()
@@ -520,7 +528,7 @@ def parse_arguments(parser):
     parser.add_argument( '--code_folder', '-code', type=str, help='The path to the crispys code folder' )
     parser.add_argument( '--ref_folder', '-ref', type=str, help='The path to the crispys results (reference)' )
     parser.add_argument( '--res_folder_new', '-new', type=str, help='The path to the new crispys results' )
-    parser.add_argument( '--mode', '-m', default="run_and_compare", type=str,
+    parser.add_argument( '--mode', '-mode', default="run_and_compare", type=str,
                          help="mode of action, choose between 'run_and_compare', 'run' and 'compare'" )
     parser.add_argument( '--compare', '-c', default="git", type=str,
                          help="crispys type of output to use as the 'new', choose between 'git' and 'server'" )
@@ -528,24 +536,24 @@ def parse_arguments(parser):
     return args
 
 
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser()
-#     args = parse_arguments( parser )
-#     main( code_folder=args.code_folder,
-#           ref_folder=args.ref_folder,
-#           res_folder_new=args.res_folder_new,
-#           mode=args.mode,
-#           compare=args.compare )
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    args = parse_arguments( parser )
+    main(code_folder=args.code_folder,
+          ref_folder=args.ref_folder,
+          res_folder_new=args.res_folder_new,
+          mode=args.mode,
+          compare=args.compare)
 
 # main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
 #      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
 #      mode="run_and_compare")
 
-main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
-     ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
-     res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
-     mode="run_and_compare")
+# main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
+#      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
+#      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
+#      mode="run_and_compare")
 
 # run crispys code to create reference folders
 # main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
