@@ -100,18 +100,17 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 				prob_gene_will_not_cut = prob_gene_will_not_cut * (1- candidate_cut_prob)  #lowering the not cut prob in each sgRNA
 				num_of_cuts_per_gene += candidate_cut_prob
 			prob_gene_cut = 1 - prob_gene_will_not_cut
-			if len(list_of_targets) > 0:
-				targets_dict[gene] = list_of_targets  #targets of this gene to be cleaved by the current candidate
-			if (for_single_gene):
+			if for_single_gene: # is this necessary? omer 11/4
 				genes_covering.append((gene, num_of_cuts_per_gene))
-			else:
+			if prob_gene_cut >= Omega:
+				targets_dict[gene] = list_of_targets
 				genes_covering.append((gene, prob_gene_cut))
 		cut_expection = 0  ##the probability the permutationed sequence will cut all of the genes, that the probability each of them will be cut is greater then Omega
 		genes_score_dict = {}  # a dict of genes: genes considered cut by this sequence, and cut prob
 		for tuple in genes_covering:  #tuple : (gene name, probability to be cut)
 			cut_expection += tuple[1]  ## the prob to cut all the genes
 			genes_score_dict[tuple[0]] = tuple[1]
-		if cut_expection >= 1: #is this condition necessary? should be commented out since some functions would return an empty input. Omer Caldararu 30/3
+		if len(genes_covering) >= 1: #If the candidate has at least one gene with a score above Omega, add it to the result  omer 18/04
 			current_candidate = Candidate.Candidate(list_of_perms_sequs[i], cut_expection, genes_score_dict, targets_dict)
 			list_of_candididates.append(current_candidate)
 	del list_of_perms_sequs

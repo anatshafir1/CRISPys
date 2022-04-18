@@ -54,7 +54,7 @@ def FASTA_to_PHYLIP_old(in_file, out_file):
 	return out_file
 
 # def FASTA_to_PHYLIP(in_f, out_f):
-# 	os.system('perl ' + PATH +  '/convertMsaFormat.pl '+in_f + ' ' +out_f+' fasta phylip')
+# os.system('perl ' + PATH +  '/convertMsaFormat.pl '+in_f + ' ' +out_f+' fasta phylip')
 
 def FASTA_to_PHYLIP(in_f, out_f):
 	'''
