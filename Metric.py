@@ -11,60 +11,66 @@ import Metric
 random.seed(1234)
 
 
-def pos_in_metric_general_single_batch(list_of_targets, distance_function):
-	"""
+def pos_in_metric_general_single_batch(list_of_targets, constant_targets_list, distance_function):
+    """
 	This function takes a list of targets and creates a new list of vectors,
 	where each target is converted into a point in number-of-targets dimensional space.
-	This function calls distance_function on all the possible target combination.
+	This function calls the distance_function a single time.
 	:param list_of_targets: a list of targets
-	:param distance_function: the distance function used
+	:param distance_function: the distance function
+	:param constant_targets_list: a list of constant targets
 	:return: a vector of distances between those strings
 	input_target_list = [target1, target1, target1,..., target2...]
-	input_other_targets_list = [target1, target2, target3, ...]
+	input_other_targets_list = [constant_target1, constant_target2, constant_target3, ...]
 	concatenated_vectors_list = the result of the distance function, which is then divided into smaller lists.
 	output_format : [distance_function(target_1,target_1),distance_function(target_2,target_1),...,distance_function(target_j,target_i)]
 	"""
-	input_target_list = []
-	input_other_targets_list = []
-	for target in list_of_targets:
-		input_target_list.extend([target]*len(list_of_targets))
-		input_other_targets_list.extend(list_of_targets)
-	concatenated_vectors_list = distance_function(input_other_targets_list,input_target_list)
-	output_vectors_list = []
-	for i in range(0,len(concatenated_vectors_list),len(list_of_targets)):
-		output_vectors_list.append(concatenated_vectors_list[i:i+len(list_of_targets)])
-	return output_vectors_list
+    input_target_list = []
+    input_other_targets_list = []
+    for target in list_of_targets:
+        input_target_list.extend([target] * len(constant_targets_list))
+		# update the PAM in each constant target according to the PAM of the target
+        constant_targets_with_pam = [f"{t}{target[20:]}" for t in constant_targets_list]
+        input_other_targets_list.extend(constant_targets_with_pam)
+    concatenated_vectors_list = distance_function(input_other_targets_list, input_target_list)
+    output_vectors_list = []
+    for i in range(0, len(concatenated_vectors_list), len(constant_targets_list)):
+        output_vectors_list.append(concatenated_vectors_list[i:i + len(constant_targets_list)])
+    return output_vectors_list
+
 
 def pos_in_metric_general(list_of_targets, distance_function):
-	"""
+    """
 	This function takes a list of targets and creates a new list of vectors,
-	where each target is converted into a point in number-of-targets dimensional space.
+	where each target is a vector of distances between a target
+	 and a list of constant targets.
 	That way the properties of distance (e.g. symmetry and the triangle inequality)
 	are kept when creating the distance matrix.
-
 	Args:
 		list_of_targets: a list of all targets
 		distance_function: the distance function
 	Returns: a list of vectors, each representing the location of the target in a
-	multidimensional space
-
-	vectors_list[i] = [distance_function(1,i),distance_function(2,i),...]
+	multidimensional space of size len(constant_targets_list)
+	vectors_list[i] = [distance_function(constant_target1,target_i),distance_function(constant_target2,target_i),...]
 	"""
-	if distance_function == Distance_matrix_and_UPGMA.gold_off_func:
-		return pos_in_metric_general_single_batch(list_of_targets, distance_function)
-	elif distance_function == cfd_funct:
-		list_of_vectors = []
-		for target in list_of_targets:
-			list_of_vectors.append(pos_in_metric_cfd_np(target, dicti=None))
-		return list_of_vectors
-	elif distance_function == Distance_matrix_and_UPGMA.ccTop or distance_function == Distance_matrix_and_UPGMA.MITScore:
-		list_of_vectors = []
-		for i in range(len(list_of_targets)):
-			target_vector = []
-			for j in range(len(list_of_targets)):
-				target_vector.append(distance_function(list_of_targets[j], list_of_targets[i]))
-			list_of_vectors.append(target_vector)
-		return list_of_vectors
+    script_path = dirname(abspath(__file__))
+    with open(script_path + "/list_of_constant_targets.txt") as f:
+        constant_targets_list = f.read().splitlines()
+    if distance_function == Distance_matrix_and_UPGMA.gold_off_func:
+        return pos_in_metric_general_single_batch(list_of_targets, constant_targets_list, distance_function)
+    elif distance_function == cfd_funct:
+        list_of_vectors = []
+        for target in list_of_targets:
+            list_of_vectors.append(pos_in_metric_cfd_np(target, dicti=None))
+        return list_of_vectors
+    elif distance_function == Distance_matrix_and_UPGMA.ccTop or distance_function == Distance_matrix_and_UPGMA.MITScore:
+        list_of_vectors = []
+        for target in list_of_targets:
+            target_vector = []
+            for constant_target in constant_targets_list:
+                target_vector.append(distance_function(constant_target, target))
+            list_of_vectors.append(target_vector)
+        return list_of_vectors
 
 def pos_in_metric_cfd(t, cfd_dict = None):
 	'''
@@ -129,6 +135,7 @@ def cfd_funct(sgRNA, target, dicti = None):
 
 def find_dist(p1, p2):
 	return (sum([(p1[i] - p2[i])**2 for i in range(len(p1))]))**0.5
+
 
 def find_dist_np(p1, p2):
 	"""

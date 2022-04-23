@@ -3,6 +3,7 @@ import TreeConstruction_changed as TreeConstruction
 import math
 import gold_off
 from os.path import dirname, abspath, isfile
+from numpy import clip
 import globals
 
 def d_f2(seq1,seq2, dicti = None):
@@ -40,7 +41,7 @@ def p_distance(seq1,seq2, dicti = None):
 
 def gold_off_func(sg_seq_list, target_seq_list, dicti = None): #Omer Caldararu 28/3
 	"""
-	Scoring function based on gold-off classifier. This function uses a model
+	Scoring function based on gold-off regressor. This function uses a model
 	.xgb file.
 	Args:
 		sg_seq_list: a list of sgRNA sequence or sequences
@@ -56,7 +57,8 @@ def gold_off_func(sg_seq_list, target_seq_list, dicti = None): #Omer Caldararu 2
 	#get the xgb model path
 	script_path = dirname(abspath(__file__))
 	xgb_model_path = script_path+"/"+globals.xgb_model_name
-	list_of_scores = list(gold_off.predict(sg_seq_list, target_seq_list, xgb_model_path, n_process = globals.n_cores_for_gold_off))
+	list_of_scores = gold_off.predict(sg_seq_list, target_seq_list, xgb_model_path, include_distance_feature=True, n_process = globals.n_cores_for_gold_off, model_type="regression")
+	list_of_scores = clip(list_of_scores,0,1) #clipping is done when the score is above 1 or below 0
 	return [1-score for score in list_of_scores]
 
 def MITScore(seq1, seq2, dicti = None):

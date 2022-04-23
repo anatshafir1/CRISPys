@@ -138,7 +138,7 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
     #stage 2: find the target sites
     for gene_name in genes_exons_dict.keys():
 
-        genes_sg_dict[gene_name] = CasSites.get_targets_sites_from_exons_lst(genes_exons_dict[gene_name],df_targets, original_range_in_gene, min_length, max_length,start_with_G, PAMs)
+        genes_sg_dict[gene_name] = CasSites.get_targets_sites_from_exons_lst(genes_exons_dict[gene_name],df_targets, original_range_in_gene, min_length, max_length, start_with_G, PAMs)
         genesNames.append(gene_name)
         genesList.append("".join(genes_exons_dict[gene_name]))
         #filling up the sg_genes_dict
@@ -199,7 +199,7 @@ def parse_arguments(parser):
     parser.add_argument('--g', type=bool, default=0, help='1 if the target sites are obligated to start with a G codon or 0 otherwise. Default: 0.')
     parser.add_argument('--i', type=int, default=10, help='when choosing the consider homology option, this is the number of sgRNAs designed for each homology sub-group. Default: 10')
     parser.add_argument('--ps', type=int, default=12, help='the maximal number of possible polymorphic sites in a target. Default: 12')
-    parser.add_argument('--PAMs', type=int, default=0, help='0 to search NGG pam or 1 to search for NAA and NAG. Default: 0')
+    parser.add_argument('--PAMs', type=int, default=0, help='0 to search NGG pam or 1 to search for NGG and NAG. Default: 0')
 
     args = parser.parse_args()
     return args
