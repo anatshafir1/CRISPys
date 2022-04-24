@@ -4,26 +4,23 @@ from functools import reduce
 import Distance_matrix_and_UPGMA
 import random
 from os.path import dirname, abspath, isfile
-import string
-
-import Metric
 
 random.seed(1234)
 
 
 def pos_in_metric_general_single_batch(list_of_targets, constant_targets_list, distance_function):
     """
-	This function takes a list of targets and creates a new list of vectors,
-	where each target is converted into a point in number-of-targets dimensional space.
-	This function calls the distance_function a single time.
+	This function is called from pos_in_metric_general for cases where the scoring function
+    takes a list of several targets, rather than a single target.
+	This function calls the distance_function on all the targets in a single batch.
 	:param list_of_targets: a list of targets
+	:param constant_targets_list: a list of constant targets, read from the file list_of_constant_targets.txt
 	:param distance_function: the distance function
-	:param constant_targets_list: a list of constant targets
-	:return: a vector of distances between those strings
-	input_target_list = [target1, target1, target1,..., target2...]
-	input_other_targets_list = [constant_target1, constant_target2, constant_target3, ...]
+	:return: a list of vectors of length 100
+	input_target_list = [target1, target1, target1,..., target2 ...]
+	input_other_targets_list = [constant_target1, constant_target2, constant_target3, ...,constant_target1, ...]
 	concatenated_vectors_list = the result of the distance function, which is then divided into smaller lists.
-	output_format : [distance_function(target_1,target_1),distance_function(target_2,target_1),...,distance_function(target_j,target_i)]
+	output_format : [distance_function(constant_target_1,target_1),distance_function(constant_target_2,target_1),...,distance_function(constant_target_j,target_i)]
 	"""
     input_target_list = []
     input_other_targets_list = []
