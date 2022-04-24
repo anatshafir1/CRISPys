@@ -41,10 +41,13 @@ def pos_in_metric_general_single_batch(list_of_targets, constant_targets_list, d
 
 def pos_in_metric_general(list_of_targets, distance_function):
     """
-	This function takes a list of targets and creates a new list of vectors,
+    This function is used for transforming the scores given by the scoring into vectors that can be used
+    to calculate the distances between the targets. That way the properties of distance are kept
+    (e.g. symmetry and the triangle inequality).
+    These distances are then used for the construction of the target tree.
+	The function takes a list of targets and creates a new list of vectors,
 	where each target is a vector of distances between a target
 	 and a list of constant targets.
-	That way the properties of distance (e.g. symmetry and the triangle inequality)
 	are kept when creating the distance matrix.
 	Args:
 		list_of_targets: a list of all targets
