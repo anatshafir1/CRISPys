@@ -2,10 +2,11 @@ import pickle
 import Candidate
 import subgroup_res
 import CasSites
-
+import os
+from datetime import datetime
+import globals
 
 def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, counter, genes_names, genes_lst, repetitions_flag, genomeAssembly, use_thr):
-#def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, counter, genes_names, genes_lst):
 	def chagne_mm_to_lowercase(target_str, mm_lst):
 		'''mm is mismatch'''
 		target_in_lst = list(target_str)
@@ -14,8 +15,8 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
 		return ''.join(target_in_lst)
 
 	runId = ''.join(list(filter(str.isdigit, path)))
-	#runId = "1518343257"
-		
+
+
 	if consider_homology == True:
 		f.write("<table id="+str(counter)+" class=\"table table-striped table-hover\" style='display:none; width:100%'>\n")#new
 	else: 
@@ -35,11 +36,10 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
 		f.write("<font style=\"font-size:16px;\">&#9658; Show only targets with up to <select id=\"selectMM\" onchange=\"javascript:filterMM();\">\n")#new
 		f.write("\t<option value=\""+str(100)+"\">""</option>\n")#new
 		for i in range(1,21):#new
-			f.write("\t<option value=\""+str(i)+"\">"+str(i)+"</option>\n")#new
-		f.write("</select>\n mismatches\n")#new
+			f.write("\t<option value=\""+str(i)+"\">"+str(i)+"</option>\n")
+		f.write("</select>\n mismatches\n")
 		
-		#f.write("&nbsp&nbsp&nbsp&nbsp<a id=\"abc\" href=\""+results_url+"\" style=\"font-size:16px; text-decoration: underline;\"><b>"+repetitions_str+"</b></a><br><br>\n")
-		
+
 		if results_url: 
 			if repetitions_flag == True:
 				repetitions_str = "For each subset of targets, multiple sgRNAs are designed, but <u>only the best one</u> is presented in the table below. To see all the sgRNAs"
@@ -60,7 +60,7 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
 		else: 
 			f.write("</font><br><br><br>\n")
 		
-		f.write("<table class=\"table\">\n")  	#new
+		f.write("<table class=\"table\">\n")
 	
 	header_row = "<tr>\n\t<th></th>\n\t<th>sgRNA</th>\n\t<th>Score</th>\n\t<th>Genes</th>\n\t<th>Genes score</th>\n\t<th>Target site</th>\n\t<th>#mms</th>\n\t<th>Position</th>\n\t<th>Find off-targets</th>\n</tr>\n"#new
 	f.write(header_row)
@@ -85,21 +85,17 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
 		
 		f.write("<tr class='top_row'>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n</tr>\n")
 		f.write("<tr>\n")      
-	#    print("candidate:\n",c)
 		num_of_targets = 0
 		for targets in c.targets_dict.values():
 			num_of_targets += len(targets)
-	#    print("num_of_targets: ",num_of_targets)
 		first_target = 1
 		first_gene = 1
 		l = list(c.targets_dict.items())
 		l.sort(key = lambda item: c.genes_score_dict[item[0]], reverse = True)
-		#print(l)
-		#for gene, targets in c.targets_dict.items():
+
 		for gene, targets in l:
 			targets.sort(key = lambda target: len(target[1]))#Galll!!! sort the targets by number of mms 
-			#print("gene: ", gene)
-			#print("targets: ",targets)
+
 			gene_seq = genes_lst[genes_names.index(gene)]
 			seen_sites = dict()
 			first_target = 1
@@ -123,10 +119,8 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
 					f.write("\t<td class='"+c.seq+"'>"+score+"</td>\n")
 							#break
 					f.write("\t<td style='font-family:Courier new'>"+chagne_mm_to_lowercase(target[0], target[1].keys())+"</td>\n")
-					f.write("\t<td id=\"mms\">"+str(len(target[1]))+"</td>\n")#new
-					f.write("\t<td>"+ pos +"</td>\n")#new
-					#f.write("\t<td class='"+c.seq+"' style='display:none'><a target=\"_blank\" href=\"http://tefor.net/crispor/crispor.cgi?seq="+c.seq+"&pam=NGG\">CRISPOR</a> | <a target=\"_blank\" href=\"http://crista.tau.ac.il/findofftargets.html#form/sgRNA_seq="+c.seq+"\">CRISTA</a></td>\n")
-					#f.write("\t<td class='"+c.seq+"'><a target=\"_blank\" href=\"http://tefor.net/crispor/crispor.cgi?&seq="+c.seq+"&pam=NGG\">CRISPOR</a> | <a target=\"_blank\" href=\"http://crista.tau.ac.il/findofftargets.html#form/sgRNA_seq="+c.seq+"\">CRISTA</a></td>\n")
+					f.write("\t<td id=\"mms\">"+str(len(target[1]))+"</td>\n")
+					f.write("\t<td>"+ pos +"</td>\n")
 					f.write("\t<td class='"+c.seq+"' style='display:none'><a target=\"_blank\" href=\"http://tefor.net/crispor/crispor.cgi?seq="+c.seq+"&pam=NGG\">CRISPOR</a> | <a target=\"_blank\" href=\""+crista_url+"\">"+crista_label+"</a></td>\n")
 					f.write("\t<td class='"+c.seq+"'><a target=\"_blank\" href=\"http://tefor.net/crispor/crispor.cgi?&seq="+c.seq+"&pam=NGG\">CRISPOR</a> | <a target=\"_blank\" href=\""+crista_url+"\">"+crista_label+"</a></td>\n")
 					f.write("</tr>\n")
@@ -161,17 +155,11 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
 					f.write("</tr>\n")
 					first_target = 0
 			first_gene = 0
-		#f.write("<tr class='top_row'>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n</tr>")	
 
 
 	f.write("<tr class='top_row'>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n</tr>")
 	f.write("</table>\n")
-	#f.write("<script>\nfunction toggle(sgRNA) {\n\t//document.getElementById(sgRNA).style.display = document.getElementById(sgRNA).style.display === 'none' ? 'table-row' : 'none';\n    var lst_r = document.getElementsByClassName(sgRNA.concat('_r'));\n    for(var i = 0; i < lst_r.length; ++i) {\n")
-	#f.write("        lst_r[i].style.display = lst_r[i].style.display === 'none' ? 'table-row' : 'none';\n    }\n    var lst = document.getElementsByClassName(sgRNA);\n    for(var i = 0; i < lst.length; ++i) {\n        lst[i].style.display = lst[i].style.display === 'none' ? 'table-cell' : 'none';")
-	#f.write("    }\n  }\n </script>")
 
-
-	#f.close()
 def genes_of_sub_candidates_lst(sub_candidates_lst):
 	res = set()
 	for c in sub_candidates_lst:
@@ -182,9 +170,7 @@ def genes_of_sub_candidates_lst(sub_candidates_lst):
 def find_pos(target, gene_sequence, seen_sites):
 	'''sgRNA_targets is a list of target sites
 	returns'''
-	#seen_sites = dict()
-	#res = dict() #key:targets val: position in gene
-	#for target in sgRNA_targets:
+
 	target_seq = target[0]
 	if target_seq in seen_sites:
 		directions_lst = seen_sites[target_seq]
@@ -201,8 +187,6 @@ def find_pos(target, gene_sequence, seen_sites):
 		position = str(position) + '-'
 	if position == -1:
 		position = ''
-		#update_positions_dict(res, target ,sg_position)
-		#update_seen_sites_dict(seen_sites, target_seq, 1)
 	return position
 	
 def find_pos_(target, gene_sequence, seen_sites):
@@ -346,9 +330,8 @@ def tree_display(path, consider_homology = False, data = 'regular', genomeAssemb
 			cmd = "python /bioseq/crista/CRISTA_online/multiple_sgRNAs_offtargets_search.py -s "+sgrna_list+" -g "+genomeAssembly+" -m 1 -n "+runId+"_crispys"
 			if data == 'greedy_set_cover' and not consider_homology:
 				cmd += "_greedy"
-			import os
-			os.system('ssh bioseq@lecs2 "module load python/python-3.3.3 && ' + cmd + '"')
-			
+			os.system('ssh bioseq@powerlogin "module load python/python-anaconda3.6.5 && ' + cmd + '"')
+
 	counter = 0;
 	
 	if consider_homology == False:
@@ -367,15 +350,12 @@ def tree_display(path, consider_homology = False, data = 'regular', genomeAssemb
 		
 		f.write("<p><u><b><font style=\"font-size:18px;\">Filters:</font></b></u></p>")
 		f.write("<font style=\"font-size:16px;\">&#9658; Show only targets with up to <select id=\"selectMM\" onchange=\"javascript:filterMM();\">\n")#new
-		#f.write("<font style=\"font-size:16px;\"><b>Filter out targets with more than\n<select id=\"selectMM\" onchange=\"javascript:filterMM();\">\n")#new
-		
+
 		f.write("\t<option value=\""+str(100)+"\">""</option>\n")#new
 		for i in range(1,21):#new
 			f.write("\t<option value=\""+str(i)+"\">"+str(i)+"</option>\n")#new
 		f.write("</select>\n mismatches\n")#new
-		
-		#f.write("&nbsp&nbsp&nbsp&nbsp<a id=\"abc\" href=\"http://multicrispr.tau.ac.il/results1.html?jobId=1517222057\" style=\"font-size:16px; text-decoration: underline;\"><b>Show only one sgRNA for each subset of possible targets</b></a><br><br>\n")
-		#f.write("<input type=\"hidden\" id=\"scrl\" name=\"user\" value=\"0\" />\n")
+
 		
 		if results_url: 
 			if data == 'removed_repetitions':
@@ -394,19 +374,15 @@ def tree_display(path, consider_homology = False, data = 'regular', genomeAssemb
 		else: 
 			f.write("</font><br><br><br>\n")
 
-		#for sub_candidates_lst in candidates_lst:
 		for subgroup_item in candidates_lst:
 			# create the main table
 			counter +=1
-			#genes = str(genes_of_sub_candidates_lst(sub_candidates_lst))[1:-1]
 			genes = str(subgroup_item.genes_lst)[1:-1].replace("'","")
 
 			f.write("<table class=\"table group\" style=\"font-size:20px; font-family:aharoni; \">\n")
-			#f.write("  <tr class=\"group\">\n       <td onclick='show("+str(counter)+")'>+ "+subgroup_item.name+ ": "+genes+"</td>\n       <td style='display:none' onclick='show("+str(counter)+")'>- "+subgroup_item.name+ ": "+genes+"</td>\n   </tr>\n") #why the + before "+genes+" ?
 			f.write("  <tr class=\"group\">\n       <td onclick='show(this, "+str(counter)+")'>+ "+subgroup_item.name+ ": "+genes+"</td>\n")
 			sub_tree_display(path, results_url, subgroup_item.candidate_lst, f, consider_homology, counter, genes_names, genes_list, data == 'removed_repetitions',  genomeAssembly, use_thr)
-			#sub_tree_display(path, results_url, subgroup_item.candidate_lst, f, consider_homology, counter, genes_names, genes_list)
-		counter = 0;	
+		counter = 0;
 		
 	f.write("<script>\nfunction hide(sgRNA) {\n\t var lst_r = document.getElementsByClassName(sgRNA.concat('_r'));\n    for(var i = 0; i < lst_r.length; ++i) {\n")
 	f.write("        if (lst_r[i].classList.contains('hideFromFilter')){lst_r[i].classList.remove('hideFromFilter');}\n        lst_r[i].style.display = 'none';\n    }\n    var lst = document.getElementsByClassName(sgRNA);\n    for(var i = 0; i < lst.length; ++i) {\n        lst[i].style.display = lst[i].style.display === 'none' ? 'table-cell' : 'none';")
@@ -414,11 +390,9 @@ def tree_display(path, consider_homology = False, data = 'regular', genomeAssemb
 	f.write("function show_row(sgRNA) {\n\t var lst_r = document.getElementsByClassName(sgRNA.concat('_r'));\n \t var mm = document.getElementById(\"selectMM\").value;    for(var i = 0; i < lst_r.length; ++i) {\n")
 	f.write("        var myMM = lst_r[i].children[\"mms\"].innerText;\n \tif (parseInt(myMM)  <= parseInt(mm)) {\n lst_r[i].style.display = 'table-row';\n\t}\n \telse {lst_r[i].classList.add('hideFromFilter');}\n   }\n    var lst = document.getElementsByClassName(sgRNA);\n    for(var i = 0; i < lst.length; ++i) {\n        lst[i].style.display = lst[i].style.display === 'none' ? 'table-cell' : 'none';")
 	f.write("    }\n  }\n ")
-	#f.write("function show(counter) {\n document.getElementById(counter).style.display = document.getElementById(counter).style.display === 'none' ? 'block' : 'none';\n  updateQueryString();\n}\n")
 	f.write("function show(elmnt,counter) {\n tmp = elmnt.innerText; \n if (tmp.startsWith(\"+\")) \n { \n elmnt.innerText = \"-\"+tmp.substring(1); \n} \n else {elmnt.innerText = \"+\"+tmp.substring(1);} \n document.getElementById(counter).style.display = document.getElementById(counter).style.display === 'none' ? 'block' : 'none'; \n updateQueryString(); \n}")
 	f.write("function filterMM(){\n var mm = document.getElementById(\"selectMM\").value;\n var tables = document.getElementsByClassName(\"table\");\n for (var t = 0; t < tables.length; ++t)\n {\n \ttable = tables[t];\n \ttr = table.getElementsByTagName(\"tr\");\n \tfor (i = 0; i < tr.length; i++)\n \t{\n    if(tr[i].style.display === 'none'){\n      if (tr[i].classList.contains('hideFromFilter')){}\nelse{continue;}\n    } \t\tvar row = tr[i].children[\"mms\"];\n \t\t if (row){\n \t\t\t var myMM = row.innerText;\n \t\t\t if (parseInt(myMM)  > parseInt(mm)) {\n        tr[i].classList.add('hideFromFilter');\n        tr[i].style.display = \"none\";\n       }\n \t\t\t else{tr[i].style.display = \"table-row\";tr[i].classList.remove('hideFromFilter');}\n \t\t}\n \t}\n }\n updateQueryString();\n}\n")
-	#str_func_UpdateQueryString = "function UpdateQueryString() { \n var mm = document.getElementById(\"selectMM\").value; \n }\n")# var n = $(\"scrl\").val(); \n# document.getElementById(\"abc\").href=\""+results_url+"\"&filterMM=\"mm\"&scrl=\"n.toString()\";\n}\n"
-	#f.write(str_func_UpdateQueryString)
+
 	if results_url:
 		if consider_homology == False:
 			f.write("function updateQueryString() { \n var mm = document.getElementById(\"selectMM\").value; \n var n = $(\"#scrl\").val(); \n document.getElementById(\"abc\").href=\""+results_url+"&filterMM=\"+mm+\"&scrl=\"+n.toString();  \n }\n")
