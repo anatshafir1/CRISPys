@@ -26,7 +26,7 @@ class Candidate:
         self.score_2 = None  #the score for the objective function
         self.num_of_genes_above_thr = 0
         self.cleave_all_above_thr = 1.0
-
+        self.off_targets = False
 
     def fill_default_fildes(self, gene_names):
         '''

@@ -16,3 +16,9 @@ n_cores_for_gold_off = 10
 # important: set n_process to 1 when debugging, otherwise the code can get stuck
 # it's used in Distance_matrix_and_UPGMA.gold_off_func:
 xgb_model_name = "GS_TL_add_classifier_xgb_model_fold_0_without_Kfold_imbalanced.xgb"
+
+# in case you need to activate conda when using remote debug
+CONDA = "source /groups/itay_mayrose/udiland/miniconda3/etc/profile.d/conda.sh; conda activate crispys"
+
+#command that is used to connect to server and run crista
+ssh_conect = 'ssh bioseq@powerlogin "module load python/python-anaconda3.6.5 && '

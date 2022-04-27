@@ -10,7 +10,8 @@ import Metric
 import argparse
 import os
 import random
-import make_tree_display_CSV
+import make_tree_display_CSV #from server
+
 
 random.seed(1234)
 
@@ -61,23 +62,6 @@ def leave_only_relevant_sgRNA(res):
                         del res[i]
                     else:
                         del res[j]
-
-def remove_repetitions_in_targets_sites(res):
-    '''haven't been tested yet'''
-    targets = set()
-    for i in range(len(res)):
-        removed_flag = 0
-        for target_tuple in candidate.targets_dict.values():
-            if target_tuple[0] in targets:
-                to_remove.append[i]
-                removed_flag = 1
-        if removed_flag == 0:
-            for target_tuple in candidate.targets_dict.values():
-                targets.add(target_tuple[0])
-    #now, remove
-    for index in range(len(to_remove) -1, -1,-1):
-        del res[to_remove[index]]
-
 
 
 def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Omega = 1, df_targets = Metric.cfd_funct, protdist_outfile = "outfile", min_length= 20, max_length = 20,start_with_G = False, internal_node_candidates = 10, PS_number = 12, PAMs=0):
@@ -170,9 +154,14 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
     pickle.dump(genesNames, open(path + "/genesNames.p", "wb"))
     # add saving the geneList in pickle in order to produce the results like in the server version - Udi 28/02/22
     pickle.dump(genesList, open(path + '/genesList.p', 'wb'))
+    pickle.dump(sg_genes_dict, open(path + "/sg_genes.p", "wb"))
 
     # new output function taken from the crispys server code. Udi 13/04/2022
     make_tree_display_CSV.tree_display(path, alg == 'E')
+
+    # # make a removed repetition results. taken from server
+    # removed_rep = remove_repetitions_in_targets_sites(res, alg, use_thr, Omega)
+    # pickle.dump( removed_rep, open(path + '/res_in_lst_removed_rep.p', 'wb'))
 
     stop = timeit.default_timer()
     ("time: ", stop - start)
