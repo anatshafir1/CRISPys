@@ -7,7 +7,16 @@ import argparse
 def run_server(fasta_file, path, alg, where_in_gene, use_thr, Omega, df_targets,
                      protdist_outfile, min_length, max_length, start_with_G,
                      internal_node_candidates, PS_number, PAMs, off_targets='Not_selected'):
+    """
+    This function is a wrapper for crispys the is used to run the server version. i.e. to get output in html format and
+    to be able to search for off targets using crista.
+    all the arguments are passed to the main crispys function except for the 'off_target' that is handheld here
 
+    Returns: in addition to the regular crispys output it will create html report of the whole data and cover set
+    (all function written by Gal with minor changes if any)
+    """
+
+    # run the 'local' crispys
     CRISPys_main(fasta_file, path, alg, where_in_gene, use_thr, Omega, df_targets,
                      protdist_outfile, min_length, max_length, start_with_G,
                      internal_node_candidates, PS_number, PAMs)
@@ -80,7 +89,7 @@ if __name__ == "__main__":
 
 # run_server(fasta_file="/groups/itay_mayrose/udiland/crispys_test/compare_server_git/test/HOM04D000221_5.txt",
 #              path="/groups/itay_mayrose/udiland/crispys_test/compare_server_git/test/out_git",
-#              alg = 'A',
+#              alg = 'E',
 #              where_in_gene = 0.8,
 #              use_thr = 1,
 #              Omega = 0.6,
@@ -92,6 +101,6 @@ if __name__ == "__main__":
 #              internal_node_candidates = 200,
 #              PS_number = 12,
 #              PAMs=0,
-#              off_targets='Not_selected') # example 'C.elegans (ce11)'
-#
-#
+#              off_targets='Not_selected') # example 'hg19' , for none use 'Not_selected'
+
+

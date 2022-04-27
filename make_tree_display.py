@@ -330,7 +330,7 @@ def tree_display(path, consider_homology = False, data = 'regular', genomeAssemb
 			cmd = "python /bioseq/crista/CRISTA_online/multiple_sgRNAs_offtargets_search.py -s "+sgrna_list+" -g "+genomeAssembly+" -m 1 -n "+runId+"_crispys"
 			if data == 'greedy_set_cover' and not consider_homology:
 				cmd += "_greedy"
-			os.system('ssh bioseq@powerlogin "module load python/python-anaconda3.6.5 && ' + cmd + '"')
+			os.system(f"{globals.ssh_conect} {cmd}\"")
 
 	counter = 0;
 	
