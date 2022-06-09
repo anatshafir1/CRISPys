@@ -153,6 +153,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
         f.write(header + "\n" + cmd)
     os.system("qsub " + res_folder + "/scoring/cfd/Crispys.sh")
 
+
     # scoring/gold_off
     header = createHeaderJob(res_folder + "/scoring/gold_off", "gold_off", ncpu=globals.n_cores_for_gold_off)
     if code == "git":
