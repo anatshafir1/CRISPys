@@ -37,7 +37,7 @@ def pos_in_metric_general_single_batch(list_of_targets: List, metric_sequences_l
 	return output_vectors_list
 
 
-def pos_in_metric_general(list_of_targets, distance_function):
+def pos_in_metric_general(list_of_targets: List, distance_function) -> List:
     """
     This function is used for transforming the scores given by the scoring into vectors that can be used
     to calculate the distances between the targets. That way the properties of distance are kept
@@ -70,7 +70,7 @@ def pos_in_metric_general(list_of_targets, distance_function):
         return list_of_vectors
 
 
-def create_list_of_metric_sequences(list_of_targets) -> List:
+def create_list_of_metric_sequences(list_of_targets: List) -> List:
 	"""
 	This function creates a list of sequences of length vector_size_cutoff, which are then used for the distance
 	transformation. If the number of targets is smaller than vector_size_cutoff, this function takes all targets,
