@@ -164,10 +164,9 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
     # pickle.dump( removed_rep, open(path + '/res_in_lst_removed_rep.p', 'wb'))
 
     stop = timeit.default_timer()
-    ("time: ", stop - start)
-    time_file = open("time.txt", 'w')
-    time_file.write(str(stop - start))
-    time_file.close
+    "time: ", stop - start
+    with open(f"{path}/time.txt", 'w') as f: # Omer 15/06/22
+        f.write(str(stop - start))
     return res
 
 
