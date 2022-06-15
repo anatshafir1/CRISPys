@@ -5,6 +5,7 @@ import gold_off
 from os.path import dirname, abspath, isfile
 from numpy import clip
 import globals
+from numpy import clip
 
 def d_f2(seq1,seq2, dicti = None):
 	'''a distance function. from the article CRISPER-Cas9 knockout screening in human cells'''
