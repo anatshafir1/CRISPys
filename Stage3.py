@@ -96,7 +96,7 @@ def return_candidates(list_of_targets, initial_seq, genes_sg_dict, Omega, df, no
 				candidate_cut_prob = 1 - candidates_target_scores[i]
 				sg_site_differents = two_sequs_differeces(list_of_perms_sequs[i], target) ## the differences between the ith candidate and the target
 
-				list_of_targets.append([target, sg_site_differents])
+				list_of_targets.append([target[:20], sg_site_differents])
 				prob_gene_will_not_cut = prob_gene_will_not_cut * (1- candidate_cut_prob)  #lowering the not cut prob in each sgRNA
 				num_of_cuts_per_gene += candidate_cut_prob
 			prob_gene_cut = 1 - prob_gene_will_not_cut
@@ -372,7 +372,7 @@ def all_perms(initial_seq, list_of_sequs, list_of_differences):
 		if(list_of_sequs):
 			return list_of_sequs
 		elif(initial_seq):
-			return [initial_seq]
+			return [initial_seq[:20]]
 		else:
 			return []
 	else:

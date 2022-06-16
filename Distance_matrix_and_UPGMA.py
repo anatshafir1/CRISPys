@@ -3,6 +3,7 @@ import TreeConstruction_changed as TreeConstruction
 import math
 import gold_off
 from os.path import dirname, abspath, isfile
+from numpy import clip
 import globals
 from numpy import clip
 
@@ -41,7 +42,7 @@ def p_distance(seq1,seq2, dicti = None):
 
 def gold_off_func(sg_seq_list, target_seq_list, dicti = None): #Omer Caldararu 28/3
 	"""
-	Scoring function based on gold-off classifier. This function uses a model
+	Scoring function based on gold-off regressor. This function uses a model
 	.xgb file.
 	Args:
 		sg_seq_list: a list of sgRNA sequence or sequences
