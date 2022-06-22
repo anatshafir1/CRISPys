@@ -154,7 +154,7 @@ def run_crispys_test(code_folder, res_folder,queue, code="git"):
     os.system("qsub " + res_folder + "/scoring/cfd/Crispys.sh")
 
     # scoring/gold_off
-    header = createHeaderJob(res_folder + "/scoring/gold_off", "gold_off", ncpu=globals.n_cores_for_gold_off, queue)
+    header = createHeaderJob(res_folder + "/scoring/gold_off", "gold_off", queue, ncpu=globals.n_cores_for_gold_off)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/gold_off --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s gold_off"
 
