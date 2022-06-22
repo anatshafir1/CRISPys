@@ -5,7 +5,7 @@ import globals
 import pandas as pd
 
 
-def createHeaderJob(path, job_name, ncpu=1, mem=16, queue):
+def createHeaderJob(path, job_name, queue, ncpu=1, mem=16):
     """
     A function to create qsub file with activating crispys conda env and ssh to 0-247 machine
     :param path: path to log files
