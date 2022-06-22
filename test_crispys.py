@@ -5,7 +5,7 @@ import globals
 import pandas as pd
 
 
-def createHeaderJob(path, job_name, ncpu=1, mem=16):
+def createHeaderJob(path, job_name, ncpu=1, mem=16, queue):
     """
     A function to create qsub file with activating crispys conda env and ssh to 0-247 machine
     :param path: path to log files
@@ -18,7 +18,7 @@ def createHeaderJob(path, job_name, ncpu=1, mem=16):
     text += "#!/bin/bash\n\n"
     text += "#PBS -S /bin/bash\n"
     text += "#PBS -r y\n"
-    text += "#PBS -q itaym\n"
+    text += f"#PBS -q {queue}\n"
     text += "#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH\n"
     text += "#PBS -N " + job_name + "\n"
     text += "#PBS -e " + path + "/" + job_name + ".ER" + "\n"
@@ -38,7 +38,7 @@ test_folders = ["gain_score/t_1", "gain_score/t_0", "N_internal_node/10",
 
 
 
-def run_crispys_test(code_folder, res_folder, code="git"):
+def run_crispys_test(code_folder, res_folder,queue, code="git"):
     """
     This function will run crispys with different partametrs with provided code
     :param code_folder: The path to the folder where your crispys code is
@@ -55,7 +55,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
 
     #### run cripys for each test
     # gain score t1:
-    header = createHeaderJob(res_folder + "/gain_score/t_1", "gain_t1")
+    header = createHeaderJob(res_folder + "/gain_score/t_1", "gain_t1", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000012_7/HOM04D000012_7.txt {res_folder}/gain_score/t_1 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
@@ -66,7 +66,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system("qsub " + res_folder + "/gain_score/t_1/Crispys.sh")
 
     # gain score t0:
-    header = createHeaderJob(res_folder + "/gain_score/t_0", "gain_t0")
+    header = createHeaderJob(res_folder + "/gain_score/t_0", "gain_t0", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000012_7/HOM04D000012_7.txt {res_folder}/gain_score/t_0 --alg E --t 0 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
@@ -77,7 +77,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system( "qsub " + res_folder + "/gain_score/t_0/Crispys.sh" )
 
     # N_poly_sites/12
-    header = createHeaderJob( res_folder + "/N_poly_sites/12", "poly_12" )
+    header = createHeaderJob( res_folder + "/N_poly_sites/12", "poly_12", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D004565/HOM04D004565.txt {res_folder}/N_poly_sites/12 --alg E --t 1 --v 0.8 --i 20 --where_in_gene 0.8 --s cfd_funct --ps 12"
     if code == "server":
@@ -88,7 +88,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system("qsub " + res_folder + "/N_poly_sites/12/Crispys.sh" )
 
     # N_poly_sites/2
-    header = createHeaderJob(res_folder + "/N_poly_sites/2", "poly_2")
+    header = createHeaderJob(res_folder + "/N_poly_sites/2", "poly_2", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D004565/HOM04D004565.txt {res_folder}/N_poly_sites/2 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct --ps 2"
     if code == "server":
@@ -99,7 +99,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system("qsub " + res_folder + "/N_poly_sites/2/Crispys.sh")
 
     # N_internal_node/10
-    header = createHeaderJob(res_folder + "/N_internal_node/10", "in_10")
+    header = createHeaderJob(res_folder + "/N_internal_node/10", "in_10", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000221_5/HOM04D000221_5.txt {res_folder}/N_internal_node/10 --alg E --t 1 --v 0.8 --i 10 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
@@ -110,7 +110,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system("qsub " + res_folder + "/N_internal_node/10/Crispys.sh")
 
     # N_internal_node/200
-    header = createHeaderJob(res_folder + "/N_internal_node/200", "in_200")
+    header = createHeaderJob(res_folder + "/N_internal_node/200", "in_200", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000221_5/HOM04D000221_5.txt {res_folder}/N_internal_node/200 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
@@ -121,7 +121,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system("qsub " + res_folder + "/N_internal_node/200/Crispys.sh")
 
     # scoring/CrisprMIT
-    header = createHeaderJob(res_folder + "/scoring/CrisprMIT", "fun_MIT")
+    header = createHeaderJob(res_folder + "/scoring/CrisprMIT", "fun_MIT", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/CrisprMIT --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s MITScore"
     if code == "server":
@@ -132,7 +132,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system("qsub " + res_folder + "/scoring/CrisprMIT/Crispys.sh")
 
     # scoring/CCtop
-    header = createHeaderJob(res_folder + "/scoring/CCtop", "fun_CCtop")
+    header = createHeaderJob(res_folder + "/scoring/CCtop", "fun_CCtop", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/CCtop --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s ccTop"
     if code == "server":
@@ -143,7 +143,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system("qsub " + res_folder + "/scoring/CCtop/Crispys.sh")
 
     # scoring/cfd
-    header = createHeaderJob(res_folder + "/scoring/cfd", "fun_cfd")
+    header = createHeaderJob(res_folder + "/scoring/cfd", "fun_cfd", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/cfd --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
@@ -153,9 +153,8 @@ def run_crispys_test(code_folder, res_folder, code="git"):
         f.write(header + "\n" + cmd)
     os.system("qsub " + res_folder + "/scoring/cfd/Crispys.sh")
 
-
     # scoring/gold_off
-    header = createHeaderJob(res_folder + "/scoring/gold_off", "gold_off", ncpu=globals.n_cores_for_gold_off)
+    header = createHeaderJob(res_folder + "/scoring/gold_off", "gold_off", ncpu=globals.n_cores_for_gold_off, queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/gold_off --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s gold_off"
 
@@ -164,7 +163,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system("qsub " + res_folder + "/scoring/gold_off/Crispys.sh" )
 
     # where_in_gene/0.8
-    header = createHeaderJob(res_folder + "/where_in_gene/0.8", "gene_x0.8")
+    header = createHeaderJob(res_folder + "/where_in_gene/0.8", "gene_x0.8", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000054_6/HOM04D000054_6.txt {res_folder}/where_in_gene/0.8 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
@@ -175,7 +174,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system("qsub " + res_folder + "/where_in_gene/0.8/Crispys.sh")
 
     # where_in_gene/0.4
-    header = createHeaderJob(res_folder + "/where_in_gene/0.4", "gene_x0.4")
+    header = createHeaderJob(res_folder + "/where_in_gene/0.4", "gene_x0.4", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000054_6/HOM04D000054_6.txt {res_folder}/where_in_gene/0.4 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.4 --s cfd_funct"
     if code == "server":
@@ -186,7 +185,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system( "qsub " + res_folder + "/where_in_gene/0.4/Crispys.sh" )
 
     # algo/E
-    header = createHeaderJob( res_folder + "/algo/E", "algo_E" )
+    header = createHeaderJob( res_folder + "/algo/E", "algo_E", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000632/HOM04D000632.txt {res_folder}/algo/E --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
@@ -197,7 +196,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system( "qsub " + res_folder + "/algo/E/Crispys.sh" )
 
     # algo/A
-    header = createHeaderJob( res_folder + "/algo/A", "algo_A" )
+    header = createHeaderJob( res_folder + "/algo/A", "algo_A", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000632/HOM04D000632.txt {res_folder}/algo/A --alg A --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
@@ -208,7 +207,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system( "qsub " + res_folder + "/algo/A/Crispys.sh" )
 
     # threshold/th_0.8
-    header = createHeaderJob( res_folder + "/threshold/th_0.8", "th_0.8" )
+    header = createHeaderJob( res_folder + "/threshold/th_0.8", "th_0.8", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000221_5/HOM04D000221_5.txt {res_folder}/threshold/th_0.8 --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
@@ -219,7 +218,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     os.system( "qsub " + res_folder + "/threshold/th_0.8/Crispys.sh" )
 
     # threshold/th_0.45
-    header = createHeaderJob( res_folder + "/threshold/th_0.45", "th_0.45" )
+    header = createHeaderJob( res_folder + "/threshold/th_0.45", "th_0.45", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000221_5/HOM04D000221_5.txt {res_folder}/threshold/th_0.45 --alg E --t 1 --v 0.45 --i 200 --where_in_gene 0.8 --s cfd_funct"
     if code == "server":
@@ -231,7 +230,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
 
 
     # PAM/pams_GG
-    header = createHeaderJob( res_folder + "/PAM/pams_GG", "pams_GG" )
+    header = createHeaderJob( res_folder + "/PAM/pams_GG", "pams_GG", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D004565/HOM04D004565.txt {res_folder}/PAM/pams_GG --alg E --t 1 --v 0.45 --i 200 --where_in_gene 0.8 --s cfd_funct --PAMs 0"
     if code == "server":
@@ -243,7 +242,7 @@ def run_crispys_test(code_folder, res_folder, code="git"):
 
 
     # PAM/pams_GG and GA
-    header = createHeaderJob( res_folder + "/PAM/pams_GGAG", "pams_GGAG" )
+    header = createHeaderJob( res_folder + "/PAM/pams_GGAG", "pams_GGAG", queue)
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D004565/HOM04D004565.txt {res_folder}/PAM/pams_GGAG --alg E --t 1 --v 0.45 --i 200 --where_in_gene 0.8 --s cfd_funct --PAMs 1"
     if code == "server":
@@ -500,7 +499,7 @@ def compare_output_new_format(old_res_folder, new_res_folder):
 
     res.close()
 
-def main(ref_folder, code_folder=None, res_folder_new=None, mode="run_and_compare", compare="git"):
+def main(ref_folder, code_folder=None, res_folder_new=None, mode="run_and_compare", queue):
     """
     Main function that run the tests
     :param code_folder: path to the crispys code folder
@@ -513,16 +512,15 @@ def main(ref_folder, code_folder=None, res_folder_new=None, mode="run_and_compar
     :return: depend on the option. can create new folders with crispys results and a summary of the comparison.
     """
 
-    if compare == "git":
-        if mode == "run_and_compare":
-            run_crispys_test(code_folder, res_folder_new)
-            compare_output_new_format(ref_folder, res_folder_new)
+    if mode == "run_and_compare":
+        run_crispys_test(code_folder, res_folder_new, queue)
+        compare_output_new_format(ref_folder, res_folder_new)
 
-        if mode == "run":
-            run_crispys_test(code_folder, ref_folder)
+    if mode == "run":
+        run_crispys_test(code_folder, ref_folder, queue)
 
-        if mode == "compare":
-            compare_output_new_format(ref_folder, res_folder_new)
+    if mode == "compare":
+        compare_output_new_format(ref_folder, res_folder_new)
 
 
 def parse_arguments(parser):
@@ -531,21 +529,20 @@ def parse_arguments(parser):
     parser.add_argument( '--res_folder_new', '-new', type=str, help='The path to the new crispys results' )
     parser.add_argument( '--mode', '-mode', default="run_and_compare", type=str,
                          help="mode of action, choose between 'run_and_compare', 'run' and 'compare'" )
-    parser.add_argument( '--compare', '-c', default="git", type=str,
-                         help="crispys type of output to use as the 'new', choose between 'git' and 'server'" )
+    parser.add_argument( '--queue', '-q', default="itaym", help="select the queue to run")
     args = parser.parse_args()
     return args
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    args = parse_arguments( parser )
-    main(code_folder=args.code_folder,
-          ref_folder=args.ref_folder,
-          res_folder_new=args.res_folder_new,
-          mode=args.mode,
-          compare=args.compare)
-
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser()
+#     args = parse_arguments( parser )
+#     main(code_folder=args.code_folder,
+#           ref_folder=args.ref_folder,
+#           res_folder_new=args.res_folder_new,
+#           mode=args.mode,
+#           queue=args.queue)
+#
 # main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
 #      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
@@ -557,9 +554,9 @@ if __name__ == "__main__":
 #      mode="run_and_compare")
 
 # run crispys code to create reference folders
-# main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
-#      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
-#      mode="run")
+main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
+     ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
+     mode="run")
 
 # run crispys with server code and compare to existing git results
 # main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git",
