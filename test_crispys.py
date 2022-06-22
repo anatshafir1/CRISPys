@@ -499,7 +499,7 @@ def compare_output_new_format(old_res_folder, new_res_folder):
 
     res.close()
 
-def main(ref_folder, queue ,code_folder=None, res_folder_new=None, mode="run_and_compare"):
+def main(ref_folder, queue="itaym", code_folder=None, res_folder_new=None, mode="run_and_compare"):
     """
     Main function that run the tests
     :param code_folder: path to the crispys code folder
