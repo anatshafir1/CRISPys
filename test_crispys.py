@@ -5,7 +5,7 @@ import globals
 import pandas as pd
 
 
-def createHeaderJob(path, job_name, ncpu=1, mem=16, queue):
+def createHeaderJob(path, job_name, queue, ncpu=1, mem=16):
     """
     A function to create qsub file with activating crispys conda env and ssh to 0-247 machine
     :param path: path to log files
@@ -154,7 +154,7 @@ def run_crispys_test(code_folder, res_folder,queue, code="git"):
     os.system("qsub " + res_folder + "/scoring/cfd/Crispys.sh")
 
     # scoring/gold_off
-    header = createHeaderJob(res_folder + "/scoring/gold_off", "gold_off", ncpu=globals.n_cores_for_gold_off, queue)
+    header = createHeaderJob(res_folder + "/scoring/gold_off", "gold_off", queue, ncpu=globals.n_cores_for_gold_off )
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/gold_off --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s gold_off"
 
@@ -499,7 +499,7 @@ def compare_output_new_format(old_res_folder, new_res_folder):
 
     res.close()
 
-def main(ref_folder, code_folder=None, res_folder_new=None, mode="run_and_compare", queue):
+def main(ref_folder, queue="itaym", code_folder=None, res_folder_new=None, mode="run_and_compare"):
     """
     Main function that run the tests
     :param code_folder: path to the crispys code folder
@@ -524,24 +524,24 @@ def main(ref_folder, code_folder=None, res_folder_new=None, mode="run_and_compar
 
 
 def parse_arguments(parser):
-    parser.add_argument( '--code_folder', '-code', type=str, help='The path to the crispys code folder' )
-    parser.add_argument( '--ref_folder', '-ref', type=str, help='The path to the crispys results (reference)' )
-    parser.add_argument( '--res_folder_new', '-new', type=str, help='The path to the new crispys results' )
-    parser.add_argument( '--mode', '-mode', default="run_and_compare", type=str,
-                         help="mode of action, choose between 'run_and_compare', 'run' and 'compare'" )
-    parser.add_argument( '--queue', '-q', default="itaym", help="select the queue to run")
+    parser.add_argument('--code_folder', '-code', type=str, help='The path to the crispys code folder')
+    parser.add_argument('--ref_folder', '-ref', type=str, help='The path to the crispys results (reference)')
+    parser.add_argument('--res_folder_new', '-new', type=str, help='The path to the new crispys results')
+    parser.add_argument('--mode', '-mode', default="run_and_compare", type=str,
+                         help="mode of action, choose between 'run_and_compare', 'run' and 'compare'")
+    parser.add_argument('--queue', '-q', default="itaym", help="select the queue to run")
     args = parser.parse_args()
     return args
 
 
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser()
-#     args = parse_arguments( parser )
-#     main(code_folder=args.code_folder,
-#           ref_folder=args.ref_folder,
-#           res_folder_new=args.res_folder_new,
-#           mode=args.mode,
-#           queue=args.queue)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    args = parse_arguments( parser )
+    main(code_folder=args.code_folder,
+          ref_folder=args.ref_folder,
+          res_folder_new=args.res_folder_new,
+          mode=args.mode,
+          queue=args.queue)
 #
 # main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
@@ -554,9 +554,9 @@ def parse_arguments(parser):
 #      mode="run_and_compare")
 
 # run crispys code to create reference folders
-main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
-     ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
-     mode="run")
+# main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
+#      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
+#      mode="run")
 
 # run crispys with server code and compare to existing git results
 # main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git",
