@@ -6,7 +6,7 @@ this script is for storing global variables
 # it's used in Stage1_h.py with function:
 N_genes_in_node = 10
 
-# This variable defines the seed for CRISPys
+# This variable defines the seed for CRISPys' random functions
 seed = 1234
 
 # This variable stores the maximum vector size that is allowed for the distance transformation.
