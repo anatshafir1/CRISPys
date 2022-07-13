@@ -8,7 +8,6 @@ import Metric
 import Stage2
 import random
 
-random.seed(1234)
 
 def find_Uno_sgRNA(genes_sg_dict, Omega, df, node, cfd_dict = None, PS_number = 12):
 	''' not Uno any more....

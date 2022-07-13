@@ -4,9 +4,9 @@ from functools import reduce
 import Distance_matrix_and_UPGMA
 import random
 from os.path import dirname, abspath, isfile
+import globals
 from globals import vector_size_cutoff
 from typing import List, Dict
-random.seed(1234)
 
 
 def pos_in_metric_general_single_batch(list_of_targets: List, metric_sequences_list: List, distance_function) -> List:
@@ -52,6 +52,7 @@ def pos_in_metric_general(list_of_targets: List, distance_function) -> List:
 	Returns: a list of vectors, each representing the location of the target in a
 	multidimensional space.
 	"""
+	random.seed(globals.seed) # Omer 13/07
 	if distance_function == cfd_funct:
 		list_of_vectors = []
 		for target in list_of_targets:
@@ -104,7 +105,7 @@ def create_perturbed_target(target: str) -> str:
 	mutation_indices = sorted(random.sample(range(20), number_of_mutations))
 	perturbed_target = list(target)[:20]
 	for j in mutation_indices:
-		nucleotide_choices = list({'A', 'C', 'G', 'T'} - {perturbed_target[j]})
+		nucleotide_choices = sorted(list({'A', 'C', 'G', 'T'} - {perturbed_target[j]}))
 		perturbed_target[j] = random.choice(nucleotide_choices)
 	return ''.join(perturbed_target)
 
