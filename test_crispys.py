@@ -135,7 +135,7 @@ def run_crispys_test(code_folder, res_folder,queue, code="git"):
     os.system("qsub " + res_folder + "/scoring/gold_off/Crispys.sh" )
 
     # scoring/crispr_net
-    header = createHeaderJob(res_folder + "/scoring/gold_off", "crispr_net", queue, ncpu=globals.n_cores_for_gold_off )
+    header = createHeaderJob(res_folder + "/scoring/crispr_net", "crispr_net", queue)
     cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/crispr_net --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s crispr_net"
 
     with open( res_folder + "/scoring/crispr_net/Crispys.sh", "w" ) as f:
