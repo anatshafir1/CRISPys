@@ -491,14 +491,14 @@ def parse_arguments(parser):
     return args
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    args = parse_arguments( parser )
-    main(code_folder=args.code_folder,
-          ref_folder=args.ref_folder,
-          res_folder_new=args.res_folder_new,
-          mode=args.mode,
-          queue=args.queue)
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser()
+#     args = parse_arguments( parser )
+#     main(code_folder=args.code_folder,
+#           ref_folder=args.ref_folder,
+#           res_folder_new=args.res_folder_new,
+#           mode=args.mode,
+#           queue=args.queue)
 #
 # main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
@@ -511,9 +511,9 @@ if __name__ == "__main__":
 #      mode="run_and_compare")
 
 #run crispys code to create reference folders
-# main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
-#      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
-#      mode="run")
+main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
+     ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
+     mode="run")
 
 # run crispys with server code and compare to existing git results
 # main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git",

@@ -59,8 +59,9 @@ def pos_in_metric_general(list_of_targets: List, distance_function) -> List:
 		for target in list_of_targets:
 			list_of_vectors.append(pos_in_metric_cfd_np(target, dicti=None))
 		return list_of_vectors
-  elif distance_function == Distance_matrix_and_UPGMA.gold_off_func or distance_function == Distance_matrix_and_UPGMA.crisprnet:
-        return pos_in_metric_general_single_batch(list_of_targets, metric_sequences_list, distance_function)
+	elif distance_function == Distance_matrix_and_UPGMA.gold_off_func or distance_function == Distance_matrix_and_UPGMA.crisprnet:
+		metric_sequences_list = create_list_of_metric_sequences( list_of_targets )
+		return pos_in_metric_general_single_batch(list_of_targets, metric_sequences_list, distance_function)
 	elif distance_function == Distance_matrix_and_UPGMA.ccTop or distance_function == Distance_matrix_and_UPGMA.MITScore:
 		metric_sequences_list = create_list_of_metric_sequences(list_of_targets)
 		list_of_vectors = []
