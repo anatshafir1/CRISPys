@@ -106,7 +106,7 @@ def create_perturbed_target(target: str) -> str:
 	mutation_indices = sorted(random.sample(range(20), number_of_mutations))
 	perturbed_target = list(target)[:20]
 	for j in mutation_indices:
-		nucleotide_choices = sorted(list({'A', 'C', 'G', 'T'} - {perturbed_target[j]}))
+		nucleotide_choices = [char for char in 'ACGT' if char != perturbed_target[j]]
 		perturbed_target[j] = random.choice(nucleotide_choices)
 	return ''.join(perturbed_target)
 
