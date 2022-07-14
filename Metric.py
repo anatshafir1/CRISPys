@@ -4,9 +4,9 @@ from functools import reduce
 import Distance_matrix_and_UPGMA
 import random
 from os.path import dirname, abspath, isfile
+import globals
 from globals import vector_size_cutoff
 from typing import List, Dict
-random.seed(1234)
 
 
 def pos_in_metric_general_single_batch(list_of_targets: List, metric_sequences_list: List, distance_function) -> List:
@@ -38,11 +38,11 @@ def pos_in_metric_general_single_batch(list_of_targets: List, metric_sequences_l
 
 
 def pos_in_metric_general(list_of_targets: List, distance_function) -> List:
-    """
-    This function is used for transforming the scores given by the scoring into vectors that can be used
-    to calculate the distances between the targets. That way the properties of distance are kept
-    (e.g. symmetry and the triangle inequality).
-    These distances are then used for the construction of the target tree.
+	"""
+	This function is used for transforming the scores given by the scoring into vectors that can be used
+	to calculate the distances between the targets. That way the properties of distance are kept
+	(e.g. symmetry and the triangle inequality).
+	These distances are then used for the construction of the target tree.
 	The function takes a list of targets and creates a new list of vectors,
 	where the ith vector represents the ith target
 	and a list of sampled targets with perturbations.
@@ -52,23 +52,24 @@ def pos_in_metric_general(list_of_targets: List, distance_function) -> List:
 	Returns: a list of vectors, each representing the location of the target in a
 	multidimensional space.
 	"""
-    metric_sequences_list = create_list_of_metric_sequences(list_of_targets)
-    if distance_function == Distance_matrix_and_UPGMA.gold_off_func or distance_function == Distance_matrix_and_UPGMA.crisprnet:
+  
+	random.seed(globals.seed) # Omer 13/07
+	if distance_function == cfd_funct:
+		list_of_vectors = []
+		for target in list_of_targets:
+			list_of_vectors.append(pos_in_metric_cfd_np(target, dicti=None))
+		return list_of_vectors
+  elif distance_function == Distance_matrix_and_UPGMA.gold_off_func or distance_function == Distance_matrix_and_UPGMA.crisprnet:
         return pos_in_metric_general_single_batch(list_of_targets, metric_sequences_list, distance_function)
-    elif distance_function == cfd_funct:
-        list_of_vectors = []
-        for target in list_of_targets:
-            list_of_vectors.append(pos_in_metric_cfd_np(target, dicti=None))
-        return list_of_vectors
-    elif distance_function == Distance_matrix_and_UPGMA.ccTop or distance_function == Distance_matrix_and_UPGMA.MITScore:
-        list_of_vectors = []
-        for target in list_of_targets:
-            score_vector = []
-            for sequence in metric_sequences_list:
-                score_vector.append(distance_function(sequence, target))
-            list_of_vectors.append(score_vector)
-        return list_of_vectors
-
+	elif distance_function == Distance_matrix_and_UPGMA.ccTop or distance_function == Distance_matrix_and_UPGMA.MITScore:
+		metric_sequences_list = create_list_of_metric_sequences(list_of_targets)
+		list_of_vectors = []
+		for target in list_of_targets:
+			score_vector = []
+			for sequence in metric_sequences_list:
+				score_vector.append(distance_function(sequence, target))
+			list_of_vectors.append(score_vector)
+		return list_of_vectors
 
 def create_list_of_metric_sequences(list_of_targets: List) -> List:
 	"""
@@ -104,7 +105,7 @@ def create_perturbed_target(target: str) -> str:
 	mutation_indices = sorted(random.sample(range(20), number_of_mutations))
 	perturbed_target = list(target)[:20]
 	for j in mutation_indices:
-		nucleotide_choices = list({'A', 'C', 'G', 'T'} - {perturbed_target[j]})
+		nucleotide_choices = sorted(list({'A', 'C', 'G', 'T'} - {perturbed_target[j]}))
 		perturbed_target[j] = random.choice(nucleotide_choices)
 	return ''.join(perturbed_target)
 

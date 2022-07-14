@@ -5,9 +5,12 @@ this script is for storing global variables
 # get th epath of the scripts directory
 PATH = os.path.dirname(os.path.realpath(__file__))
 
-# this variable will determine the maximum number of genes that will be considered for finding
+# This variable will determine the maximum number of genes that will be considered for finding
 # it's used in Stage1_h.py with function:
 N_genes_in_node = 10
+
+# This variable defines the seed for CRISPys' random functions
+seed = 1234
 
 # This variable stores the maximum vector size that is allowed for the distance transformation.
 # This variable used in Distance_matrix_and_UPGMA.pos_in_metric_general

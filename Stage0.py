@@ -10,6 +10,7 @@ import Metric
 import argparse
 import os
 import random
+import globals
 import make_tree_display_CSV #from server
 import globals
 from tensorflow.keras.models import model_from_json
@@ -17,8 +18,6 @@ import warnings
 warnings.filterwarnings('ignore')
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
-
-random.seed(1234)
 
 # get the path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))
@@ -71,7 +70,6 @@ def leave_only_relevant_sgRNA(res):
 
 def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Omega = 1, df_targets = Metric.cfd_funct, protdist_outfile = "outfile", min_length= 20, max_length = 20,start_with_G = False, internal_node_candidates = 10, PS_number = 12, PAMs=0):
     start = timeit.default_timer()
-    random.seed(1234) #Omer 16/06/22
     cfd_dict = None
     if isinstance(where_in_gene, str):
         where_in_gene = float(where_in_gene.strip())
