@@ -53,7 +53,7 @@ def pos_in_metric_general(list_of_targets: List, distance_function) -> List:
 	multidimensional space.
 	"""
     metric_sequences_list = create_list_of_metric_sequences(list_of_targets)
-    if distance_function == Distance_matrix_and_UPGMA.gold_off_func:
+    if distance_function == Distance_matrix_and_UPGMA.gold_off_func or distance_function == Distance_matrix_and_UPGMA.crisprnet:
         return pos_in_metric_general_single_batch(list_of_targets, metric_sequences_list, distance_function)
     elif distance_function == cfd_funct:
         list_of_vectors = []

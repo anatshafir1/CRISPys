@@ -1,6 +1,9 @@
+import os
 """
 this script is for storing global variables
 """
+# get th epath of the scripts directory
+PATH = os.path.dirname(os.path.realpath(__file__))
 
 # this variable will determine the maximum number of genes that will be considered for finding
 # it's used in Stage1_h.py with function:
@@ -23,3 +26,14 @@ CONDA = "source /groups/itay_mayrose/udiland/miniconda3/etc/profile.d/conda.sh; 
 
 #command that is used to connect to server and run crista
 ssh_conect = 'ssh bioseq@powerlogin "module load python/python-anaconda3.6.5 && '
+
+def set_crisprnet_model(model):
+    """
+    A function to make a global variable 0f the model of crispr-net
+    Args:
+        model: crispr_net trained model
+
+    Returns: global variable
+    """
+    global crisprnet_loaded_model
+    crisprnet_loaded_model = model
