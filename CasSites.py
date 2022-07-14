@@ -34,7 +34,7 @@ def get_sites(gene, df, min_length=20, max_length=20, start_with_G=False, where_
 			if df == Metric.cfd_funct or df == Distance_matrix_and_UPGMA.ccTop or df == Distance_matrix_and_UPGMA.MITScore:
 				founds = [seq[:-3] for seq in founds_sense if 'N' not in seq[:-3]] + [seq[:-3] for seq in founds_antisense if 'N' not in seq[:-3]]
 			# functions that take targets of length 23 (used for scoring scheme that needs the PAM, e.g gold_off)
-			elif df == Distance_matrix_and_UPGMA.gold_off_func:
+			elif df == Distance_matrix_and_UPGMA.gold_off_func or df == Distance_matrix_and_UPGMA.ucrispr or df == Distance_matrix_and_UPGMA.crisprnet:
 				founds = [seq for seq in founds_sense if 'N' not in seq] + [seq for seq in founds_antisense if 'N' not in seq]
 			list_of_targets += founds
 

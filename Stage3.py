@@ -34,7 +34,7 @@ def generate_scores(genes_sg_dict, list_of_candidates, scoring_function, cfd_dic
 	Returns: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]}
 	"""
 	scores_dict = {}
-	if scoring_function == Distance_matrix_and_UPGMA.gold_off_func:
+	if scoring_function == Distance_matrix_and_UPGMA.gold_off_func or scoring_function == Distance_matrix_and_UPGMA.crisprnet:
 		return generate_scores_one_batch(genes_sg_dict, list_of_candidates, scoring_function, scores_dict)
 	for gene in genes_sg_dict.keys():
 		scores_dict[gene] = []

@@ -553,7 +553,7 @@ if __name__ == "__main__":
 #      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
 #      mode="run_and_compare")
 
-# run crispys code to create reference folders
+#run crispys code to create reference folders
 # main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
 #      mode="run")

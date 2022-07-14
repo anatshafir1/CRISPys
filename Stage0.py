@@ -12,7 +12,12 @@ import os
 import random
 import globals
 import make_tree_display_CSV #from server
-
+import globals
+from tensorflow.keras.models import model_from_json
+import warnings
+warnings.filterwarnings('ignore')
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 # get the path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))
@@ -73,17 +78,35 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
     if isinstance(use_thr, str):
         use_thr = int(use_thr.strip())
     #choosing the distance function
-    if df_targets == "gold_off" or df_targets == "goldoff":
+    if df_targets == "crispr_net" or df_targets == "CRISPR_Net" or df_targets == "crisprnet":
+        df_targets = Distance_matrix_and_UPGMA.crisprnet
+        # load the model and make it available globaly
+        json_file = open(f"{globals.PATH}/CRISPR_Net/scoring_models/CRISPR_Net_structure.json", 'r' )
+        loaded_model_json = json_file.read()
+        json_file.close()
+        crisprnet_loaded_model = model_from_json(loaded_model_json)
+        crisprnet_loaded_model.load_weights(f"{globals.PATH}/CRISPR_Net/scoring_models/CRISPR_Net_CIRCLE_elevation_SITE_weights.h5")
+        globals.set_crisprnet_model(crisprnet_loaded_model)
+        print("Loaded model from disk!")
+
+
+    elif df_targets == "ucrispr" or df_targets == "uCRISPR":
+        df_targets = Distance_matrix_and_UPGMA.ucrispr
+    elif df_targets == "gold_off" or df_targets == "goldoff":
        df_targets = Distance_matrix_and_UPGMA.gold_off_func
-    if df_targets == "MITScore" or df_targets == "CrisprMIT":
+    elif df_targets == "MITScore" or df_targets == "CrisprMIT":
         df_targets = Distance_matrix_and_UPGMA.MITScore
-    if df_targets == "cfd_funct" or df_targets == "cfd_func" or df_targets == "cfd"\
+    elif df_targets == "cfd_funct" or df_targets == "cfd_func" or df_targets == "cfd"\
             or df_targets == Metric.cfd_funct:
         df_targets = Metric.cfd_funct
         cfd_dict = pickle.load(open(PATH + "/cfd_dict.p",'rb'))
-        
-    if df_targets == "CCTop" or df_targets == "ccTop" :
+    elif df_targets == "CCTop" or df_targets == "ccTop":
         df_targets = Distance_matrix_and_UPGMA.ccTop
+    else:
+        print("Did not specify valid scoring function!")
+        return
+        
+
     # add an option to different pam (taken from server version by Udi)
     if PAMs == 0:
         PAMs = ['GG']
@@ -129,6 +152,7 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
                 sg_genes_dict[sg] = sg_genes_dict[sg] + [gene_name]
             else:
                 sg_genes_dict[sg] = [gene_name]
+
     if alg == 'E':
 
         res = Stage1_h.call_it_all(genesList, genesNames, sg_genes_dict, genes_sg_dict, Omega, protdist_outfile, path, df_targets, internal_node_candidates, cfd_dict, PS_number)
