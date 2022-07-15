@@ -8,7 +8,7 @@ import Metric
 
 def targets_tree_top_down(best_permutations, node, omega, targets_genes_dict, scoring_function, PS_number=12,
                           cfd_dict=None):
-    if len(node.polymorphic_sites_set) < PS_number:  # was hardcoded to be 12, change it to be the PS_number argument Udi 24/02/22
+    if len(node.polymorphic_sites) < PS_number:  # was hardcoded to be 12, change it to be the PS_number argument Udi 24/02/22
         # make current_genes_sg_dict
         current_genes_sg_dict = dict()
         for target in node.node_targets:
@@ -85,7 +85,6 @@ def fill_leaves_sets(tree, sg_genes_dict):
         leaf.add_node_target(leaf.name)
         current_candidate = Candidate.Candidate(leaf.name)
         current_candidate.fill_default_fields(sg_genes_dict[leaf.name])
-        leaf.set_candidates_DS()
         leaf.candidates[leaf.name] = current_candidate
         node = leaf
         while node.parent:
@@ -116,8 +115,8 @@ def fill_polymorphic_site_node(node):
                                                         (node.clades[1].node_targets[0]))
         # update the rest of the sites
         for clade in node.clades:
-            polymorphic_site_set.update(clade.polymorphic_sites_set)
-    node.set_polymorphic_sites_set(polymorphic_site_set)
+            polymorphic_site_set.update(clade.polymorphic_sites)
+    node.fill_polymorphic_sites(polymorphic_site_set)
 
 
 def fill_polymorphic_sites(node):
