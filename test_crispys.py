@@ -38,7 +38,7 @@ test_folders = ["gain_score/t_1", "gain_score/t_0", "N_internal_node/10",
 
 
 
-def run_crispys_test(code_folder, res_folder,queue, code="git"):
+def run_crispys_test(code_folder, res_folder, queue, code="git"):
     """
     This function will run crispys with different partametrs with provided code
     :param code_folder: The path to the folder where your crispys code is
@@ -46,6 +46,8 @@ def run_crispys_test(code_folder, res_folder,queue, code="git"):
     :return: write a folder for each test with the rsults of crispys and also wite test summary
     """
 
+    # clear folder old content
+    os.system(f"rm -r {res_folder}/*")
     # make folders for output if needed
     for folder in test_folders:
         if not os.path.isdir(res_folder + "/" + folder.split("/")[0]):
@@ -136,7 +138,7 @@ def run_crispys_test(code_folder, res_folder,queue, code="git"):
 
     # scoring/crispr_net
     header = createHeaderJob(res_folder + "/scoring/crispr_net", "crispr_net", queue)
-    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/crispr_net --alg E --t 1 --v 0.8 --i 200 --where_in_gene 0.8 --s crispr_net"
+    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/crispr_net --alg E --t 1 --v 0.5 --i 200 --where_in_gene 0.8 --s crispr_net"
 
     with open( res_folder + "/scoring/crispr_net/Crispys.sh", "w" ) as f:
         f.write(header + "\n" + cmd)
@@ -508,10 +510,10 @@ if __name__ == "__main__":
 # main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
 #      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
-#      mode="run_and_compare")
+#      mode="run_and_compare", queue="itaymaa")
 
 #run crispys code to create reference folders
-# main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
+# main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
 #      mode="run")
 
