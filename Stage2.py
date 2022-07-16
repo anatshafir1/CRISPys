@@ -85,17 +85,19 @@ def fill_leaves_sets(tree: BaseTree, targets_genes_dict: Dict):
     :param targets_genes_dict: a dictionary of potential targets sequences and the genes in which they are found
     """
     # fill the first line of nodes
+    leaves = tree.get_terminals()
     for leaf in tree.leaves:
-        leaf.add_node_target(leaf.name)
-        current_candidate = Candidate.Candidate(leaf.name)
-        current_candidate.fill_default_fields(targets_genes_dict[leaf.name])
-        leaf.candidates[leaf.name] = current_candidate
-        node = leaf
-        while node.parent:
-            for leaf in node.node_targets:
-                if leaf not in node.parent.node_targets:
-                    node.parent.add_node_target(leaf)
-            node = node.parent
+        leaf_clade = list(filter(lambda clade: (clade.name == leaf), leaves))[0]
+        leaf_clade.add_node_target(leaf)
+        current_candidate = Candidate.Candidate(leaf_clade.name)
+        current_candidate.fill_default_fields(targets_genes_dict[leaf_clade.name])
+        leaf_clade.candidates[leaf_clade.name] = current_candidate
+        path_to_leaf = tree.get_path(leaf_clade)
+        path_to_leaf += [tree.root]
+        for node in path_to_leaf[::-1]:
+            for gene in leaf_clade.node_targets:
+                if gene not in node.node_targets:
+                    node.add_node_target(gene)
 
 
 def two_seqs_differences_set(seq1: str, seq2: str) -> set:

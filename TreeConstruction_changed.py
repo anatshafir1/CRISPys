@@ -83,7 +83,7 @@ class DistanceTreeConstructor(TreeConstruction.TreeConstructor):
 
         # make a copy of the distance matrix to be used
         dm = copy.deepcopy(distance_matrix)
-        weights = [1 for i in range(len(dm))]  # number of items at eah node
+        weights = [1 for _ in range(len(dm))]  # number of items at eah node
         # init terminal clades
         clades = [CladeNew(None, name) for name in dm.names]
         leaves_lst = []
@@ -108,9 +108,7 @@ class DistanceTreeConstructor(TreeConstruction.TreeConstructor):
             inner_count += 1
             inner_clade = CladeNew(None, "Inner" + str(inner_count))
             inner_clade.clades.append(clade1)
-            clade1.set_parent(inner_clade)
             inner_clade.clades.append(clade2)
-            clade2.set_parent(inner_clade)
             # assign branch length
             if clade1.is_terminal():
                 clade1.branch_length = min_dist * 1.0 / 2
@@ -124,10 +122,10 @@ class DistanceTreeConstructor(TreeConstruction.TreeConstructor):
 
             # update nodes list
             if "Inner" not in clades[min_j].name:
-                leaves_lst.append(clades[min_j])
+                leaves_lst.append(clades[min_j].name)
             clades[min_j] = inner_clade
             if "Inner" not in clades[min_i].name:
-                leaves_lst.append(clades[min_i])
+                leaves_lst.append(clades[min_i].name)
             del clades[min_i]
 
             # rebuild distance matrix,
@@ -169,13 +167,9 @@ class CladeNew(BaseTree.Clade):
 
         """
         super().__init__(branch_length, name, clades, confidence, color, width)
-        self.parent = None
         self.node_targets = list()
         self.candidates = dict()
         self.polymorphic_sites = set()
-
-    def set_parent(self, parent):
-        self.parent = parent
 
     def add_node_target(self, leaf):
         self.node_targets.append(leaf)
