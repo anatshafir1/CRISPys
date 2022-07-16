@@ -62,8 +62,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     :rtype: list
     """
     # make a tree and distance matrix of the genes
-    genes_upgma_tree, distance_matrix = Distance_matrix_and_UPGMA.return_protdist_upgma(genes_list, genes_names,
-                                                                                        output_path)
+    genes_upgma_tree = Distance_matrix_and_UPGMA.return_protdist_upgma(genes_list, genes_names, output_path)
     # store the genes UPGMA tree in a newick format file
     write_newick_to_file(genes_upgma_tree.root, output_path)
     tree_to_file(genes_upgma_tree.root, output_path)

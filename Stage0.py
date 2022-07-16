@@ -10,10 +10,8 @@ import pickle
 import Metric
 import argparse
 import os
-import random
 import make_tree_display_CSV
 
-random.seed(1234)
 
 # get the path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))

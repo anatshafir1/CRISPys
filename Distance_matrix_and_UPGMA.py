@@ -1,8 +1,9 @@
 
 from typing import List
 import numpy as np
-from Bio.Phylo import TreeConstruction
+from Bio.Phylo import TreeConstruction, BaseTree
 import math
+import Metric
 import TreeConstruction_changed
 import gold_off
 from os.path import dirname, abspath
@@ -13,14 +14,13 @@ import mafft_and_phylip
 from numpy import clip
 
 
-def gold_off_func(sg_seq_list, target_seq_list, dicti=None):  # Omer Caldararu 28/3
+def gold_off_func(sg_seq_list: List, target_seq_list: List) -> List:  # Omer Caldararu 28/3
     """
     Scoring function based on gold-off regressor. This function uses a model
     .xgb file.
     Args:
         sg_seq_list: a list of sgRNA sequence or sequences
         target_seq_list: a list of target sequences
-        dicti: None
 
     Returns: A list of scores where list[i] = score between the ith sgRNA and the ith target
 
@@ -37,9 +37,9 @@ def gold_off_func(sg_seq_list, target_seq_list, dicti=None):  # Omer Caldararu 2
     return [1 - score for score in list_of_scores]
 
 
-def MITScore(seq1, seq2, dicti=None):
-    '''from CRISPR-MIT
-    PAM cames at the end of the string'''
+def MITScore(seq1: str, seq2: str) -> float:
+    """from CRISPR-MIT
+    PAM comes at the end of the string"""
     distance, first_mm, last_mm = 0, -1, -1
 
     first_arg = 1
@@ -67,7 +67,14 @@ def MITScore(seq1, seq2, dicti=None):
     return 1 - original_score
 
 
-def ccTop(sgseq, target_seq, dicti=None):
+def ccTop(sgseq: str, target_seq: str) -> float:
+    """
+
+    :param sgseq:
+    :param target_seq:
+    :return:
+    :rtype:
+    """
     assert len(sgseq) == len(target_seq)
     max_score = sum([math.pow(1.2, i + 1) for i in range(len(sgseq))])
     mm = [i + 1 if sgseq[i] != target_seq[i] else 0 for i in range(len(sgseq))]
@@ -75,36 +82,45 @@ def ccTop(sgseq, target_seq, dicti=None):
     return curScore / max_score  # a value between 0 and 1
 
 
-def make_UPGMA(dm):
-    '''use by the doc in http://biopython.org/DIST/docs/api/Bio.Phylo.TreeConstruction.DistanceTreeConstructor-class.html'''
+def make_upgma(distance_matrix: TreeConstruction._DistanceMatrix) -> BaseTree:
+    """use by the doc in http://biopython.org/DIST/docs/api/Bio.Phylo.TreeConstruction.DistanceTreeConstructor-class.html"""
     constructor = TreeConstruction_changed.DistanceTreeConstructor()
-    tree = constructor.upgma(dm)
+    tree = constructor.upgma(distance_matrix)
     return tree
 
 
-def make_distance_matrix(names, initial_matrix):
-    '''input: list of names of the sequences, and the output of 'make_initial_matrix'
-    output: a distance matrix, in a format adequate to the UPGMA function'''
-    m = TreeConstruction._DistanceMatrix(names, initial_matrix)
-    return m
+def make_distance_matrix(names: List, initial_matrix: List) -> TreeConstruction._DistanceMatrix:
+    """
+    Given a list of names of the sequences, and a list of lists representing a lower triangular matrix (the output of
+    'make_initial_matrix') this function returns a distance matrix object, to use in the UPGMA function.
+
+    :param names: list of potential targets sequences
+    :param initial_matrix: list of lists representing a lower triangular matrix
+    :return: distance matrix instance for the UPGMA tree function
+    :rtype: TreeConstruction._DistanceMatrix
+    """
+    distance_matrix = TreeConstruction._DistanceMatrix(names, initial_matrix)
+    return distance_matrix
 
 
-def make_initial_matrix(vectors_list):
+def make_initial_matrix(vectors_list: List) -> List:
     """
-    calculates a distance matrix for a list of points. The matrix is then used to construct the target tree.
-    Args:
-        vectors_list: a list of vectors where the ith vector is the position of the ith target
-        in a len(vectors_list) dimensional space.
-    Returns: a triangular distance matrix where matrix[i][j] <- distance(vector_i,vector_j)
+    calculates a distance matrix from a list of points. The matrix is then used to construct the target tree.
+
+    :param vectors_list: a list of vectors where the i-th vector is the position of the i-th target in a
+    len(vectors_list) dimensional space.
+
+    :return: a triangular distance matrix where matrix[i][j] <- distance(vector_i,vector_j)
+    :rtype: list
     """
-    distance_matrix = []
+    initial_matrix = []
     for i in range(len(vectors_list)):
         row = []
         for j in range(i + 1):
             tempDistance = np.linalg.norm(np.array(vectors_list[i]) - np.array(vectors_list[j]))
             row.append(tempDistance)
-        distance_matrix += [row]
-    return distance_matrix
+        initial_matrix += [row]
+    return initial_matrix
 
 
 def make_initial_matrix_from_protdist(output_path: str):
@@ -133,16 +149,49 @@ def make_initial_matrix_from_protdist(output_path: str):
 
 
 def return_protdist_upgma(seq_list, names_list, output_path):
-    '''
-    with protdist
+    """
+    this function is called by 'gene_homology_alg' to create a UPGMA tree and a distance matrix using PHYLIP's protDist.
+    Given a list of DNA sequences (genes) and their names, this function returns a UPGMA tree and a distance matrix
+    based on the genes homology, using MAFFT algorithm to align the genes and PHYLIP's protDist algorithm.
+
+    :param output_path: output_path to phylip format file
     :param seq_list: list of sequence for the UPGMA
     :param names_list: the name of the sequences at seq_list, at the same order
-    :return: UPGMA tree
-    '''
+    :return: UPGMA tree of genes and a distance matrix
+    :rtype: TreeConstruction_changed.TreeNew, TreeConstruction._DistanceMatrix
+    """
     new_names_list = list()
     for i in range(len(names_list)):
         new_names_list.append("GG" + str(i))  # for the regex
     mafft_and_phylip.create_protdist(new_names_list, seq_list, output_path)  # to uncomment when really running the tool on the server
     matrix = make_initial_matrix_from_protdist(output_path)
     distance_matrix = make_distance_matrix(names_list, matrix)
-    return make_UPGMA(distance_matrix), distance_matrix
+    tree = make_upgma(distance_matrix)
+    return tree
+
+
+def return_targets_upgma(targets_seqs_list: List, names_list: List, scoring_function, cfd_dict) -> BaseTree:
+    """the function creates a UPGMA tree object from the potential targets in 'targets_seqs_list' using the given
+    'scoring_function', in 4 steps:
+    1) for each target in targets_seqs_list and using the given scoring function, creates a vectors list representing
+    the location of the target in a multidimensional space.
+    2) using the vectors list, creates an initial matrix - a list of lists representing a triangular distance matrix
+    where matrix[i][j] <- distance(vector_i,vector_j)
+    3) creates a distance matrix object from the targets names in 'names_list' and the initial matrix.
+    4) creates a UPGMA tree object using the distance matrix
+
+    :param targets_seqs_list: list of all the target sequences found in stage0
+    :param names_list: a deep copy of targets_list
+    :param scoring_function: scoring function of the potential targets
+    :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
+    :return: potential targets' tree hierarchically clustered by UPGMA.
+    :rtype: TreeConstruction_changed.TreeNew
+    """
+    # create a list of vectors for the targets, which is then used to create the distance matrix
+    vectors_list = Metric.pos_in_metric_general(targets_seqs_list, scoring_function, cfd_dict)
+    # create the distance matrix
+    initial_matrix = make_initial_matrix(vectors_list)
+    distance_matrix = make_distance_matrix(names_list, initial_matrix)
+    # apply UPGMA, return a target tree
+    targets_tree = make_upgma(distance_matrix)
+    return targets_tree

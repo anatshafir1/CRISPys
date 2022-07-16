@@ -6,6 +6,9 @@ this script is for storing global variables
 # it's used in Stage1_h.py with function:
 N_genes_in_node = 10
 
+# This variable defines the seed for CRISPys' random functions
+seed = 1234
+
 # This variable stores the maximum vector size that is allowed for the distance transformation.
 # This variable used in Distance_matrix_and_UPGMA.pos_in_metric_general
 vector_size_cutoff = 1000
@@ -22,9 +25,9 @@ xgb_model_name = "regression_union_log_max.xgb"
 CONDA = "source /groups/itay_mayrose/udiland/miniconda3/etc/profile.d/conda.sh; conda activate crispys"
 
 # command that is used to connect to server and run crista
-ssh_conect = 'ssh bioseq@powerlogin "module load python/python-anaconda3.6.5 && '
+ssh_connect = 'ssh bioseq@powerlogin "module load python/python-anaconda3.6.5 && '
 
-mafft_path = "/home/josefbrook/miniconda3/envs/crispys/bin/mafft"
-protdist_path = "/home/josefbrook/miniconda3/envs/crispys/bin/protdist"
-# mafft_path = None
-# protdist_path = None
+# mafft_path = "/home/josefbrook/miniconda3/envs/crispys/bin/mafft"
+# protdist_path = "/home/josefbrook/miniconda3/envs/crispys/bin/protdist"
+mafft_path = None
+protdist_path = None

@@ -1,30 +1,28 @@
-
-import pickle
+"""Vector calculations"""
 import numpy as np
 from functools import reduce
 import Distance_matrix_and_UPGMA
 import random
-from os.path import dirname, abspath
+import globals
 from globals import vector_size_cutoff
-from typing import List
-
-random.seed(1234)
+from typing import List, Dict
 
 
 def pos_in_metric_general_single_batch(list_of_targets: List, metric_sequences_list: List, distance_function) -> List:
     """
-	This function is called from pos_in_metric_general for cases where the scoring function
-	takes a list of several targets, rather than a single target.
-	This function calls the distance_function on all the targets in a single batch.
-	:param list_of_targets: a list of targets.
-	:param metric_sequences_list: a list of sampled sequences used for the metric calculation.
-	:param distance_function: the distance function.
-	:return: a list of vectors, each of length globals.vector_size_cutoff.
-	input_target_list = [target1, target1, target1,..., target2 ...]
-	input_metric_sequences_list = [metric_sequence1, metric_sequence2, metric_sequence3, ...,metric_sequencei, ...]
-	concatenated_vectors_list = the result of the distance function, which is then divided into smaller lists.
-	output_format : [distance_function(metric_sequence1,target_1),distance_function(metric_sequence2,target_1),...]
-	"""
+    This function is called from pos_in_metric_general for cases where the scoring function takes a list of several
+    targets, rather than a single target. This function calls the distance_function on all the targets in a single batch.
+    input_target_list = [target1, target1, target1,..., target2...]
+    input_other_targets_list = [target1, target2, target3, ...]
+    concatenated_vectors_list = the result of the distance function, which is then divided into smaller lists.
+    output_format : [scoring_function(target_1,target_1),
+    scoring_function(target_2,target_1),...,scoring_function(target_j,target_i)]
+
+    :param list_of_targets: a list of targets
+    :param metric_sequences_list: a list of sampled sequences used for the metric calculation.
+    :param distance_function: the distance function used
+    :return: a vector of distances between those strings
+    """
     input_target_list = []
     input_metric_sequences_list = []
     for target in list_of_targets:
@@ -39,25 +37,26 @@ def pos_in_metric_general_single_batch(list_of_targets: List, metric_sequences_l
     return output_vectors_list
 
 
-def pos_in_metric_general(list_of_targets: List, distance_function) -> List:
+def pos_in_metric_general(list_of_targets: List, distance_function, cfd_dict: Dict) -> List:
     """
-	This function is used for transforming the scores given by the scoring into vectors that can be used
-	to calculate the distances between the targets. That way the properties of distance are kept
-	(e.g. symmetry and the triangle inequality).
-	These distances are then used for the construction of the target tree.
-	The function takes a list of targets and creates a new list of vectors,
-	where the ith vector represents the ith target
-	and a list of sampled targets with perturbations.
-	Args:
-		list_of_targets: a list of all targets
-		distance_function: the distance function
-	Returns: a list of vectors, each representing the location of the target in a
-	multidimensional space.
-	"""
+    This function takes a list of targets and creates a new list of vectors,
+    where each target is converted into a point in number-of-targets dimensional space.
+    That way the properties of distance (e.g. symmetry and the triangle inequality)
+    are kept when creating the distance matrix.
+    e.g. vectors_list[i] = [scoring_function(1,i),scoring_function(2,i),...]
+
+    :param list_of_targets: a list of all targets found in Stage0
+    :param distance_function: the input distance function when running the algorithm
+    :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
+    :return: a list of vectors, each representing the location of the target in a multidimensional space
+    :rtype: list
+    """
+
+    random.seed(globals.seed)
     if distance_function == cfd_funct:
         list_of_vectors = []
         for target in list_of_targets:
-            list_of_vectors.append(pos_in_metric_cfd(target, dicti=None))
+            list_of_vectors.append(pos_in_metric_cfd(target, cfd_dict))
         return list_of_vectors
     elif distance_function == Distance_matrix_and_UPGMA.gold_off_func:
         return pos_in_metric_general_single_batch(list_of_targets, create_list_of_metric_sequences(list_of_targets),
@@ -97,12 +96,12 @@ def create_list_of_metric_sequences(list_of_targets: List) -> List:
 
 def create_perturbed_target(target: str) -> str:
     """
-	This function takes an input target, and creates a perturbed sequence.
-	The function randomly chooses between 1 and 3 positions, and inserts
-	a single subtitution in each mutation index.
-	:param target: a target sequence
-	:return: a perturbed target.
-	"""
+    This function takes an input target, and creates a perturbed sequence.
+    The function randomly chooses between 1 and 3 positions, and inserts
+    a single substitution in each mutation index.
+    :param target: a target sequence
+    :return: a perturbed target.
+    """
     number_of_mutations = random.choice(range(1, 4))
     mutation_indices = sorted(random.sample(range(20), number_of_mutations))
     perturbed_target = list(target)[:20]
@@ -112,36 +111,38 @@ def create_perturbed_target(target: str) -> str:
     return ''.join(perturbed_target)
 
 
-def pos_in_metric_cfd(t, dicti):
-    '''
-	:param t: target
-	 implement a version of the cfd score, in which
-	:return:
-	there is a bug here - the code and the dictionary do not fit. -which bug?? omer  2/4
-	'''
-    if not dicti:
-        script_path = dirname(abspath(__file__))
-        dicti = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))  # added full path to cfd omer 14/4
-    Nucs = ['A', 'C', 'G', 'U']
-    point = np.zeros(len(t) * len(Nucs))
+def pos_in_metric_cfd(target_seq: str, cfd_dict: Dict) -> List:
+    """
+    This function is called by "pos_in_metric_general" in "Metric"
+    Given a potential sgRNA target sequence and a dictionary of mismatches and their scores for CFD function this
+    function builds a vector of length 80 of the scores for mismatches for each nucleotide in the target sequence.
+    position 1-4 in the vector are scores for matches/mismatches of the target's first nucleotide with A,C,G,U
+    respectively, and so on. a match will always get a score of 1 in the vector
+    e.g.: target seq = 'GTGGCAATCCCCATAGACGA' will return
+    vector = [0.857142857, 0.714285714, 1.0, 1.0,..., 1.0, 0.7, 0.3, 1.0] where vector[0] is the score for mismatch
+    of G with A, vector[1] is the score for mismatch of G with C, and so on.
+
+    :param target_seq: potential target sequence
+    :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
+    :return: a list representing a vector with CFD scores for each nucleotide in the target (see article "Methods", p.9)
+    :rtype: list
+    """
+    nucs = ['A', 'C', 'G', 'U']
+    point = np.zeros(len(target_seq) * len(nucs))
     i = 0
-    for pos in range(len(t)):
-        for Nuc in Nucs:
-            key = ('r' + Nuc + ':d' + t[pos], pos + 1)
-            if key in dicti:
-                point[i] = dicti[('r' + Nuc + ':d' + t[pos], pos + 1)]
+    for pos in range(len(target_seq)):
+        for nuc in nucs:
+            key = ('r' + nuc + ':d' + target_seq[pos], pos + 1)
+            if key in cfd_dict:
+                point[i] = cfd_dict[('r' + nuc + ':d' + target_seq[pos], pos + 1)]
             else:
                 point[i] = 1
             i += 1
     return list(point)
 
 
-def cfd_funct(sgRNA, target, dicti=None):
-    '''my implementation of this function'''
-    if not dicti:
-        script_path = dirname(abspath(__file__))
-        dicti = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))  # added full path to cfd omer 7/4
-
+def cfd_funct(sgRNA, target, cfd_dict):
+    """my implementation of this function"""
     return 1 - reduce(lambda x, y: x * y,
-                      map(lambda i: dicti[('r' + sgRNA[i] + ':d' + target[i], i + 1)] if sgRNA[i] != target[i] else 1,
+                      map(lambda i: cfd_dict[('r' + sgRNA[i] + ':d' + target[i], i + 1)] if sgRNA[i] != target[i] else 1,
                           [j for j in range(0, 20)]))

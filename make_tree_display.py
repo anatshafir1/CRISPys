@@ -259,7 +259,7 @@ def tree_display(path, consider_homology=False, data='regular', genomeAssembly='
             cmd = "python /bioseq/crista/CRISTA_online/multiple_sgRNAs_offtargets_search.py -s " + sgrna_list + " -g " + genomeAssembly + " -m 1 -n " + runId + "_crispys"
             if data == 'greedy_set_cover' and not consider_homology:
                 cmd += "_greedy"
-            os.system(f"{globals.ssh_conect} {cmd}\"")
+            os.system(f"{globals.ssh_connect} {cmd}\"")
 
     counter = 0
 

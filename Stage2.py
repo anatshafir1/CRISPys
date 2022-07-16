@@ -1,34 +1,47 @@
-from typing import List, Dict
 
+from typing import List, Dict
+from Bio.Phylo import BaseTree
 import Distance_matrix_and_UPGMA
 import Stage3
 import Candidate
-import Metric
+from TreeConstruction_changed import CladeNew
 
 
-def targets_tree_top_down(best_permutations, node, omega, targets_genes_dict, scoring_function, PS_number=12,
-                          cfd_dict=None):
-    if len(node.polymorphic_sites) < PS_number:  # was hardcoded to be 12, change it to be the PS_number argument Udi 24/02/22
+def targets_tree_top_down(best_permutations: List, node: CladeNew, omega: float, targets_genes_dict: Dict,
+                          scoring_function, max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None):
+    """
+
+    :param best_permutations:
+    :param node: starting at targets tree root
+    :param omega: threshold of targeting propensity of a gene by a considered sgRNA (see article p. 4)
+    :param targets_genes_dict: a dictionary of target -> list of genes in which it was found
+    :param scoring_function: scoring function of the potential targets
+    :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
+    :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
+    :return:
+    :rtype: list
+    """
+    if len(node.polymorphic_sites) < max_target_polymorphic_sites:  # was hardcoded to be 12, change it to be the max_target_polymorphic_sites argument Udi 24/02/22
         # make current_genes_sg_dict
-        current_genes_sg_dict = dict()
+        current_genes_targets_dict = dict()
         for target in node.node_targets:
-            genes_leaf_from = targets_genes_dict[
-                target]  # which gene is this target came from. usually it will be only 1 gene
+            genes_leaf_from = targets_genes_dict[target]  # which gene is this target came from. usually it will be only 1 gene
             for gene_name in genes_leaf_from:
-                if gene_name in current_genes_sg_dict:
-                    if target not in current_genes_sg_dict[gene_name]:
-                        current_genes_sg_dict[gene_name] += [target]
+                if gene_name in current_genes_targets_dict:
+                    if target not in current_genes_targets_dict[gene_name]:
+                        current_genes_targets_dict[gene_name] += [target]
                 else:
-                    current_genes_sg_dict[gene_name] = [target]
-        list_of_candidates = Stage3.find_candidates(current_genes_sg_dict, omega, scoring_function, node, cfd_dict)
+                    current_genes_targets_dict[gene_name] = [target]
+        # get candidates for the current node
+        list_of_candidates = Stage3.return_candidates(current_genes_targets_dict, omega, scoring_function, node, cfd_dict)
         # current best perm is a tuple with the perm and metadata of this perm.
         if list_of_candidates:
             best_permutations += list_of_candidates
         return
     else:
-        targets_tree_top_down(best_permutations, node.clades[0], omega, targets_genes_dict, scoring_function, PS_number,
+        targets_tree_top_down(best_permutations, node.clades[0], omega, targets_genes_dict, scoring_function, max_target_polymorphic_sites,
                               cfd_dict)
-        targets_tree_top_down(best_permutations, node.clades[1], omega, targets_genes_dict, scoring_function, PS_number,
+        targets_tree_top_down(best_permutations, node.clades[1], omega, targets_genes_dict, scoring_function, max_target_polymorphic_sites,
                               cfd_dict)
 
 
@@ -56,7 +69,7 @@ def stage_two_main(targets_list: List, targets_names: List, targets_genes_dict: 
         candidate.fill_default_fields(genes)
         best_permutations.append(candidate)
     else:
-        upgma_tree = return_targets_upgma(targets_list, targets_names, scoring_function, cfd_dict)
+        upgma_tree = Distance_matrix_and_UPGMA.return_targets_upgma(targets_list, targets_names, scoring_function, cfd_dict)
         fill_leaves_sets(upgma_tree, targets_genes_dict)
         fill_polymorphic_sites(upgma_tree.root)
         targets_tree_top_down(best_permutations, upgma_tree.root, omega, targets_genes_dict, scoring_function,
@@ -64,27 +77,18 @@ def stage_two_main(targets_list: List, targets_names: List, targets_genes_dict: 
     return best_permutations
 
 
-def return_targets_upgma(seq_list, names_list, distance_function, cfd_dict=None):
-    '''input:  a list of names and a list of sequences, calibrated
-    output: an upgma instance.
-    '''
-    vectors_list = Metric.pos_in_metric_general(seq_list, distance_function)
-    # create the distance matrix
-    matrix = Distance_matrix_and_UPGMA.make_initial_matrix(vectors_list)
-    m2 = Distance_matrix_and_UPGMA.make_distance_matrix(names_list, matrix)
-    # apply UPGMA, return a target tree
-    upgma1 = Distance_matrix_and_UPGMA.make_UPGMA(m2)
-    return upgma1
+def fill_leaves_sets(tree: BaseTree, targets_genes_dict: Dict):
+    """
+    For each node in the tree add list of the targets in its clade.
 
-
-def fill_leaves_sets(tree, sg_genes_dict):
-    '''this version is not competable to genes tree.
-    can be combine with fill_distance_from_leaves_function'''
+    :param tree: a UPGMA tree of potential targets
+    :param targets_genes_dict: a dictionary of potential targets sequences and the genes in which they are found
+    """
     # fill the first line of nodes
     for leaf in tree.leaves:
         leaf.add_node_target(leaf.name)
         current_candidate = Candidate.Candidate(leaf.name)
-        current_candidate.fill_default_fields(sg_genes_dict[leaf.name])
+        current_candidate.fill_default_fields(targets_genes_dict[leaf.name])
         leaf.candidates[leaf.name] = current_candidate
         node = leaf
         while node.parent:
@@ -94,8 +98,8 @@ def fill_leaves_sets(tree, sg_genes_dict):
             node = node.parent
 
 
-def two_seqs_differences_set(seq1, seq2):
-    '''return a list of where the two sequences are different'''
+def two_seqs_differences_set(seq1: str, seq2: str) -> set:
+    """return a set of where the two sequences are different"""
     differences = set()  # key: place of disagreement. value: the suggestions of each side
     seq1 = seq1[:20]
     seq2 = seq2[:20]  # the pam is not considered when computing PS sites
@@ -107,7 +111,10 @@ def two_seqs_differences_set(seq1, seq2):
     return differences
 
 
-def fill_polymorphic_site_node(node):
+def fill_polymorphic_site_node(node: CladeNew):
+    """
+    :param node:
+    """
     # find differences between the representors
     polymorphic_site_set = set()
     if node.clades and len(node.clades) > 1:
@@ -119,11 +126,11 @@ def fill_polymorphic_site_node(node):
     node.fill_polymorphic_sites(polymorphic_site_set)
 
 
-def fill_polymorphic_sites(node):
-    '''
+def fill_polymorphic_sites(node: CladeNew):
+    """
     :param node: tree's root
     :return:
-    '''
+    """
     if not node:
         return
     if node.clades and len(node.clades) > 1:
