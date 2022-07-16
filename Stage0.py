@@ -9,11 +9,11 @@ import pickle
 import Metric
 import argparse
 import os
-import random
-import globals
 import make_tree_display_CSV #from server
 import globals
 from tensorflow.keras.models import model_from_json
+from tensorflow.config import threading
+threading.set_inter_op_parallelism_threads(1)
 import warnings
 warnings.filterwarnings('ignore')
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
