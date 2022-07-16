@@ -153,9 +153,8 @@ def fill_leaves_sets_genes_tree(tree: BaseTree):
         path_to_leaf = tree.get_path(leaf_clade)
         path_to_leaf += [tree.root]
         for node in path_to_leaf[::-1]:
-            for gene in leaf_clade.node_targets:
-                if gene not in node.node_targets:
-                    node.add_node_target(gene)
+            if leaf_clade.node_targets[0] not in node.node_targets:
+                node.add_node_target(leaf_clade.node_targets[0])
 
 
 # ############################################# Gene Homology top down ############################################### #

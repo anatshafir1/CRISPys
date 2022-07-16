@@ -168,7 +168,6 @@ class CladeNew(BaseTree.Clade):
         """
         super().__init__(branch_length, name, clades, confidence, color, width)
         self.node_targets = list()
-        self.candidates = dict()
         self.polymorphic_sites = set()
 
     def add_node_target(self, leaf):

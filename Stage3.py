@@ -79,8 +79,8 @@ def return_candidates(genes_targets_dict: Dict, omega: float, scoring_function, 
     """
     # stage one: make a list of all the sgRNAs
     list_of_targets = []
-    for key, val in genes_targets_dict.items():
-        list_of_targets += val
+    for gene in genes_targets_dict:
+        list_of_targets += genes_targets_dict[gene]
     initial_seq = list_of_targets[0]
     # stage two: find the suitable sgRNA:
     dict_of_different_places = find_polymorphic_sites(list_of_targets)
@@ -94,7 +94,7 @@ def return_candidates(genes_targets_dict: Dict, omega: float, scoring_function, 
     for i in range(len(list_of_perms_seqs)):
         targets_dict = {}  # a list of tuples: (gene name, list of target of this gene that might be cut by the candidate_str)
         genes_covering = []  # a list of tuples: (gene name, probability to be cut).
-        for gene in scores_dict.keys():
+        for gene in scores_dict:
             prob_gene_will_not_cut = 1  # the probability that a gene will not be cut by the candidate
             list_of_targets = []  # for later knowing where the candidate_str might cut in each gene (when writing the output)
             num_of_cuts_per_gene = 0  # in use only in the single gene version

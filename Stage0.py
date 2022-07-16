@@ -27,8 +27,7 @@ def sort_expectation(candidates, is_gene_homology_alg):
         candidates.sort(key=lambda item: (item.cut_expectation, item.total_num_of_mismatches()), reverse=True)
     else:
         for i in range(len(candidates)):
-            candidates[i].candidates_list.sort(
-                key=lambda item: (item.cut_expectation, item.total_num_of_mismatches()), reverse=True)
+            candidates[i].candidates_list.sort(key=lambda item: (item.cut_expectation, item.total_num_of_mismatches()), reverse=True)
 
 
 def sort_threshold(candidates, omega, homology):
