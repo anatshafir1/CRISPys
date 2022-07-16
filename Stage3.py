@@ -114,9 +114,9 @@ def return_candidates(genes_targets_dict: Dict, omega: float, scoring_function, 
         cut_expectation = 0  # the probability the permutated sequence will cut all the genes, that the probability each
         # of them will be cut is greater then omega
         genes_score_dict = {}  # a dict of genes: genes considered cut by this sequence, and cut prob
-        for tuple in genes_covering:  # tuple : (gene name, probability to be cut)
-            cut_expectation += tuple[1]  # the prob to cut all the genes
-            genes_score_dict[tuple[0]] = tuple[1]
+        for gene_cut_prob in genes_covering:  # tuple : (gene name, probability to be cut)
+            cut_expectation += gene_cut_prob[1]  # the prob to cut all the genes
+            genes_score_dict[gene_cut_prob[0]] = gene_cut_prob[1]
         if len(genes_covering) >= 1:  # If the candidate has at least one gene with a score above omega, add it to the result  omer 18/04
             current_candidate = Candidate.Candidate(list_of_perms_seqs[i], cut_expectation, genes_score_dict, targets_dict)
             list_of_candidates.append(current_candidate)
@@ -148,8 +148,7 @@ def all_perms(initial_seq, list_of_seqs, list_of_differences):
     else:
         new_list_of_seqs = []
         if not list_of_seqs:  # initialising the list of sequences
-            list_of_seqs = []
-            list_of_seqs.append(initial_seq[:list_of_differences[0][0]])
+            list_of_seqs = [initial_seq[:list_of_differences[0][0]]]
         for seq in list_of_seqs:
             for letter in list_of_differences[0][1]:
                 if len(list_of_differences) > 1:

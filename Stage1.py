@@ -147,7 +147,7 @@ def fill_leaves_sets_genes_tree(tree: BaseTree):
     """
     # fill the first line of nodes
     for leaf in tree.leaves:
-        leaf.add_node_target(leaf)
+        leaf.add_node_target(leaf.name)
         node = leaf
         while node.parent:
             for leaf in node.node_targets:
@@ -184,13 +184,13 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
     targets_list = list()
     targets_names = list()
     for leaf in node.node_targets:  # leaf here is a gene. taking only the relevant genes
-        current_genes_targets_dict[leaf.name] = genes_targets_dict[leaf.name]
+        current_genes_targets_dict[leaf] = genes_targets_dict[leaf]
         # filling the targets to genes dict
-        for target in current_genes_targets_dict[leaf.name]:
+        for target in current_genes_targets_dict[leaf]:
             if target in current_targets_genes_dict:
-                current_targets_genes_dict[target] += [leaf.name]
+                current_targets_genes_dict[target] += [leaf]
             else:
-                current_targets_genes_dict[target] = [leaf.name]
+                current_targets_genes_dict[target] = [leaf]
             if target not in targets_list:  # creating a list of target sequences and a list of target names
                 targets_list.append(target)
                 targets_names.append(target)

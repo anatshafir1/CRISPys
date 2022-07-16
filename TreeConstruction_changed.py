@@ -8,8 +8,7 @@
 __docformat__ = "restructuredtext en"
 
 import copy
-from typing import Dict, List
-
+from typing import List
 from Bio.Phylo import BaseTree, TreeConstruction
 
 
@@ -92,6 +91,7 @@ class DistanceTreeConstructor(TreeConstruction.TreeConstructor):
         min_i = 0
         min_j = 0
         inner_count = 0
+        inner_clade = None
         while len(dm) > 1:
             min_dist = dm[1, 0]
             # find minimum index
@@ -164,29 +164,15 @@ class CladeNew(BaseTree.Clade):
     """
 
     def __init__(self, branch_length: int = None, name: str = None, clades: List = None, confidence=None,
-                 color: BaseTree.BranchColor = 'w', width=None, parent=None, node_targets: List = None,
-                 candidates: Dict = None,
-                 polymorphic_sites=None):
-        '''
-        :param branch_length:
-        :param name:
-        :param clades:
-        :param confidence:
-        :param color:
-        :param width:
-        :param parent:
-        :param node_targets:
-        :param candidates:
-        :param polymorphic_sites:
-        :return:
-        '''
+                 color: BaseTree.BranchColor = 'w', width=None):
+        """
+
+        """
         super().__init__(branch_length, name, clades, confidence, color, width)
-        self.parent = parent
-        self.node_targets = node_targets or list()
-        self.colour = color
-        if candidates is None:
-            self.candidates = dict()
-        self.polymorphic_sites = polymorphic_sites
+        self.parent = None
+        self.node_targets = list()
+        self.candidates = dict()
+        self.polymorphic_sites = set()
 
     def set_parent(self, parent):
         self.parent = parent
@@ -194,7 +180,7 @@ class CladeNew(BaseTree.Clade):
     def add_node_target(self, leaf):
         self.node_targets.append(leaf)
 
-    def fill_polymorphic_sites(self, polymorphic_sites=None):
+    def fill_polymorphic_sites(self, polymorphic_sites: set = None):
         self.polymorphic_sites = polymorphic_sites
 
 
