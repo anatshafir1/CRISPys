@@ -66,7 +66,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     # store the genes UPGMA tree in a newick format file
     write_newick_to_file(genes_upgma_tree.root, output_path)
     tree_to_file(genes_upgma_tree.root, output_path)
-    fill_leaves_sets_genes_tree(genes_upgma_tree)  # tree leaves are genes
+    fill_leaves_sets(genes_upgma_tree)  # tree leaves are genes
     # making the sgList for gene homology algorithm:
     list_of_subgroups = []
     script_path = dirname(abspath(__file__))  # add check if scf_funct
@@ -139,7 +139,7 @@ def tree_preorder(node: CladeNew, lst: List):
             tree_preorder(node.clades[1], lst)
 
 
-def fill_leaves_sets_genes_tree(tree: BaseTree):
+def fill_leaves_sets(tree: BaseTree):
     """
     Given a UPGMA tree of genes the function fills the trees' nodes 'node_targets' with the gene names of the leaves
     under each node.

@@ -1,7 +1,7 @@
 
 from typing import List, Dict
-from Bio.Phylo import BaseTree
 import Distance_matrix_and_UPGMA
+import Stage1
 import Stage3
 import Candidate
 from TreeConstruction_changed import CladeNew
@@ -70,29 +70,11 @@ def stage_two_main(targets_list: List, targets_names: List, targets_genes_dict: 
         best_permutations.append(candidate)
     else:
         upgma_tree = Distance_matrix_and_UPGMA.return_targets_upgma(targets_list, targets_names, scoring_function, cfd_dict)
-        fill_leaves_sets(upgma_tree)
+        Stage1.fill_leaves_sets(upgma_tree)
         fill_polymorphic_sites(upgma_tree.root)
         targets_tree_top_down(best_permutations, upgma_tree.root, omega, targets_genes_dict, scoring_function,
                               max_target_polymorphic_sites, cfd_dict)
     return best_permutations
-
-
-def fill_leaves_sets(tree: BaseTree):
-    """
-    For each node in the tree add list of the targets in its clade.
-
-    :param tree: a UPGMA tree of potential targets
-    """
-    # fill the first line of nodes
-    leaves = tree.get_terminals()
-    for leaf in tree.leaves:
-        leaf_clade = list(filter(lambda clade: (clade.name == leaf), leaves))[0]
-        leaf_clade.add_node_target(leaf)
-        path_to_leaf = tree.get_path(leaf_clade)
-        path_to_leaf += [tree.root]
-        for node in path_to_leaf[::-1]:
-            if leaf_clade.node_targets[0] not in node.node_targets:
-                node.add_node_target(leaf_clade.node_targets[0])
 
 
 def two_seqs_differences_set(seq1: str, seq2: str) -> set:
