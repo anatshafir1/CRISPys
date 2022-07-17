@@ -55,7 +55,16 @@ def generate_scores_one_batch(genes_targets_dict: Dict, list_of_candidates: List
         for target in genes_targets_dict[gene]:
             batch_targets_list += [target] * len(list_of_candidates)
         batch_candidates_list += list_of_candidates * len(genes_targets_dict[gene])
-    list_of_all_scores = scoring_function(batch_candidates_list, batch_targets_list)
+    list_of_all_scores = []
+    # if the scoring function take the candidate without pam (e.g. gold-off)
+    if scoring_function == Distance_matrix_and_UPGMA.gold_off_func:
+        list_of_all_scores = scoring_function(batch_candidates_list, batch_targets_list)
+    # if the scoring function take the candidate with pam (e.g. crispr-net)
+    if scoring_function == Distance_matrix_and_UPGMA.crisprnet:
+        batch_candidates_list_withPAM = []
+        for candidate, target in zip(batch_candidates_list, batch_targets_list):
+            batch_candidates_list_withPAM.append(candidate + target[20:23])
+        list_of_all_scores = scoring_function(batch_candidates_list_withPAM, batch_targets_list)
     i = 0
     for gene in genes_list:
         scores_dict[gene] = []
