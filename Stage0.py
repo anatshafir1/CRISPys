@@ -13,11 +13,11 @@ import os
 import make_tree_display_CSV
 
 
-# get the path of this script file
+# get the output_path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 
-def sort_expectation(candidates, is_gene_homology_alg):
+def sort_expectation(candidates: List, is_gene_homology_alg: bool):
     """
     Given a list of candidates the function sorts them by
     :param candidates: the result of the algorithm run as a list of candidates
@@ -30,22 +30,22 @@ def sort_expectation(candidates, is_gene_homology_alg):
             candidates[i].candidates_list.sort(key=lambda item: (item.cut_expectation, item.total_num_of_mismatches()), reverse=True)
 
 
-def sort_threshold(candidates, omega, homology):
+def sort_threshold(candidates: List, omega: float, homology: bool):
     """
     Sort the candidates by number of genes with cut probability > omega and then by the probability to cleave all of
     these genes"""
 
-    def sort_subgroup(candidates, mega):
+    def sort_subgroup(candidates: List, omega: float):
         """
 
         :param candidates:
-        :param mega:
+        :param omega:
         """
         for candidate in candidates:
             num_of_genes_above_thr = 0
             cleave_all = 1
             for gene, score in candidate.genes_score_dict.items():
-                if score >= mega:
+                if score >= omega:
                     cleave_all *= score
                     num_of_genes_above_thr += 1
             candidate.cleve_all_above_thr = cleave_all
@@ -77,7 +77,7 @@ def choose_scoring_function(input_scoring_function: str):
         return Metric.cfd_funct
 
 
-def fill_genes_exons_dict(fasta_file: str):
+def fill_genes_exons_dict(fasta_file: str) -> Dict:
     """
     this function takes a fasta format file of genes and sequences and creates a dictionary where key are gene names
     and values are (one or more) exon sequences. If the input file has multiple exons per gene, the value will be
@@ -85,7 +85,6 @@ def fill_genes_exons_dict(fasta_file: str):
 
     :param fasta_file: input text file output_path of gene names and their sequences (or their exons sequences) as lines
     :return: dictionary where key are genes names and values are sequences
-    :rtype: dict
     """
     file = open(fasta_file, 'r')
     gene_name = ""
@@ -109,14 +108,13 @@ def fill_genes_exons_dict(fasta_file: str):
     return genes_exons_dict
 
 
-def get_genes_list(genes_exons_dict: Dict):
+def get_genes_list(genes_exons_dict: Dict) -> List:
     """
     this function extracts the whole genes sequences from an input dictionary of {gene name: exons of gene} and returns
     a list of the genes.
 
     :param genes_exons_dict: dictionary of {gene name: exons of gene}
     :return: list of whole genes sequences
-    :rtype: list
     """
     genes_list = []
     for gene_name in genes_exons_dict:
@@ -124,14 +122,13 @@ def get_genes_list(genes_exons_dict: Dict):
     return genes_list
 
 
-def inverse_genes_targets_dict(genes_targets_dict: Dict):
+def inverse_genes_targets_dict(genes_targets_dict: Dict) -> Dict:
     """
     inverts a dictionary of {gene names: list of target seqs in the gene} to a dictionary of
     {target sequence: list of gene names where the targets are found}.
 
     :param genes_targets_dict: dictionary of {keys: gene names. values: list of target seqs}
     :return: a dictionary of {target sequence: list of gene names where the targets are found}
-    :rtype: dict
     """
     targets_genes_dict = {}  # keys: target sequences. values: list of gene names in which the targets are found.
     for gene_name in genes_targets_dict:
@@ -149,8 +146,8 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
                  pams: int = 0) -> List:
     """
     Algorithm main function
-    :param fasta_file: input text file path of gene names and their sequences (or their exons sequences) as lines
-    :param output_path: the path to the directory in which the output files will be written
+    :param fasta_file: input text file output_path of gene names and their sequences (or their exons sequences) as lines
+    :param output_path: the output_path to the directory in which the output files will be written
     :param alg: the type of the algorithm run - with gene homology or without
     :param where_in_gene: ignore targets sites downstream to the fractional part of the gene
     :param use_thr:
@@ -163,7 +160,6 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param pams: the pams by which potential sgRNA target sites will be searched
     :return:
-    :rtype: list
     """
     start = timeit.default_timer()
     # choosing the scoring function:

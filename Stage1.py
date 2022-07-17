@@ -1,9 +1,11 @@
+
 __author__ = 'GH'
 
 import pickle
 from os.path import dirname, abspath
 from typing import List, Dict
 import Distance_matrix_and_UPGMA
+import Metric
 import SubgroupRes
 from TreeConstruction_changed import CladeNew
 from Bio.Phylo import BaseTree
@@ -25,15 +27,16 @@ def default_alg(input_targets_genes_dict: Dict, omega: float, scoring_function,
     :param scoring_function: scoring function of the potential targets
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :return: list of Candidate objects which are the best suitable to target the input genes
-    :rtype: list
     """
     potential_targets_list = list(input_targets_genes_dict.keys())
     targets_names = copy.deepcopy(potential_targets_list)
-    script_path = dirname(abspath(__file__))
-    cfd_dict = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))
+    cfd_dict = None
+    if scoring_function == Metric.cfd_funct:
+        script_path = dirname(abspath(__file__))
+        cfd_dict = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))
     best_permutations = Stage2.stage_two_main(potential_targets_list, targets_names, input_targets_genes_dict, omega,
                                               scoring_function, max_target_polymorphic_sites, cfd_dict)
-    best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)  # sort for the print
+    best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)
     return best_permutations
 
 
@@ -42,7 +45,7 @@ def default_alg(input_targets_genes_dict: Dict, omega: float, scoring_function,
 
 def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: Dict, targets_genes_dict: Dict,
                       omega: float, output_path: str, scoring_function, internal_node_candidates: int,
-                      max_target_polymorphic_sites: int = 12):
+                      max_target_polymorphic_sites: int = 12) -> List:
     """
     Called by the main function when choosing algorithm with gene homology taken in consideration. Creates a UPGMA tree
     from the input genes by their homology. Writes the tree to a newick format file and a preorder format file. Then
@@ -54,23 +57,24 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     :param targets_genes_dict: a dictionary of target -> list of genes in which it was found
     :param genes_targets_dict: a dictionary of gene -> list of potential targets found in the gene
     :param omega: threshold of targeting propensity of a gene by a considered sgRNA (see article p. 4)
-    :param output_path: the path to which the results will be stored
+    :param output_path: the output_path to which the results will be stored
     :param scoring_function: scoring function of the potential targets
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :return:
-    :rtype: list
     """
     # make a tree and distance matrix of the genes
     genes_upgma_tree = Distance_matrix_and_UPGMA.return_protdist_upgma(genes_list, genes_names, output_path)
     # store the genes UPGMA tree in a newick format file
     write_newick_to_file(genes_upgma_tree.root, output_path)
     tree_to_file(genes_upgma_tree.root, output_path)
-    fill_leaves_sets(genes_upgma_tree)  # tree leaves are genes
+    fill_nodes_leaves_list(genes_upgma_tree)  # tree leaves are genes
     # making the sgList for gene homology algorithm:
     list_of_subgroups = []
-    script_path = dirname(abspath(__file__))  # add check if scf_funct
-    cfd_dict = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))
+    cfd_dict = None
+    if scoring_function == Metric.cfd_funct:
+        script_path = dirname(abspath(__file__))
+        cfd_dict = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))
     genes_tree_top_down(list_of_subgroups, genes_upgma_tree.root, omega, genes_targets_dict, targets_genes_dict,
                         scoring_function, internal_node_candidates, max_target_polymorphic_sites, cfd_dict)
     return list_of_subgroups
@@ -81,7 +85,7 @@ def write_newick_to_file(tree_root: CladeNew, path: str):
     This function stores a UPGMA tree clade in a newick format file.
 
     :param tree_root: a UPGMA tree clade to store
-    :param path: to output path to which the newick format file will be stored
+    :param path: to output output_path to which the newick format file will be stored
     """
     file = open(path + "/tree.newick", 'w')
     write_newick(tree_root, file, 0)
@@ -115,7 +119,7 @@ def tree_to_file(tree_root: CladeNew, path: str):
     This function stores a UPGMA tree clade in a preorder text format file.
 
     :param tree_root: a UPGMA tree clade to store
-    :param path: to output path to which the preorder format file will be stored
+    :param path: to output output_path to which the preorder format file will be stored
     """
     lst = list()
     tree_preorder(tree_root, lst)
@@ -139,22 +143,23 @@ def tree_preorder(node: CladeNew, lst: List):
             tree_preorder(node.clades[1], lst)
 
 
-def fill_leaves_sets(tree: BaseTree):
+def fill_nodes_leaves_list(tree: BaseTree):
     """
-    Given a UPGMA tree of genes the function fills the trees' nodes 'node_targets' with the gene names of the leaves
+    Given a UPGMA tree of genes the function fills the trees' nodes 'node_leaves' with the gene names of the leaves
     under each node.
+
     :param tree: a UPGMA tree of the genes input to the algorithm run
     """
     # fill the first line of nodes
     leaves = tree.get_terminals()
     for leaf in tree.leaves:
         leaf_clade = list(filter(lambda clade: (clade.name == leaf), leaves))[0]
-        leaf_clade.add_node_target(leaf)
+        leaf_clade.add_nodes_leaves(leaf)
         path_to_leaf = tree.get_path(leaf_clade)
         path_to_leaf += [tree.root]
         for node in path_to_leaf[::-1]:
-            if leaf_clade.node_targets[0] not in node.node_targets:
-                node.add_node_target(leaf_clade.node_targets[0])
+            if leaf_clade.node_leaves[0] not in node.node_leaves:
+                node.add_nodes_leaves(leaf_clade.node_leaves[0])
 
 
 # ############################################# Gene Homology top down ############################################### #
@@ -165,7 +170,8 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
                         max_target_polymorphic_sites: int = 12, cfd_dict=None):
     """
     Given an initial input of genes UPGMA tree root the function traverses the tree in a top-town (depth first) order.
-    For each node
+    For each node creates a dictionary of node's genes (leaves under the node) -> targets found in them, and then find
+    the best candidate sgRNA for the targets. The candidates for each genes subgroup are stored as a SubgroupRes object.
 
     :param res: the result as a list of SubgroupRes objects
     :param node: the current node in the targets UPGMA tree for which the function is called
@@ -176,15 +182,13 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
-    :return: list of SubgroupsRes object which represent the best candidates for the algorithm run
-    :rtype: List
     """
     # making the genes_targets dict for this subtree and the targets_genes_dict to send to the intermediate algorithm
     current_targets_genes_dict = dict()
     current_genes_targets_dict = dict()
     targets_list = list()
     targets_names = list()
-    for leaf in node.node_targets:  # leaf here is a gene. taking only the relevant genes
+    for leaf in node.node_leaves:  # leaf here is a gene. taking only the relevant genes
         current_genes_targets_dict[leaf] = genes_targets_dict[leaf]
         # filling the targets to genes dict
         for target in current_genes_targets_dict[leaf]:
@@ -195,7 +199,7 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
             if target not in targets_list:  # creating a list of target sequences and a list of target names
                 targets_list.append(target)
                 targets_names.append(target)
-    if N_genes_in_node >= len(node.node_targets) > 1:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22
+    if N_genes_in_node >= len(node.node_leaves) > 1:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22
         best_permutations = Stage2.stage_two_main(targets_list, targets_names, current_targets_genes_dict, omega,
                                                   scoring_function, max_target_polymorphic_sites, cfd_dict)
         if not best_permutations:
@@ -215,14 +219,13 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
                             cfd_dict)
 
 
-def get_genes_list(candidates_lst: List):
+def get_genes_list(candidates_lst: List) -> List:
     """
     This function takes a list of Candidate objects (representing sgRNA sequences) and returns a list of genes for which
     the candidates were found.
 
     :param candidates_lst: list of Candidate objects
     :return: list of gene names in which the candidates are found
-    :rtype: list
     """
     res = set()
     for candidate in candidates_lst:

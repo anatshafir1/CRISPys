@@ -7,18 +7,24 @@ import globals
 
 def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, counter, genes_names, genes_lst,
                      repetitions_flag, genomeAssembly, use_thr):
-    def chagne_mm_to_lowercase(target_str, mm_lst):
-        '''mm is mismatch'''
-        target_in_lst = list(target_str)
-        for place in mm_lst:
-            target_in_lst[place] = target_in_lst[place].lower()
-        return ''.join(target_in_lst)
+    """
 
+    :param path:
+    :param results_url:
+    :param candidates_lst:
+    :param f:
+    :param consider_homology:
+    :param counter:
+    :param genes_names:
+    :param genes_lst:
+    :param repetitions_flag:
+    :param genomeAssembly:
+    :param use_thr:
+    """
     runId = ''.join(list(filter(str.isdigit, path)))
 
-    if consider_homology == True:
-        f.write("<table id=" + str(
-            counter) + " class=\"table table-striped table-hover\" style='display:none; width:100%'>\n")  # new
+    if consider_homology:
+        f.write("<table id=" + str(counter) + " class=\"table table-striped table-hover\" style='display:none; width:100%'>\n")
     else:
         f.write("<br><u><h2>")
 
@@ -28,21 +34,19 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
             if not results_url:
                 f.write("The best set of sgRNAs that could target the genes set with scores above the input threshold")
             else:
-                f.write(
-                    "A single sgRNA optimized to target most of the genes, each gene with a score above the input threshold")
+                f.write("A single sgRNA optimized to target most of the genes, each gene with a score above the input threshold")
 
         f.write("</h2></u>\n")
-
         f.write("<p><u><b><font style=\"font-size:18px;\">Filters:</font></b></u></p>")
         f.write(
-            "<font style=\"font-size:16px;\">&#9658; Show only targets with up to <select id=\"selectMM\" onchange=\"javascript:filterMM();\">\n")  # new
+            "<font style=\"font-size:16px;\">&#9658; Show only targets with up to <select id=\"selectMM\" onchange=\"javascript:filterMM();\">\n")
         f.write("\t<option value=\"" + str(100) + "\">""</option>\n")  # new
         for i in range(1, 21):  # new
             f.write("\t<option value=\"" + str(i) + "\">" + str(i) + "</option>\n")
         f.write("</select>\n mismatches\n")
 
         if results_url:
-            if repetitions_flag == True:
+            if repetitions_flag:
                 repetitions_str = "For each subset of targets, multiple sgRNAs are designed, but <u>only the best one</u> is presented in the table below. To see all the sgRNAs"
             else:
                 repetitions_str = "For each subset of targets, multiple sgRNAs are designed. To see </u>only the best sgRNA</u> for each subset"
@@ -69,14 +73,14 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
     f.write(header_row)
 
     n_candidate = 0
-    if consider_homology == True:
+    if consider_homology:
         n_use_crista_link = 1
     else:
         n_use_crista_link = 5
 
-    for c in candidates_lst:
+    for candidate in candidates_lst:
         n_candidate += 1
-        if c.off_targets and genomeAssembly != "Not_selected":
+        if candidate.off_targets and genomeAssembly != "Not_selected":
             crista_label = "CRISTA*"
             if not consider_homology and not results_url:
                 crista_url = "http://crista.tau.ac.il/results/" + runId + "_crispys_greedy/output.php"
@@ -84,21 +88,20 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
                 crista_url = "http://crista.tau.ac.il/results/" + runId + "_crispys/output.php"
         else:
             crista_label = "CRISTA"
-            crista_url = "http://crista.tau.ac.il/findofftargets.html#form/sgRNA_seq=" + c.seq
+            crista_url = "http://crista.tau.ac.il/findofftargets.html#form/sgRNA_seq=" + candidate.seq
 
         f.write(
             "<tr class='top_row'>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n\t<td></td>\n</tr>\n")
         f.write("<tr>\n")
         num_of_targets = 0
-        for targets in c.targets_dict.values():
+        for targets in candidate.targets_dict.values():
             num_of_targets += len(targets)
-        first_target = 1
         first_gene = 1
-        l = list(c.targets_dict.items())
-        l.sort(key=lambda item: c.genes_score_dict[item[0]], reverse=True)
+        l = list(candidate.targets_dict.items())
+        l.sort(key=lambda item: candidate.genes_score_dict[item[0]], reverse=True)
 
         for gene, targets in l:
-            targets.sort(key=lambda target: len(target[1]))  # Galll!!! sort the targets by number of mms
+            targets.sort(key=lambda target: len(target[1]))
 
             gene_seq = genes_lst[genes_names.index(gene)]
             seen_sites = dict()
@@ -107,59 +110,53 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
                 pos = find_pos(target, gene_seq, seen_sites)
                 if first_target == 1 and first_gene == 1:
                     f.write(
-                        "\t<td class='" + c.seq + "' style='display:none' onclick='hide(\"" + c.seq + "\")'>-</td>\n")
-                    f.write("\t<td class='" + c.seq + "' onclick='show_row(\"" + c.seq + "\")'>+</td>\n")
-                    f.write("\t<td class='" + c.seq + "' style='display:none'>" + c.seq + "</td>\n")
-                    f.write("\t<td class='" + c.seq + "'>" + c.seq + "</td>\n")
+                        "\t<td class='" + candidate.seq + "' style='display:none' onclick='hide(\"" + candidate.seq + "\")'>-</td>\n")
+                    f.write("\t<td class='" + candidate.seq + "' onclick='show_row(\"" + candidate.seq + "\")'>+</td>\n")
+                    f.write("\t<td class='" + candidate.seq + "' style='display:none'>" + candidate.seq + "</td>\n")
+                    f.write("\t<td class='" + candidate.seq + "'>" + candidate.seq + "</td>\n")
                     f.write(
-                        "\t<td class='" + c.seq + "' style='display:none'>" + str(c.cut_expectation)[:5] + "</td>\n")
-                    f.write("\t<td class='" + c.seq + "'>" + str(c.cut_expectation)[:5] + "</td>\n")
-                    f.write("\t<td class='" + c.seq + "' style='display:none'>" + gene + "</td>\n")
-                    f.write("\t<td class='" + c.seq + "'>" + gene + "</td>\n")
-                    score = str(c.genes_score_dict[gene])
+                        "\t<td class='" + candidate.seq + "' style='display:none'>" + str(candidate.cut_expectation)[:5] + "</td>\n")
+                    f.write("\t<td class='" + candidate.seq + "'>" + str(candidate.cut_expectation)[:5] + "</td>\n")
+                    f.write("\t<td class='" + candidate.seq + "' style='display:none'>" + gene + "</td>\n")
+                    f.write("\t<td class='" + candidate.seq + "'>" + gene + "</td>\n")
+                    score = str(candidate.genes_score_dict[gene])
                     if len(score) > 5:
                         score = score[:5]
-                    # for Gene, score in c.genes_score_dict.items():
-                    #	if Gene == gene:
-                    f.write("\t<td class='" + c.seq + "' style='display:none'>" + score + "</td>\n")
-                    f.write("\t<td class='" + c.seq + "'>" + score + "</td>\n")
-                    # break
-                    f.write("\t<td style='font-family:Courier new'>" + chagne_mm_to_lowercase(target[0], target[
-                        1].keys()) + "</td>\n")
+                    f.write("\t<td class='" + candidate.seq + "' style='display:none'>" + score + "</td>\n")
+                    f.write("\t<td class='" + candidate.seq + "'>" + score + "</td>\n")
+                    f.write("\t<td style='font-family:Courier new'>" + change_mismatch_to_lowercase(target[0], target[1].keys()) + "</td>\n")
                     f.write("\t<td id=\"mms\">" + str(len(target[1])) + "</td>\n")
                     f.write("\t<td>" + pos + "</td>\n")
                     f.write(
-                        "\t<td class='" + c.seq + "' style='display:none'><a target=\"_blank\" href=\"http://tefor.net/crispor/crispor.cgi?seq=" + c.seq + "&pam=NGG\">CRISPOR</a> | <a target=\"_blank\" href=\"" + crista_url + "\">" + crista_label + "</a></td>\n")
+                        "\t<td class='" + candidate.seq + "' style='display:none'><a target=\"_blank\" href=\"http://tefor.net/crispor/crispor.cgi?seq=" + candidate.seq + "&pam=NGG\">CRISPOR</a> | <a target=\"_blank\" href=\"" + crista_url + "\">" + crista_label + "</a></td>\n")
                     f.write(
-                        "\t<td class='" + c.seq + "'><a target=\"_blank\" href=\"http://tefor.net/crispor/crispor.cgi?&seq=" + c.seq + "&pam=NGG\">CRISPOR</a> | <a target=\"_blank\" href=\"" + crista_url + "\">" + crista_label + "</a></td>\n")
+                        "\t<td class='" + candidate.seq + "'><a target=\"_blank\" href=\"http://tefor.net/crispor/crispor.cgi?&seq=" + candidate.seq + "&pam=NGG\">CRISPOR</a> | <a target=\"_blank\" href=\"" + crista_url + "\">" + crista_label + "</a></td>\n")
                     f.write("</tr>\n")
                     first_target = 0
                     continue
                 if first_target != 1:
-                    f.write("<tr class='" + c.seq + "_r' style='display:none'>\n")
+                    f.write("<tr class='" + candidate.seq + "_r' style='display:none'>\n")
                     f.write("\t<td></td>\n")
                     f.write("\t<td></td>\n")
                     f.write("\t<td></td>\n")
                     f.write("\t<td></td>\n")
                     f.write("\t<td></td>\n")
-                    f.write("\t<td style='font-family:Courier new'>" + chagne_mm_to_lowercase(target[0], target[
-                        1].keys()) + "</td>\n")
+                    f.write("\t<td style='font-family:Courier new'>" + change_mismatch_to_lowercase(target[0], target[1].keys()) + "</td>\n")
                     f.write("\t<td id=\"mms\">" + str(len(target[1])) + "</td>\n")  # new
                     f.write("\t<td>" + pos + "</td>\n")  # new
                     f.write("\t<td></td>\n")
                     f.write("</tr>\n")
                 if first_target == 1 and first_gene != 1:
-                    score = str(c.genes_score_dict[gene])
+                    score = str(candidate.genes_score_dict[gene])
                     if len(score) > 5:
                         score = score[:5]
-                    f.write("<tr class='" + c.seq + "_r' style='display:none'>\n")
+                    f.write("<tr class='" + candidate.seq + "_r' style='display:none'>\n")
                     f.write("\t<td></td>\n")
                     f.write("\t<td></td>\n")
                     f.write("\t<td></td>\n")
                     f.write("\t<td>" + gene + "</td>\n")
                     f.write("\t<td>" + score + "</td>\n")
-                    f.write("\t<td style='font-family:Courier new'>" + chagne_mm_to_lowercase(target[0], target[
-                        1].keys()) + "</td>\n")
+                    f.write("\t<td style='font-family:Courier new'>" + change_mismatch_to_lowercase(target[0], target[1].keys()) + "</td>\n")
                     f.write("\t<td id=\"mms\">" + str(len(target[1])) + "</td>\n")  # new
                     f.write("\t<td>" + pos + "</td>\n")  # new
                     f.write("\t<td></td>\n")
@@ -172,22 +169,34 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
     f.write("</table>\n")
 
 
+def change_mismatch_to_lowercase(target_str, mm_lst):
+    """
+
+    :param target_str:
+    :param mm_lst:
+    :return:
+    """
+    target_in_lst = list(target_str)
+    for place in mm_lst:
+        target_in_lst[place] = target_in_lst[place].lower()
+    return ''.join(target_in_lst)
+
+
 def find_pos(target, gene_sequence, seen_sites):
-    '''sgRNA_targets is a list of target sites
-	returns'''
+    """sgRNA_targets is a list of target sites
+	returns"""
 
     target_seq = target[0]
     if target_seq in seen_sites:
         directions_lst = seen_sites[target_seq]
     else:
         directions_lst = [0, 0]
-    position = gene_sequence.find(target_seq, directions_lst[0])  # + '+' #item[0] is the target site seq
+    position = gene_sequence.find(target_seq, directions_lst[0])
     if position != -1:
         update_seen_sites_dict(seen_sites, target_seq, 0, position)
         position = str(position) + '+'
-    # update_positions_dict(seen_sites, target ,sg_position)
     else:
-        position = CasSites.give_complementary(gene_sequence).find(target_seq, directions_lst[1])  # + "-"
+        position = CasSites.give_complementary(gene_sequence).find(target_seq, directions_lst[1])
         update_seen_sites_dict(seen_sites, target_seq, 1, position)
         position = str(position) + '-'
     if position == -1:
@@ -196,10 +205,10 @@ def find_pos(target, gene_sequence, seen_sites):
 
 
 def update_seen_sites_dict(d, site_seq, direction, position):
-    '''
+    """
 	d: dict: key: site_seq; val: [num of occurrences, directions_lst]
 	direction: 0 for sense, 1 for antisense
-	'''
+	"""
     if site_seq in d:
         directions_lst = d[site_seq]
         directions_lst[direction] = position + 1
@@ -211,6 +220,14 @@ def update_seen_sites_dict(d, site_seq, direction, position):
 
 
 def tree_display(path, consider_homology=False, data='regular', genomeAssembly='Not_selected', use_thr=0):
+    """
+
+    :param path:
+    :param consider_homology: :
+    :param data:
+    :param genomeAssembly:
+    :param use_thr:
+    """
     multicrispr_url = "http://multicrispr.tau.ac.il"
     runId = ''.join(list(filter(str.isdigit, path)))
     results_url = ""
@@ -263,7 +280,7 @@ def tree_display(path, consider_homology=False, data='regular', genomeAssembly='
 
     counter = 0
 
-    if consider_homology == False:
+    if not consider_homology:
         sub_tree_display(path, results_url, candidates_lst, f, consider_homology, counter, genes_names, genes_list,
                          data == 'removed_repetitions', genomeAssembly, use_thr)
     else:
@@ -279,7 +296,6 @@ def tree_display(path, consider_homology=False, data='regular', genomeAssembly='
                 "Multiple sgRNAs, each optimized towards subgroup of homologous genes with a score above the input threshold")
 
         f.write("</h2></u>\n")
-
         f.write("<p><u><b><font style=\"font-size:18px;\">Filters:</font></b></u></p>")
         f.write(
             "<font style=\"font-size:16px;\">&#9658; Show only targets with up to <select id=\"selectMM\" onchange=\"javascript:filterMM();\">\n")  # new
@@ -316,10 +332,9 @@ def tree_display(path, consider_homology=False, data='regular', genomeAssembly='
             f.write("<table class=\"table group\" style=\"font-size:20px; font-family:aharoni; \">\n")
             f.write("  <tr class=\"group\">\n       <td onclick='show(this, " + str(
                 counter) + ")'>+ " + subgroup_item.name + ": " + genes + "</td>\n")
-            sub_tree_display(path, results_url, subgroup_item.candidate_list, f, consider_homology, counter, genes_names,
+            sub_tree_display(path, results_url, subgroup_item.candidate_list, f, consider_homology, counter,
+                             genes_names,
                              genes_list, data == 'removed_repetitions', genomeAssembly, use_thr)
-        counter = 0
-
     f.write(
         "<script>\nfunction hide(sgRNA) {\n\t var lst_r = document.getElementsByClassName(sgRNA.concat('_r'));\n    for(var i = 0; i < lst_r.length; ++i) {\n")
     f.write(
@@ -336,7 +351,7 @@ def tree_display(path, consider_homology=False, data='regular', genomeAssembly='
         "function filterMM(){\n var mm = document.getElementById(\"selectMM\").value;\n var tables = document.getElementsByClassName(\"table\");\n for (var t = 0; t < tables.length; ++t)\n {\n \ttable = tables[t];\n \ttr = table.getElementsByTagName(\"tr\");\n \tfor (i = 0; i < tr.length; i++)\n \t{\n    if(tr[i].style.display === 'none'){\n      if (tr[i].classList.contains('hideFromFilter')){}\nelse{continue;}\n    } \t\tvar row = tr[i].children[\"mms\"];\n \t\t if (row){\n \t\t\t var myMM = row.innerText;\n \t\t\t if (parseInt(myMM)  > parseInt(mm)) {\n        tr[i].classList.add('hideFromFilter');\n        tr[i].style.display = \"none\";\n       }\n \t\t\t else{tr[i].style.display = \"table-row\";tr[i].classList.remove('hideFromFilter');}\n \t\t}\n \t}\n }\n updateQueryString();\n}\n")
 
     if results_url:
-        if consider_homology == False:
+        if not consider_homology:
             f.write(
                 "function updateQueryString() { \n var mm = document.getElementById(\"selectMM\").value; \n var n = $(\"#scrl\").val(); \n document.getElementById(\"abc\").href=\"" + results_url + "&filterMM=\"+mm+\"&scrl=\"+n.toString();  \n }\n")
         else:

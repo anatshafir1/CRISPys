@@ -49,7 +49,6 @@ def pos_in_metric_general(list_of_targets: List, distance_function, cfd_dict: Di
     :param distance_function: the input distance function when running the algorithm
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
     :return: a list of vectors, each representing the location of the target in a multidimensional space
-    :rtype: list
     """
 
     random.seed(globals.seed)
@@ -80,6 +79,7 @@ def create_list_of_metric_sequences(list_of_targets: List) -> List:
 	and appending the input of create_perturbed_target() . This process is repeated until the cutoff size is reached.
 	If the number of targets is larger or equal to this variable, shuffle the list of targets and take only the first
 	vector_size_cutoff targets.
+
 	:param list_of_targets: a list of targets
 	:return: a list of sampled sequences of length @globals.vector_size_cutoff.
 	"""
@@ -99,6 +99,7 @@ def create_perturbed_target(target: str) -> str:
     This function takes an input target, and creates a perturbed sequence.
     The function randomly chooses between 1 and 3 positions, and inserts
     a single substitution in each mutation index.
+
     :param target: a target sequence
     :return: a perturbed target.
     """
@@ -125,7 +126,6 @@ def pos_in_metric_cfd(target_seq: str, cfd_dict: Dict) -> List:
     :param target_seq: potential target sequence
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
     :return: a list representing a vector with CFD scores for each nucleotide in the target (see article "Methods", p.9)
-    :rtype: list
     """
     nucs = ['A', 'C', 'G', 'U']
     point = np.zeros(len(target_seq) * len(nucs))
@@ -141,8 +141,8 @@ def pos_in_metric_cfd(target_seq: str, cfd_dict: Dict) -> List:
     return list(point)
 
 
-def cfd_funct(sgRNA, target, cfd_dict):
-    """my implementation of this function"""
+def cfd_funct(sgRNA: str, target: str, cfd_dict: Dict) -> float:
+    """An implementation of the CFD function"""
     return 1 - reduce(lambda x, y: x * y,
                       map(lambda i: cfd_dict[('r' + sgRNA[i] + ':d' + target[i], i + 1)] if sgRNA[i] != target[i] else 1,
                           [j for j in range(0, 20)]))

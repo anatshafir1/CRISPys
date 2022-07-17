@@ -144,10 +144,10 @@ class DistanceTreeConstructor(TreeConstruction.TreeConstructor):
             dm.names[min_j] = "Inner" + str(inner_count)
 
         inner_clade.branch_length = 0
-        return Tree_new(inner_clade, leaves=leaves_lst)
+        return TreeNew(inner_clade, leaves=leaves_lst)
 
     def _height_of(self, clade):
-        """calculate clade height -- the longest path to any terminal."""
+        """calculate clade height -- the longest output_path to any terminal."""
         height = 0
         if clade.is_terminal():
             height = clade.branch_length
@@ -167,17 +167,29 @@ class CladeNew(BaseTree.Clade):
 
         """
         super().__init__(branch_length, name, clades, confidence, color, width)
-        self.node_targets = list()
+        self.node_leaves = list()
         self.polymorphic_sites = set()
 
-    def add_node_target(self, leaf):
-        self.node_targets.append(leaf)
+    def add_nodes_leaves(self, leaf: str):
+        """
+        Adds the leaf under the node to the list of node's leaves
+
+        :param leaf: leaf under the node
+        """
+        self.node_leaves.append(leaf)
 
     def fill_polymorphic_sites(self, polymorphic_sites: set = None):
+        """
+
+        :param polymorphic_sites:
+        """
         self.polymorphic_sites = polymorphic_sites
 
 
-class Tree_new(BaseTree.Tree):
+class TreeNew(BaseTree.Tree):
+    """
+    Implementation of BaseTree.Tree for the purposes of CRISPys algorithm
+    """
     def __init__(self, root=None, rooted=True, id=None, name=None, leaves=None):
         BaseTree.Tree.__init__(self, root, rooted, id, name)
         self.leaves = leaves

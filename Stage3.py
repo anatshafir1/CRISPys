@@ -37,16 +37,16 @@ def generate_scores(genes_targets_dict, list_of_candidates, scoring_function, cf
     return scores_dict
 
 
-def generate_scores_one_batch(genes_targets_dict, list_of_candidates, scoring_function, scores_dict):
+def generate_scores_one_batch(genes_targets_dict: Dict, list_of_candidates: List, scoring_function, scores_dict: Dict) -> Dict:
     """
 	generates a data structure that contains the candidates and their off-target scores,
 	using a single call of the scoring function.
-	Args:
-		genes_targets_dict: a dictionary : gene name -> targets within the gene
-		list_of_candidates: a list of all possible candidates, given by all_perms()
-		scoring_function: the scoring function
-		scores_dict: an empty dictionary
-	Returns: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]},
+
+	:param genes_targets_dict: a dictionary : gene name -> targets within the gene
+	:param list_of_candidates: a list of all possible candidates, given by all_perms()
+	:param scoring_function: the scoring function
+	:param scores_dict: an empty dictionary
+	:return: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]},
 	"""
     genes_list = list(genes_targets_dict.keys())
     batch_targets_list = []
@@ -75,7 +75,6 @@ def return_candidates(genes_targets_dict: Dict, omega: float, scoring_function, 
     :param node:
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
     :return:
-    :rtype: list
     """
     # stage one: make a list of all the sgRNAs
     list_of_targets = []
@@ -124,7 +123,7 @@ def return_candidates(genes_targets_dict: Dict, omega: float, scoring_function, 
     return list_of_candidates
 
 
-def all_perms(initial_seq, list_of_seqs, list_of_differences):
+def all_perms(initial_seq: str, list_of_seqs: List, list_of_differences: List) -> List:
     """Given an initial sequence and a list of possible polymorphisms and their indices in that sequence, this function
     creates a list of all the possible permutations of the initial sequence.
     list_of_seqs is initialized on the first call of the function. each recursive call adds to list_of_seqs the
@@ -136,7 +135,6 @@ def all_perms(initial_seq, list_of_seqs, list_of_differences):
     :param list_of_seqs: list of permutations. Initially None. The function creates it during the recursion.
     :param list_of_differences: list of tuples of polymorphisms and their locations: (index, set of nucleotides)
     :return: list of permutations of the initial sequence
-    :rtype: list
     """
     if len(list_of_differences) == 0:  # the stopping condition
         if list_of_seqs:
@@ -170,7 +168,6 @@ def two_seqs_differences(seq1: str, seq2: str) -> Dict:
     :param seq1: first genomic target sequence
     :param seq2: second genomic target sequence
     :return: a dictionary representing the differences between the sequences
-    :rtype: dict
     """
     differences = {}  # key: place of disagreement. value: the suggestions of each side
     seq1 = seq1[:20]
@@ -191,13 +188,12 @@ def find_polymorphic_sites(leaves: List) -> Dict:
 
     :param leaves: a list of strings of genomic targets sequences.
     :return: dictionary representing the polymorphisms between first and the other sequences of the input list.
-    :rtype: dict
     """
     differences = dict()  # key: place where there is a difference. value: letter appeared in this place
     if len(leaves) < 2:
         return differences
     ref = leaves[0]
-    for i in range(1, len(leaves)):  # node_targets is a python array
+    for i in range(1, len(leaves)):  # node_leaves is a python array
         current_differences = two_seqs_differences(ref, leaves[i])
         for polymorphism_site in current_differences:
             if polymorphism_site in differences:

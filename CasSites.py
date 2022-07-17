@@ -1,4 +1,4 @@
-
+"""A module for finding potential genomic targets in genes for sgRNA cleaving"""
 __author__ = 'ItayM5'
 
 from typing import List, Dict
@@ -7,7 +7,7 @@ import Distance_matrix_and_UPGMA
 
 
 def fill_genes_targets_dict(genes_exons_dict: Dict, scoring_function, where_in_gene: float, min_length: int,
-                            max_length: int, start_with_g: bool, pams: int):
+                            max_length: int, start_with_g: bool, pams: int) -> Dict:
     """
     creates a dictionary of genes names and the potential targets sequences for sgRNA, so that
     keys = gene names (strings) and values = lists of target sequences in the gene (list of strs).
@@ -20,7 +20,6 @@ def fill_genes_targets_dict(genes_exons_dict: Dict, scoring_function, where_in_g
     :param start_with_g: True if the guide sequence should start with G
     :param pams: the pams by which the searching function ("get_sites") finds potential sgRNA target sites
     :return: dictionary of {keys: gene names. values: list of target sequences in gene}
-    :rtype: dict
     """
     genes_targets_dict = {}
     for gene_name in genes_exons_dict.keys():
@@ -50,7 +49,6 @@ def get_targets_sites_from_exons_lst(exons_lst: List, scoring_function, where_in
     :param start_with_g: True if the guide sequence should start with G
     :param pams: the pams by which the searching function ("get_sites") finds potential sgRNA target sites
     :return: list of all the potential sgRNA target sites for the gene
-    :rtype: list
     """
     original_range_in_gene = [0, where_in_gene]
     if original_range_in_gene[1] <= original_range_in_gene[0]:
@@ -97,7 +95,7 @@ def get_targets_sites_from_exons_lst(exons_lst: List, scoring_function, where_in
 
 
 def get_sites(exon: str, scoring_function, min_length: int = 20, max_length: int = 20, start_with_g: bool = False,
-              pams: int = 0):
+              pams: int = 0) -> List:
     """
     This function is used to find CRISPR cut site sequences (targets) from an input DNA sequence, which is
     usually an exon. the minimum length of an input exon str is 23. Using regex this function searches for all the
@@ -112,14 +110,12 @@ def get_sites(exon: str, scoring_function, min_length: int = 20, max_length: int
     :param start_with_g: True if the guide sequence should start with G
     :param pams: type of PAM (can be [NGG] or [NGG, NAG])
     :return: a list of targets sequences that CRISPR can target with or without the PAM
-    :rtype: list
     """
     if pams == 0:
         pams = ['GG']
     elif pams == 1:
         pams = ['GG', 'AG']
     list_of_targets = []
-    found_targets = []
     if len(exon) < max_length + 3:
         return list_of_targets
     for length in range(min_length, max_length + 1):
@@ -144,13 +140,12 @@ def get_sites(exon: str, scoring_function, min_length: int = 20, max_length: int
     return list_of_targets
 
 
-def give_complementary(seq: str):
+def give_complementary(seq: str) -> str:
     """Given a DNA sequence (5' to 3') this function returns its antisense sequence (also 5' to 3'). This is used to
     find possible cut sites for CRISPR in the antisense strand of a given DNA sequence.
 
     :param seq: input DNA sequence
     :return: antisense sequence for the input
-    :rtype: str
     """
     complementary_seq_list = []
     for i in range(len(seq)):

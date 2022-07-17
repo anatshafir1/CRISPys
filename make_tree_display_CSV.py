@@ -1,15 +1,9 @@
 
 import pickle
-import CasSites
+import make_tree_display
 
 
 def sub_tree_display(path, candidates_lst, f, consider_homology, counter, genes_names, genes_lst):
-    def change_mm_to_lowercase(target_str, mm_lst):
-        """mm is mismatch"""
-        target_in_lst = list(target_str)
-        for place in mm_lst:
-            target_in_lst[place] = target_in_lst[place].lower()
-        return ''.join(target_in_lst)
 
     header_row = "sgRNA index,sgRNA,Score,Genes,Genes score,Target site,#mms,Position\n"  # new
 
@@ -23,15 +17,14 @@ def sub_tree_display(path, candidates_lst, f, consider_homology, counter, genes_
 
     f.write(header_row)
     sgRNA_index = 0
-    for c in candidates_lst:
+    for candidate in candidates_lst:
         sgRNA_index += 1
-
         num_of_targets = 0
-        for targets in c.targets_dict.values():
+        for targets in candidate.targets_dict.values():
             num_of_targets += len(targets)
         first_gene = 1
-        l = list(c.targets_dict.items())
-        l.sort(key=lambda item: c.genes_score_dict[item[0]], reverse=True)
+        l = list(candidate.targets_dict.items())
+        l.sort(key=lambda item: candidate.genes_score_dict[item[0]], reverse=True)
 
         for gene, targets in l:
             targets.sort(key=lambda target: len(target[1]))
@@ -39,18 +32,18 @@ def sub_tree_display(path, candidates_lst, f, consider_homology, counter, genes_
             seen_sites = dict()
             first_target = 1
             for target in targets:
-                pos = find_pos(target, gene_seq, seen_sites)
+                pos = make_tree_display.find_pos(target, gene_seq, seen_sites)
 
                 if first_target == 1 and first_gene == 1:
 
-                    f.write(str(sgRNA_index) + '.,' + c.seq + "," + str(c.cut_expectation)[:5])
+                    f.write(str(sgRNA_index) + '.,' + candidate.seq + "," + str(candidate.cut_expectation)[:5])
                     f.write("," + gene)
-                    score = str(c.genes_score_dict[gene])
+                    score = str(candidate.genes_score_dict[gene])
                     if len(score) > 5:
                         score = score[:5]
 
                     f.write("," + score)
-                    f.write("," + change_mm_to_lowercase(target[0], target[1].keys()))
+                    f.write("," + change_mismatch_to_lowercase(target[0], target[1].keys()))
                     f.write("," + str(len(target[1])))
                     f.write("," + pos)
                     f.write("\n")
@@ -59,19 +52,19 @@ def sub_tree_display(path, candidates_lst, f, consider_homology, counter, genes_
                 if first_target != 1:
                     f.write(str(sgRNA_index) + ".,,,,,")
 
-                    f.write(change_mm_to_lowercase(target[0], target[1].keys()))
+                    f.write(change_mismatch_to_lowercase(target[0], target[1].keys()))
                     f.write("," + str(len(target[1])))
                     f.write("," + pos)
                     f.write("\n")
                 if first_target == 1 and first_gene != 1:
                     f.write(str(sgRNA_index) + ".,,,")
-                    score = str(c.genes_score_dict[gene])
+                    score = str(candidate.genes_score_dict[gene])
                     if len(score) > 5:
                         score = score[:5]
 
                     f.write(gene)
                     f.write("," + score)
-                    f.write("," + change_mm_to_lowercase(target[0], target[1].keys()))
+                    f.write("," + change_mismatch_to_lowercase(target[0], target[1].keys()))
                     f.write("," + str(len(target[1])))
                     f.write("," + pos)
                     f.write("\n")
@@ -80,43 +73,26 @@ def sub_tree_display(path, candidates_lst, f, consider_homology, counter, genes_
             first_gene = 0
 
 
-def find_pos(target, gene_sequence, seen_sites):
-    """sgRNA_targets is a list of target sites
-	returns"""
-    target_seq = target[0]
-    if target_seq in seen_sites:
-        directions_lst = seen_sites[target_seq]
-    else:
-        directions_lst = [0, 0]
-    position = gene_sequence.find(target_seq, directions_lst[0])
-    if position != -1:
-        update_seen_sites_dict(seen_sites, target_seq, 0, position)
-        position = str(position) + '+'
-    else:
-        position = CasSites.give_complementary(gene_sequence).find(target_seq, directions_lst[1])
-        update_seen_sites_dict(seen_sites, target_seq, 1, position)
-        position = str(position) + '-'
-    if position == -1:
-        position = ''
-    return position
-
-
-def update_seen_sites_dict(d, site_seq, direction, position):
+def change_mismatch_to_lowercase(target_str, mm_lst):
     """
-	d: dict: key: site_seq; val: [num of occurrences, directions_lst]
-	direction: 0 for sense, 1 for antisense
-	"""
-    if site_seq in d:
-        directions_lst = d[site_seq]
-        directions_lst[direction] = position + 1
-        d[site_seq] = directions_lst
-    else:
-        directions_lst = [0, 0]
-        directions_lst[direction] = position + 1
-        d[site_seq] = directions_lst
+
+    :param target_str:
+    :param mm_lst:
+    :return:
+    """
+    target_in_lst = list(target_str)
+    for place in mm_lst:
+        target_in_lst[place] = target_in_lst[place].lower()
+    return ''.join(target_in_lst)
 
 
 def tree_display(path, consider_homology=False, set_cover=False):
+    """
+
+    :param path:
+    :param consider_homology:
+    :param set_cover:
+    """
     if set_cover:
         candidates_lst = pickle.load(open(path + "/greedy_cover.p", "rb"))
     else:
