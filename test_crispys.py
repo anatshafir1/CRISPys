@@ -49,6 +49,8 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     :return: write a folder for each test with the results of crispys and also write test summary
     """
 
+    # clear folder old content
+    os.system(f"rm -r {res_folder}/*")
     # make folders for output if needed
     for folder in test_folders:
         if not os.path.isdir(res_folder + "/" + folder.split("/")[0]):
@@ -126,12 +128,12 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     header = createHeaderJob(res_folder + "/N_internal_node/10", "in_10")
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git" \
-              f"/HOM04D000221_5/HOM04D000221_5.txt {res_folder}/N_internal_node/10 --alg gene_homology -t 1 -v 0.8 " \
+              f"/HOM04D000221_6/HOM04D000221_6.txt {res_folder}/N_internal_node/10 --alg gene_homology -t 1 -v 0.8 " \
               f"--internal_node_candidates 10 --where_in_gene 0.8 --scoring_function cfd_funct "
     if code == "server":
         cmd = f"python {code_folder}/call_MULTICRISPR_Wrapper.py " \
-              f"/groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000221_5/HOM04D000221_" \
-              f"5.txt {res_folder}/N_internal_node/10 --alg gene_homology -t 1 -v 0.8 --internal_node_candidates 10 " \
+              f"/groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000221_6/HOM04D000221_6.txt " \
+              f"{res_folder}/N_internal_node/10 --alg gene_homology -t 1 -v 0.8 --internal_node_candidates 10 " \
               f"--where_in_gene 0.8 --scoring_function cfd_funct "
 
     with open(res_folder + "/N_internal_node/10/Crispys.sh", "w") as f:
@@ -142,12 +144,12 @@ def run_crispys_test(code_folder, res_folder, code="git"):
     header = createHeaderJob(res_folder + "/N_internal_node/200", "in_200")
     if code == "git":
         cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git" \
-              f"/HOM04D000221_5/HOM04D000221_5.txt {res_folder}/N_internal_node/200 --alg gene_homology -t 1 -v 0.8 " \
+              f"/HOM04D000221_6/HOM04D000221_6.txt {res_folder}/N_internal_node/200 --alg gene_homology -t 1 -v 0.8 " \
               f"--internal_node_candidates 200 --where_in_gene 0.8 --scoring_function cfd_funct "
     if code == "server":
         cmd = f"python {code_folder}/call_MULTICRISPR_Wrapper.py " \
-              f"/groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000221_5/HOM04D000221_" \
-              f"5.txt {res_folder}/N_internal_node/200 --alg gene_homology -t 1 -v 0.8 --internal_node_candidates 200 " \
+              f"/groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000221_6/HOM04D000221_6.txt " \
+              f"{res_folder}/N_internal_node/200 --alg gene_homology -t 1 -v 0.8 --internal_node_candidates 200 " \
               f"--where_in_gene 0.8 --scoring_function cfd_funct "
 
     with open(res_folder + "/N_internal_node/200/Crispys.sh", "w") as f:
