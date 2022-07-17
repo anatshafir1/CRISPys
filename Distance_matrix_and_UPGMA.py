@@ -8,7 +8,8 @@ from numpy import clip
 import subprocess
 import numpy as np
 from CRISPR_Net import Encoder_sgRNA_off
-
+from DeepHF.scripts import prediction_util
+import os
 
 
 
@@ -184,22 +185,31 @@ def ucrispr(sg_seq_list: list) -> list:
 		a list of ucrispr on-target scores
 	"""
 	# make a file with guides for inputs to ucrispr
-	with open(f"{globals.PATH}/targets.txt", "w") as f:
+	with open(f"{globals.CODE_PATH}/targets.txt", "w" ) as f:
 		for sg in sg_seq_list:
 			f.write(f"{sg}\n")
 
 	# run ucrispr in terminal
-	p = subprocess.run([f"{globals.PATH}/uCRISPR/uCRISPR", "-on", f"{globals.PATH}/targets.txt"], stdout=subprocess.PIPE)
+	p = subprocess.run( [f"{globals.CODE_PATH}/uCRISPR/uCRISPR", "-on", f"{globals.CODE_PATH}/targets.txt"], stdout=subprocess.PIPE )
 
 	# pares the results
 	res_lst = p.stdout.decode('utf-8').split("\n")
 	# delete input file
-	subprocess.run(["rm", f"{globals.PATH}/targets.txt"])
+	subprocess.run( ["rm", f"{globals.CODE_PATH}/targets.txt"] )
 	# return a list of the results
 	return [float(i.split(" ")[1]) for i in res_lst[1:len(res_lst)-1]]
 
 
-def crisprnet(candidate_lst, target_lst):
+def crisprnet(candidate_lst: list, target_lst: list) -> list:
+	"""
+	This function take list of sgrnas (candidate) and lisr of targets and returns a list of  1 - crispr_net score
+	Args:
+		candidate_lst: list of candidates
+		target_lst: list of targets
+
+	Returns:
+		list of crispr_net scores
+	"""
 	input_codes = []
 	for seqs in zip(candidate_lst, target_lst):
 		on_seq = seqs[0]
@@ -210,3 +220,19 @@ def crisprnet(candidate_lst, target_lst):
 	input_codes = input_codes.reshape((len(input_codes), 1, 24, 7))
 	y_pred = globals.crisprnet_loaded_model.predict(input_codes).flatten()
 	return [1 - float(y) for y in y_pred]
+
+def deephf(target_lst : list) -> list:
+	"""
+	This function use the model of deephf that was improved by Yaron Orenstein`s lab
+	Args:
+		target_lst: list of targets with PAM
+
+	Returns:
+		list of on-target scores
+	"""
+	# take 21 nt from targets
+	targets = [target[0:21] for target in target_lst]
+	# get deephf scores
+	scores = prediction_util.get_predictions(os.path.join(
+		f"{globals.CODE_PATH}", "DeepHF", "models", "model1", "no_bio", "multi_task", "parallel/"), targets)
+	return list(scores)

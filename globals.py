@@ -3,7 +3,7 @@ import os
 this script is for storing global variables
 """
 # get th epath of the scripts directory
-PATH = os.path.dirname(os.path.realpath(__file__))
+CODE_PATH = os.path.dirname( os.path.realpath( __file__ ) )
 
 # This variable will determine the maximum number of genes that will be considered for finding
 # it's used in Stage1_h.py with function:
@@ -40,3 +40,15 @@ def set_crisprnet_model(model):
     """
     global crisprnet_loaded_model
     crisprnet_loaded_model = model
+
+def set_res_path(path: str) -> str:
+    """
+    set variable of results path
+    Args:
+        path: The path for crispys output
+
+    Returns:
+        global vatiable that contain the results path
+    """
+    global RES_PATH
+    RES_PATH = path

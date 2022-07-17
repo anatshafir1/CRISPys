@@ -12,6 +12,7 @@ import os
 import make_tree_display_CSV #from server
 import globals
 from tensorflow.keras.models import model_from_json
+# set tensorflow to use 1 core
 from tensorflow.config import threading
 threading.set_inter_op_parallelism_threads(1)
 import warnings
@@ -70,6 +71,7 @@ def leave_only_relevant_sgRNA(res):
 
 def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Omega = 1, df_targets = Metric.cfd_funct, protdist_outfile = "outfile", min_length= 20, max_length = 20,start_with_G = False, internal_node_candidates = 10, PS_number = 12, PAMs=0):
     start = timeit.default_timer()
+    globals.set_res_path(path)
     cfd_dict = None
     if isinstance(where_in_gene, str):
         where_in_gene = float(where_in_gene.strip())
@@ -77,18 +79,18 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
         Omega = float(Omega.strip())
     if isinstance(use_thr, str):
         use_thr = int(use_thr.strip())
+
     #choosing the distance function
     if df_targets == "crispr_net" or df_targets == "CRISPR_Net" or df_targets == "crisprnet":
         df_targets = Distance_matrix_and_UPGMA.crisprnet
         # load the model and make it available globaly
-        json_file = open(f"{globals.PATH}/CRISPR_Net/scoring_models/CRISPR_Net_structure.json", 'r' )
+        json_file = open(f"{globals.CODE_PATH}/CRISPR_Net/scoring_models/CRISPR_Net_structure.json", 'r' )
         loaded_model_json = json_file.read()
         json_file.close()
         crisprnet_loaded_model = model_from_json(loaded_model_json)
-        crisprnet_loaded_model.load_weights(f"{globals.PATH}/CRISPR_Net/scoring_models/CRISPR_Net_CIRCLE_elevation_SITE_weights.h5")
+        crisprnet_loaded_model.load_weights(f"{globals.CODE_PATH}/CRISPR_Net/scoring_models/CRISPR_Net_CIRCLE_elevation_SITE_weights.h5" )
         globals.set_crisprnet_model(crisprnet_loaded_model)
         print("Loaded model from disk!")
-
 
     elif df_targets == "ucrispr" or df_targets == "uCRISPR":
         df_targets = Distance_matrix_and_UPGMA.ucrispr
@@ -99,11 +101,13 @@ def CRISPys_main(fasta_file, path, alg = 'A', where_in_gene = 1, use_thr = 0, Om
     elif df_targets == "cfd_funct" or df_targets == "cfd_func" or df_targets == "cfd"\
             or df_targets == Metric.cfd_funct:
         df_targets = Metric.cfd_funct
-        cfd_dict = pickle.load(open(PATH + "/cfd_dict.p",'rb'))
+        cfd_dict = pickle.load(open(globals.CODE_PATH + "/cfd_dict.p",'rb'))
     elif df_targets == "CCTop" or df_targets == "ccTop":
         df_targets = Distance_matrix_and_UPGMA.ccTop
+    elif df_targets == "DeepHF" or df_targets == "deephf":
+        df_targets = Distance_matrix_and_UPGMA.deephf
     else:
-        print("Did not specify valid scoring function!")
+        print("Did not specify valid scoring function")
         return
         
 

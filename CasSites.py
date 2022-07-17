@@ -3,6 +3,7 @@ import re ##used to be regex
 import regex
 import Metric
 import Distance_matrix_and_UPGMA
+import globals
 
 def get_sites(gene, df, min_length=20, max_length=20, start_with_G=False, where_in_gene = 1,PAMs= ["GG"]):
 
@@ -34,7 +35,7 @@ def get_sites(gene, df, min_length=20, max_length=20, start_with_G=False, where_
 			if df == Metric.cfd_funct or df == Distance_matrix_and_UPGMA.ccTop or df == Distance_matrix_and_UPGMA.MITScore:
 				founds = [seq[:-3] for seq in founds_sense if 'N' not in seq[:-3]] + [seq[:-3] for seq in founds_antisense if 'N' not in seq[:-3]]
 			# functions that take targets of length 23 (used for scoring scheme that needs the PAM, e.g gold_off)
-			elif df == Distance_matrix_and_UPGMA.gold_off_func or df == Distance_matrix_and_UPGMA.ucrispr or df == Distance_matrix_and_UPGMA.crisprnet:
+			elif df == Distance_matrix_and_UPGMA.gold_off_func or df == Distance_matrix_and_UPGMA.ucrispr or df == Distance_matrix_and_UPGMA.crisprnet or df == Distance_matrix_and_UPGMA.deephf:
 				founds = [seq for seq in founds_sense if 'N' not in seq] + [seq for seq in founds_antisense if 'N' not in seq]
 			list_of_targets += founds
 
@@ -106,5 +107,15 @@ def get_targets_sites_from_exons_lst(exons_lst, df, original_range_in_gene = [0,
 				list_of_targets += get_sites(exons_lst[i][range_in_gene[0] : min(lengths[i], range_in_gene[1])], df, min_length, max_length, start_with_G, where_in_gene, PAMs)
 		elif max(range_in_gene[0], lengths[i-1]) < min(lengths[i], range_in_gene[1]):
 			list_of_targets += get_sites(exons_lst[i][max(range_in_gene[0]  - lengths[i-1], 0) : min(lengths[i] - lengths[i-1], range_in_gene[1] - lengths[i-1])], df, min_length, max_length, start_with_G, where_in_gene, PAMs)
+
+	# for creating deephf ouput only (for development only)
+	if df == Distance_matrix_and_UPGMA.deephf:
+		on_scores = Distance_matrix_and_UPGMA.deephf(list_of_targets)
+		with open(f"{globals.RES_PATH}/CRISPys_output.csv", "w") as f:
+			for target, score in zip(list_of_targets, on_scores):
+				f.write(f"{target},{score}\n")
+		print("Write DeepHF scores and exit")
+		quit()
+
 	return list_of_targets
 
