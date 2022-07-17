@@ -1,120 +1,106 @@
+"""MAFFT and ProtDist functions"""
 __author__ = 'GH'
-##Unix vession
 
+# Unix version
+import subprocess
+from typing import List
 import os
 from Bio.Align.Applications import MafftCommandline
-from Bio import SeqIO # app to read fasta files (added by Udi)
-import time
-
-# get the absolute path of the script
+from Bio import SeqIO  # app to read fasta files (added by Udi)
+import globals
+# get the absolute output_path of the script
 PATH = os.path.dirname(os.path.realpath(__file__))
 
-####################################################################################################################################################################
-##the pipeline: make FASTA file, run mafft on it to get the output in a fasta file, convert this FASTA to PHYLIP, and run PHYLIP's tool for making distance matrix##
-####################################################################################################################################################################
 
-def make_fasta_file(names_lst, seq_lst, outfile):
-	''' should outfile have .fa ending ?'''
-	f = open(outfile, 'w')
-	for i in range(len(names_lst)):
-		f.write('>'+names_lst[i]+'\n')
-		f.write(seq_lst[i] + '\n')
-	f.close()
+########################################################################################################################
+# the pipeline: make FASTA file, run mafft on it to get the output in a fasta file, convert this FASTA to PHYLIP,
+# and run PHYLIP's tool for making distance matrix##
+########################################################################################################################
 
-def call_mafft_0(in_file, out_file):
-	#mafft_exe = "D:\Gal\MultiCrisper\mafft-7.245-win64\mafft-win\mafft.bat"
-	#in_file = "../Doc/examples/opuntia.fasta"
-	#mafft_cline = MafftCommandline(mafft_exe, input=in_file)
-	mafft_cline = MafftCommandline(input=in_file)	
-	print(mafft_cline)
-	stdout, stderr = mafft_cline()
-	with open(out_file, "w") as handle:
-		handle.write(stdout)
-	##from Bio import AlignIO  ##not in use for now
-	##	align = AlignIO.read("aligned.fasta", "fasta")  ##not in use for now
-	return out_file
+def make_fasta_file(names_lst: List, seq_lst: List, outfile: str):
+    """
+    this function creates a fasta format file from given gene names and their sequences. gene names are written to
+    individual lines starting with ">", and the gene sequence is written to the following line. e.g.:
+    ">GG0"
+    "TGTCGATGAACCCGGTGGCAATCCCCATAGACGAAGGACCTAGTGGCCACGA..."
+    ">GG2"
+    "TGGCCGACGACGACGAGATCGCTCT..."
 
-def call_mafft_distout(in_file, out_file):
-	#mafft_exe = "D:\Gal\MultiCrisper\mafft-7.245-win64\mafft-win\mafft.bat"
-	#in_file = "../Doc/examples/opuntia.fasta"
-	cycles = 0
-	while not os.path.isfile(in_file):  # wait for the in_file to be created added by Udi 03022022
-		if cycles < 11:
-			time.sleep(10)
-			cycles += 1
-			if cycles == 10:
-				print(f"wheited for 100 seconds for {in_file} and couldnt find it, check out function 'call_mafft_distout' in mafft_and_phylip.py")
-				break
-	command = "mafft --distout" + in_file + " > "+  out_file
-	os.system(command)
+    :param names_lst: list of gene names
+    :param seq_lst: list of gene sequences
+    :param outfile: the fasta format file to which the results are stored
+    """
+    f = open(outfile, 'w')
+    for i in range(len(names_lst)):
+        f.write('>' + names_lst[i] + '\n')
+        f.write(seq_lst[i] + '\n')
+    f.close()
 
 
-def FASTA_to_PHYLIP_old(in_file, out_file):
-	os.system("perl Fasta2Phylip.pl "+ in_file + " " + out_file)
-	return out_file
+def call_mafft(in_file: str, out_file: str):
+    """
+    calls the MAFFT algorithm to align the input DNA sequences of 'in_file' - a fasta format file. the aligned sequences
+    are then stored in a fasta format file 'out_file' and the output path of the file is returned.
 
-# def FASTA_to_PHYLIP(in_f, out_f):
-# os.system('perl ' + PATH +  '/convertMsaFormat.pl '+in_f + ' ' +out_f+' fasta phylip')
-
-def FASTA_to_PHYLIP(in_f, out_f):
-	'''
-	A new function to change format of the alignments from fasta to phylip using biopython
-	This function replace the old one that used a perl script (above)
-	written by Udi 25/01/22
-	'''
-	aligned_genes = list(SeqIO.parse(in_f, "fasta"))
-	SeqIO.write(aligned_genes, out_f, "phylip")
-
-def call_protdist_using_q(phylip_file, protdist_file, outpath):
-	#print("protdist file = ",protdist_file)
-	#make sh file:
-	ssh_path = outpath +'/qsub.sh'
-	ssh_file = open(ssh_path ,'w')
-	ssh_file.write('#!/bin/tcsh\n#$ -N MultiCRISPR_1452010925\n#$ -S /bin/tcsh\n#$ -cwd\n#$ -l bioseq\n#$ -e /bioseq/data/results/multicrispr/1452010925/$JOB_NAME.$JOB_ID.ER\n#$ -o /bioseq/data/results/multicrispr/1452010925/$JOB_NAME.$JOB_ID.OU\ncd /bioseq/data/results/multicrispr/1452010925\necho "/bioseq/data/results/multicrispr/1452010925/phylip_file.ph\nF\n/bioseq/data/results/multicrispr/1452010925/protdist_file.ph\nY" | protdist')
-	#submit to q:
-	os.system('ssh bioseq@lecs2 qsub '+ ssh_path) #/bioseq/data/results/multicrispr/1452010925/qsub.sh')
-	#os.system('echo "' + phylip_file+ '\nF\n'+ protdist_file+'\nY" | protdist')  #for my file
-	while not (os.path.isfile(protdist_file)):
-		time.sleep(1)
+    :param in_file: fasta format file of sequences to be aligned
+    :param out_file: fasta format file of aligned sequences
+    :return: the output path of the out_file
+    :rtype: str
+    """
+    # when running the algorithm on Unix operating systems
+    if globals.mafft_path is None:
+        mafft_cline = MafftCommandline(input=in_file)
+    # when running the algorithm from Microsoft Windows using POSIX:
+    else:
+        mafft_cline = MafftCommandline(globals.mafft_path, input=in_file)
+    stdout, stderr = mafft_cline()
+    with open(out_file, "w") as handle:
+        handle.write(stdout)
+    return out_file
 
 
-	print("is the file exist?", os.path.isfile(protdist_file))
+def fasta_to_phylip(in_f: str, out_f: str):
+    """
+	this function changes the format of the alignments from fasta to phylip using biopython. written by Udi 25/01/22
 
-def call_protdist(phylip_file, protdist_file):
-	print("protdist file = ",protdist_file)
-	os.system('tcsh -c echo "' + phylip_file+ '\nF\n'+ protdist_file+'\nY" | protdist')  #for my file
-	print("is the file exist?", os.path.isfile(protdist_file))
-	#print('echo ' + phylip_file+ '\\nF\\nCALM_HUMAN_ProtDist\\nY" | protdist')
-	#os.system('echo '+ "/groups/pupko/haim/CALM_HUMAN.GoodProteins.Q05_S05_ID_35_ProtPerOrg1.Top25.phylip\nF\nCALM_HUMAN_ProtDist\nY | protdist")  #haim's file
-
-def call_protdist1(phylip_file):
-	os.system("protdist "+phylip_file)
-
-def call_phylip_UPGMA(protdist_file):
-	'''to change the last command line argiment to be input'''
-	os.system('echo "CALM_HUMAN_ProtDist\nF\nCALM_HUMAN_ProtDist.UPGMA\nN\nY" | neighbor ; mv outtree CALM_HUMAN_ProtDist.UPGMA.tree')
-
-def delete_temps(*paths):
-	for path in paths:
-		os.remove(path)
+	:param in_f: a fasta format file of aligned sequences
+	:param out_f: a phylip format file of aligned sequences
+	"""
+    aligned_genes = list(SeqIO.parse(in_f, "fasta"))
+    SeqIO.write(aligned_genes, out_f, "phylip")
 
 
-def runIt(names_lst, seq_lst, protdist_outfile, out_path):
-	#fasta_outfile, aligned_file, phylip_file = out_path+"/fasta_outfile.fa", out_path+"/aligned_mattf.fa",  out_path+"/phylip_file.ph"
-	fasta_outfile, aligned_file, phylip_file = out_path+"/fasta_outfile.fa", out_path+"/aligned_mattf.fa",  out_path+"/infile"
+def create_protdist(names_lst: List, seq_lst: List, out_path: str):
+    """
+    this function creates a protDist file for creating a distance matrix, using the MAFFT algorithm
+    and PHYLIP's protDist algorithm. Given lists of gene names and their sequences this function aligns the sequences
+    and returns a file with the distances between them according to the homology of the proteins the genes are encoding.
+    :param names_lst: a list of names of genes to align
+    :param seq_lst: a list of genes to align
+    :param out_path: the output_path where the files created using this function will be stored
+    """
+    genes_fasta_for_mafft = out_path + "/genes_fasta_for_mafft.fa"
+    mafft_output_aligned_fasta = out_path + "/mafft_output_aligned_fasta.fa"
+    phylip_file = out_path + "/infile"
+    make_fasta_file(names_lst, seq_lst, genes_fasta_for_mafft)
+    call_mafft(genes_fasta_for_mafft, mafft_output_aligned_fasta)
+    fasta_to_phylip(mafft_output_aligned_fasta, phylip_file)
+    call_protdist(out_path)
 
-	make_fasta_file(names_lst, seq_lst, fasta_outfile)
-	call_mafft_0(fasta_outfile, aligned_file)
-	#call_mafft_distout(fasta_outfile,fasta_dist)
-	FASTA_to_PHYLIP(aligned_file, phylip_file)
-	#call_protdist_using_q(phylip_file, protdist_outfile, out_path)
-	call_protdist1(phylip_file, protdist_outfile, out_path)
-	#call_protdist(phylip_file, protdist_outfile)
-	#call_phylip_UPGMA(protdist_file)
-	#delete_temps(fasta_outfile, aligned_file, phylip_file)
 
-def call_protdist1(phylip_file, protdist_outfile, outpath):
-	#os.system("protdist "+phylip_file)
-	os.chdir(outpath)
-	os.system('echo "Y\r\n" | protdist')  #for my file
+def call_protdist(outpath: str):
+    """
+    calls the protDist algorithm to create a distance matrix from a phylip format file. the input file for protdist
+    algorithm has to be a phylip format, in the 'outpath' and under the name 'infile' (these will be asserted in
+    'create_protdist' and 'fasta_to_phylip' functions). the output distance matrix will be stored in 'outpath' under the
+    name 'outfile'.
 
+    :param outpath: the path of the input and output file for protdist
+    """
+    os.chdir(outpath)
+    # when running the algorithm on Unix operating systems
+    if globals.protdist_path is None:
+        os.system('echo "Y\r\n" | protdist')
+    # when running the algorithm from Microsoft Windows using POSIX:
+    else:
+        subprocess.run([globals.protdist_path], input=b"Y")

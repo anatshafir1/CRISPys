@@ -1,10 +1,11 @@
 name: crispys
 channels:
-  - conda-forge
   - bioconda
+  - conda-forge
   - biobuilds
 dependencies:
-  - Biopython=1.71
+
+  - Biopython=1.72
   - python=3.7
   - phylip=3.697
   - regex=2021.11.10

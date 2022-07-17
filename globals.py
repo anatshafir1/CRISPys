@@ -1,11 +1,12 @@
-import os
 """
 this script is for storing global variables
 """
-# get th epath of the scripts directory
+
+# get the path of the scripts directory
 CODE_PATH = os.path.dirname( os.path.realpath( __file__ ) )
 
-# This variable will determine the maximum number of genes that will be considered for finding
+
+# this variable will determine the maximum number of genes that will be considered for finding
 # it's used in Stage1_h.py with function:
 N_genes_in_node = 10
 
@@ -27,8 +28,14 @@ xgb_model_name = "regression_union_log_max.xgb"
 # in case you need to activate conda when using remote debug
 CONDA = "source /groups/itay_mayrose/udiland/miniconda3/etc/profile.d/conda.sh; conda activate crispys"
 
-#command that is used to connect to server and run crista
-ssh_conect = 'ssh bioseq@powerlogin "module load python/python-anaconda3.6.5 && '
+# command that is used to connect to server and run crista
+ssh_connect = 'ssh bioseq@powerlogin "module load python/python-anaconda3.6.5 && '
+
+
+# mafft_path = "/home/josefbrook/miniconda3/envs/crispys/bin/mafft"
+# protdist_path = "/home/josefbrook/miniconda3/envs/crispys/bin/protdist"
+mafft_path = None
+protdist_path = None
 
 def set_crisprnet_model(model):
     """

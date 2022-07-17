@@ -1,4 +1,4 @@
-import subgroup_res
+import SubgroupRes
 
 
 def remove_repetitions_in_targets_sites(candidates_lst, alg, use_thr, Omega):
@@ -32,7 +32,7 @@ def remove_repetitions_in_targets_sites(candidates_lst, alg, use_thr, Omega):
 			cover_prob_i, num_of_covered_i, genes_list = cover_above_thr(candidate_i, Omega)
 		##first, check if j has all of i targets
 			for key, value in candidate_i.targets_dict.items():
-				if candidate_i.genes_score_dict.get(key,0) >= Omega and candidate_j.genes_score_dict.get(key,0) < Omega:# Omega:
+				if candidate_i.genes_score_dict.get(key,0) >= Omega and candidate_j.genes_score_dict.get(key,0) < Omega:# omega:
 					return False #for testing. shuold be False
 
 			cover_prob_j, num_of_covered_j, _ = cover_above_thr(candidate_j, Omega)
@@ -71,9 +71,9 @@ def remove_repetitions_in_targets_sites(candidates_lst, alg, use_thr, Omega):
 	if alg == 'E':
 		res = list()
 		for i in range(len(candidates_lst)):
-			subgroup_candidates_lst = remove_rep_subgroup(candidates_lst[i].candidate_lst,use_thr, Omega)
+			subgroup_candidates_lst = remove_rep_subgroup(candidates_lst[i].candidate_list, use_thr, Omega)
 			subgroup_candidates_lst[0].off_targets = True
-			res.append(subgroup_res.Subgroup_res(candidates_lst[i].genes_lst, subgroup_candidates_lst, candidates_lst[i].name))
+			res.append(subgroup_res.SubgroupRes(candidates_lst[i].genes_lst, subgroup_candidates_lst, candidates_lst[i].name))
 		return res
 	else:
 		res = remove_rep_subgroup(candidates_lst, use_thr, Omega)
