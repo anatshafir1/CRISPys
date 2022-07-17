@@ -11,6 +11,15 @@ import Metric
 import argparse
 import os
 import make_tree_display_CSV
+import globals
+from tensorflow.keras.models import model_from_json
+# set tensorflow to use 1 core
+from tensorflow.config import threading
+threading.set_inter_op_parallelism_threads(1)
+import warnings
+warnings.filterwarnings('ignore')
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 
 # get the output_path of this script file
@@ -75,6 +84,22 @@ def choose_scoring_function(input_scoring_function: str):
         return Distance_matrix_and_UPGMA.ccTop
     elif input_scoring_function == "cfd_funct":
         return Metric.cfd_funct
+    elif input_scoring_function == "DeepHF" or input_scoring_function == "deephf":
+        return Distance_matrix_and_UPGMA.deephf
+    elif input_scoring_function == "ucrispr" or input_scoring_functions == "uCRISPR":
+        return Distance_matrix_and_UPGMA.ucrispr
+    elif input_scoring_function == "crispr_net" or input_scoring_function == "CRISPR_Net" or input_scoring_functions == "crisprnet":
+        # load the model and make it available globaly
+        json_file = open(f"{globals.CODE_PATH}/CRISPR_Net/scoring_models/CRISPR_Net_structure.json", 'r' )
+        loaded_model_json = json_file.read()
+        json_file.close()
+        crisprnet_loaded_model = model_from_json(loaded_model_json)
+        crisprnet_loaded_model.load_weights(f"{globals.CODE_PATH}/CRISPR_Net/scoring_models/CRISPR_Net_CIRCLE_elevation_SITE_weights.h5" )
+        globals.set_crisprnet_model(crisprnet_loaded_model)
+        print("Loaded model from disk!")
+        return = Distance_matrix_and_UPGMA.crisprnet
+    else:
+        print("Did not specify valid scoring function")
 
 
 def fill_genes_exons_dict(fasta_file: str) -> Dict:

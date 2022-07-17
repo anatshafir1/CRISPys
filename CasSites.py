@@ -4,6 +4,7 @@ __author__ = 'ItayM5'
 from typing import List, Dict
 import regex
 import Distance_matrix_and_UPGMA
+import globals
 
 
 def fill_genes_targets_dict(genes_exons_dict: Dict, scoring_function, where_in_gene: float, min_length: int,
@@ -143,7 +144,6 @@ def get_sites(exon: str, scoring_function, min_length: int = 20, max_length: int
 def give_complementary(seq: str) -> str:
     """Given a DNA sequence (5' to 3') this function returns its antisense sequence (also 5' to 3'). This is used to
     find possible cut sites for CRISPR in the antisense strand of a given DNA sequence.
-
     :param seq: input DNA sequence
     :return: antisense sequence for the input
     """
