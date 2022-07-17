@@ -97,7 +97,7 @@ def choose_scoring_function(input_scoring_function: str):
         crisprnet_loaded_model.load_weights(f"{globals.CODE_PATH}/CRISPR_Net/scoring_models/CRISPR_Net_CIRCLE_elevation_SITE_weights.h5" )
         globals.set_crisprnet_model(crisprnet_loaded_model)
         print("Loaded model from disk!")
-        return = Distance_matrix_and_UPGMA.crisprnet
+        return Distance_matrix_and_UPGMA.crisprnet
     else:
         print("Did not specify valid scoring function")
 
