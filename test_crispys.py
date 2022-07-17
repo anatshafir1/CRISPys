@@ -383,24 +383,24 @@ def parse_arguments(parser):
     return args
 
 
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser()
-#     args = parse_arguments( parser )
-#     main(code_folder=args.code_folder,
-#           ref_folder=args.ref_folder,
-#           res_folder_new=args.res_folder_new,
-#           mode=args.mode,
-#           queue=args.queue)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    args = parse_arguments( parser )
+    main(code_folder=args.code_folder,
+          ref_folder=args.ref_folder,
+          res_folder_new=args.res_folder_new,
+          mode=args.mode,
+          queue=args.queue)
 #
 # main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
 #      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
 #      mode="run_and_compare")
 
-main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
-     ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
-     res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
-     mode="run_and_compare", queue="itaym")
+# main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
+#      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
+#      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
+#      mode="run_and_compare", queue="itaym")
 
 #run crispys code to create reference folders
 # main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
