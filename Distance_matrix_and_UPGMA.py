@@ -80,6 +80,75 @@ def ccTop(sgseq: str, target_seq: str) -> float:
     return curScore / max_score  # a value between 0 and 1
 
 
+def ucrispr(sg_seq_list: List) -> List:
+    """
+    This function will run the uCRISPR algorithm for a list of targets and will return a list of the on-target scores
+    IMPORTANT: before running you need to give the path to data tables that are part of uCRISPR
+    enter this to the .sh file
+    'export DATAPATH=<path to folder>/uCRISPR/RNAstructure/data_tables/'
+    Also make sure the uCRISPR file inside the uCRISPR folder has exe permission
+    Args:
+        sg_seq_list: list of sgrnas (with PAM)
+
+    Returns:
+        a list of ucrispr on-target scores
+    """
+    # make a file with guides for inputs to ucrispr
+    with open(f"{globals.CODE_PATH}/targets.txt", "w") as f:
+        for sg in sg_seq_list:
+            f.write(f"{sg}\n")
+
+    # run ucrispr in terminal
+    p = subprocess.run([f"{globals.CODE_PATH}/uCRISPR/uCRISPR", "-on", f"{globals.CODE_PATH}/targets.txt"],
+                       stdout=subprocess.PIPE)
+
+    # pares the results
+    res_lst = p.stdout.decode('utf-8').split("\n")
+    # delete input file
+    subprocess.run(["rm", f"{globals.CODE_PATH}/targets.txt"])
+    # return a list of the results
+    return [float(i.split(" ")[1]) for i in res_lst[1:len(res_lst) - 1]]
+
+
+def crisprnet(candidate_lst: List, target_lst: List) -> List:
+    """
+    This function take list of sgrnas (candidate) and lisr of targets and returns a list of  1 - crispr_net score
+    Args:
+        candidate_lst: list of candidates
+        target_lst: list of targets
+
+    Returns:
+        list of crispr_net scores
+    """
+    input_codes = []
+    for seqs in zip(candidate_lst, target_lst):
+        on_seq = seqs[0]
+        off_seq = seqs[1]
+        en = Encoder_sgRNA_off.Encoder(on_seq=on_seq, off_seq=off_seq)
+        input_codes.append(en.on_off_code)
+    input_codes = np.array(input_codes)
+    input_codes = input_codes.reshape((len(input_codes), 1, 24, 7))
+    y_pred = globals.crisprnet_loaded_model.predict(input_codes).flatten()
+    return [1 - float(y) for y in y_pred]
+
+
+def deephf(target_lst: List) -> List:
+    """
+    This function use the model of deephf that was improved by Yaron Orenstein`s lab
+    Args:
+        target_lst: list of targets with PAM
+
+    Returns:
+        list of on-target scores
+    """
+    # take 21 nt from targets
+    targets = [target[0:21] for target in target_lst]
+    # get deephf scores
+    scores = prediction_util.get_predictions(os.path.join(
+        f"{globals.CODE_PATH}", "DeepHF", "models", "model1", "no_bio", "multi_task", "parallel/"), targets)
+    return list(scores)
+
+
 def make_upgma(distance_matrix: TreeConstruction._DistanceMatrix) -> BaseTree:
     """use by the doc in http://biopython.org/DIST/docs/api/Bio.Phylo.TreeConstruction.DistanceTreeConstructor-class.html"""
     constructor = TreeConstruction_changed.DistanceTreeConstructor()
@@ -107,13 +176,13 @@ def make_distance_matrix(names: List, vectors_list: List) -> TreeConstruction._D
     return distance_matrix
 
 
-def make_distance_matrix_from_protdist(output_path: str, new_names_list: List) -> TreeConstruction._DistanceMatrix:
+def make_distance_matrix_from_protdist(output_path: str, names_list: List) -> TreeConstruction._DistanceMatrix:
     """
     this function creates a list of list representing a lower triangular distance matrix using distances created
     by PHYLIP's protDist method. this function is used to make a distance matrix object and to build a UPGMA tree.
 
     :param output_path: output_path of file with
-    :param new_names_list:
+    :param names_list:
     :return: lower triangular distance matrix
     """
     protdist_outfile = output_path + "/outfile"
@@ -129,7 +198,7 @@ def make_distance_matrix_from_protdist(output_path: str, new_names_list: List) -
         if to_append:
             matrix.append(to_append)
         i += 1
-    distance_matrix = TreeConstruction._DistanceMatrix(new_names_list, matrix)
+    distance_matrix = TreeConstruction._DistanceMatrix(names_list, matrix)
     return distance_matrix
 
 
@@ -174,71 +243,3 @@ def return_targets_upgma(targets_seqs_list: List, names_list: List, scoring_func
     # apply UPGMA, return a target tree
     targets_tree = make_upgma(distance_matrix)
     return targets_tree
-
-
-def ucrispr(sg_seq_list: list) -> list:
-	"""
-	This function will run the uCRISPR algorithm for a list of targets and will return a list of the on-target scores
-	IMPORTANT: before running you need to give the path to data tables that are part of uCRISPR
-	enter this to the .sh file
-	'export DATAPATH=<path to folder>/uCRISPR/RNAstructure/data_tables/'
-	Also make sure the uCRISPR file inside the uCRISPR folder has exe permission
-	Args:
-		sg_seq_list: list of sgrnas (with PAM)
-
-	Returns:
-		a list of ucrispr on-target scores
-	"""
-	# make a file with guides for inputs to ucrispr
-	with open(f"{globals.CODE_PATH}/targets.txt", "w" ) as f:
-		for sg in sg_seq_list:
-			f.write(f"{sg}\n")
-
-	# run ucrispr in terminal
-	p = subprocess.run( [f"{globals.CODE_PATH}/uCRISPR/uCRISPR", "-on", f"{globals.CODE_PATH}/targets.txt"], stdout=subprocess.PIPE )
-
-	# pares the results
-	res_lst = p.stdout.decode('utf-8').split("\n")
-	# delete input file
-	subprocess.run( ["rm", f"{globals.CODE_PATH}/targets.txt"] )
-	# return a list of the results
-	return [float(i.split(" ")[1]) for i in res_lst[1:len(res_lst)-1]]
-
-
-def crisprnet(candidate_lst: list, target_lst: list) -> list:
-	"""
-	This function take list of sgrnas (candidate) and lisr of targets and returns a list of  1 - crispr_net score
-	Args:
-		candidate_lst: list of candidates
-		target_lst: list of targets
-
-	Returns:
-		list of crispr_net scores
-	"""
-	input_codes = []
-	for seqs in zip(candidate_lst, target_lst):
-		on_seq = seqs[0]
-		off_seq = seqs[1]
-		en = Encoder_sgRNA_off.Encoder(on_seq=on_seq, off_seq=off_seq)
-		input_codes.append(en.on_off_code)
-	input_codes = np.array(input_codes)
-	input_codes = input_codes.reshape((len(input_codes), 1, 24, 7))
-	y_pred = globals.crisprnet_loaded_model.predict(input_codes).flatten()
-	return [1 - float(y) for y in y_pred]
-
-def deephf(target_lst : list) -> list:
-	"""
-	This function use the model of deephf that was improved by Yaron Orenstein`s lab
-	Args:
-		target_lst: list of targets with PAM
-
-	Returns:
-		list of on-target scores
-	"""
-	# take 21 nt from targets
-	targets = [target[0:21] for target in target_lst]
-	# get deephf scores
-	scores = prediction_util.get_predictions(os.path.join(
-		f"{globals.CODE_PATH}", "DeepHF", "models", "model1", "no_bio", "multi_task", "parallel/"), targets)
-	return list(scores)
-  

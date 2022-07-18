@@ -6,7 +6,6 @@ import regex
 import Distance_matrix_and_UPGMA
 import globals
 
-
 def fill_genes_targets_dict(genes_exons_dict: Dict, scoring_function, where_in_gene: float, min_length: int,
                             max_length: int, start_with_g: bool, pams: int) -> Dict:
     """
@@ -92,6 +91,14 @@ def get_targets_sites_from_exons_lst(exons_lst: List, scoring_function, where_in
                 start_with_g,
                 pams
             )
+    if scoring_function == Distance_matrix_and_UPGMA.deephf:
+        on_scores = Distance_matrix_and_UPGMA.deephf(list_of_targets)
+        with open(f"{globals.RES_PATH}/CRISPys_output.csv", "w") as f:
+            for target, score in zip(list_of_targets, on_scores):
+                f.write(f"{target},{score}\n")
+        print("Write DeepHF scores and exit")
+        quit()
+
     return list_of_targets
 
 
@@ -130,7 +137,8 @@ def get_sites(exon: str, scoring_function, min_length: int = 20, max_length: int
             found_sense_targets = regex.findall(compiled, exon, overlapped=True)
             found_antisense_targets = regex.findall(compiled, give_complementary(exon), overlapped=True)
             # functions that take targets of length 23 (used for scoring scheme that needs the PAM, e.g. gold_off)
-            if scoring_function == Distance_matrix_and_UPGMA.gold_off_func:
+            if scoring_function == Distance_matrix_and_UPGMA.gold_off_func or scoring_function == Distance_matrix_and_UPGMA.ucrispr or\
+                    scoring_function == Distance_matrix_and_UPGMA.crisprnet or scoring_function == Distance_matrix_and_UPGMA.deephf:
                 found_targets = [seq for seq in found_sense_targets if 'N' not in seq]
                 found_targets += [seq for seq in found_antisense_targets if 'N' not in seq]
             # functions that take targets of length 20

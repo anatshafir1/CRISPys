@@ -4,8 +4,9 @@ this script is for storing global variables
 import os
 
 # get the path of the scripts directory
-CODE_PATH = os.path.dirname( os.path.realpath( __file__ ) )
+import os
 
+CODE_PATH = os.path.dirname(os.path.realpath(__file__))
 
 # this variable will determine the maximum number of genes that will be considered for finding
 # it's used in Stage1_h.py with function:
@@ -32,11 +33,11 @@ CONDA = "source /groups/itay_mayrose/udiland/miniconda3/etc/profile.d/conda.sh; 
 # command that is used to connect to server and run crista
 ssh_connect = 'ssh bioseq@powerlogin "module load python/python-anaconda3.6.5 && '
 
-
 # mafft_path = "/home/josefbrook/miniconda3/envs/crispys/bin/mafft"
 # protdist_path = "/home/josefbrook/miniconda3/envs/crispys/bin/protdist"
 mafft_path = None
 protdist_path = None
+
 
 def set_crisprnet_model(model):
     """
@@ -48,6 +49,7 @@ def set_crisprnet_model(model):
     """
     global crisprnet_loaded_model
     crisprnet_loaded_model = model
+
 
 def set_res_path(path: str) -> str:
     """
