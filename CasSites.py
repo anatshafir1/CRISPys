@@ -4,7 +4,6 @@ __author__ = 'ItayM5'
 from typing import List, Dict
 import regex
 import Distance_matrix_and_UPGMA
-import globals
 
 
 def fill_genes_targets_dict(genes_exons_dict: Dict, scoring_function, where_in_gene: float, min_length: int,
@@ -130,7 +129,7 @@ def get_sites(exon: str, scoring_function, min_length: int = 20, max_length: int
             found_sense_targets = regex.findall(compiled, exon, overlapped=True)
             found_antisense_targets = regex.findall(compiled, give_complementary(exon), overlapped=True)
             # functions that take targets of length 23 (used for scoring scheme that needs the PAM, e.g. gold_off)
-            if scoring_function == Distance_matrix_and_UPGMA.gold_off_func:
+            if scoring_function == Distance_matrix_and_UPGMA.gold_off_func or scoring_function == Distance_matrix_and_UPGMA.ucrispr or scoring_function == Distance_matrix_and_UPGMA.crisprnet:
                 found_targets = [seq for seq in found_sense_targets if 'N' not in seq]
                 found_targets += [seq for seq in found_antisense_targets if 'N' not in seq]
             # functions that take targets of length 20

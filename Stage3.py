@@ -9,7 +9,7 @@ import Metric
 from TreeConstruction_changed import CladeNew
 
 
-def generate_scores(genes_targets_dict, list_of_candidates, scoring_function, cfd_dict=None):  # Omer caldararu 24/3
+def generate_scores(genes_targets_dict, list_of_candidates, scoring_function, cfd_dict=None) -> Dict:  # Omer caldararu 24/3
     """
 	generates a data structure that contains the candidates and their off-target scores.
 	(in the case of gold off, or any other function that can accept several sgRNA's in a single call)
@@ -22,9 +22,9 @@ def generate_scores(genes_targets_dict, list_of_candidates, scoring_function, cf
 	Returns: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]}
 	"""
     scores_dict = {}
-    if scoring_function == Distance_matrix_and_UPGMA.gold_off_func:
+    if scoring_function == Distance_matrix_and_UPGMA.gold_off_func or scoring_function == Distance_matrix_and_UPGMA.crisprnet:
         return generate_scores_one_batch(genes_targets_dict, list_of_candidates, scoring_function, scores_dict)
-    for gene in genes_targets_dict.keys():
+    for gene in genes_targets_dict:
         scores_dict[gene] = []
         for target in genes_targets_dict[gene]:
             candidates_target_scores = []
