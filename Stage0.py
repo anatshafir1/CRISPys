@@ -191,6 +191,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     :return:
     """
     start = timeit.default_timer()
+    globals.set_res_path(output_path)
     # choosing the scoring function:
     scoring_function_targets = choose_scoring_function(scoring_function)
     genes_exons_dict = fill_genes_exons_dict(fasta_file)  # gene name -> list of exons

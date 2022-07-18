@@ -5,6 +5,7 @@ from . import preprocess
 import scipy as sp
 import pickle
 
+
 def get_predictions(model_dir, sequences, decoded=False):
     if not decoded:
         sequences = prepare_arr(sequences)

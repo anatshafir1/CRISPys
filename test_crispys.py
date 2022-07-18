@@ -1,3 +1,4 @@
+
 import argparse
 import os
 import time
@@ -109,7 +110,7 @@ def run_crispys_test(code_folder, res_folder, queue):
 
     # scoring/CrisprMIT
     header = createHeaderJob(res_folder + "/scoring/CrisprMIT", "fun_MIT", queue)
-    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/CrisprMIT --alg gene_homology --use_thr 1 --omega 0.8 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function MITScore"
+    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/CrisprMIT --alg gene_homology --use_thr 1 --omega 0.8 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function CrisprMIT"
 
     with open(res_folder + "/scoring/CrisprMIT/Crispys.sh", "w") as f:
         f.write(header + "\n" + cmd)
@@ -117,7 +118,7 @@ def run_crispys_test(code_folder, res_folder, queue):
 
     # scoring/CCtop
     header = createHeaderJob(res_folder + "/scoring/CCtop", "fun_CCtop", queue)
-    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/CCtop --alg gene_homology --use_thr 1 --omega 0.8 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function ccTop"
+    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/scoring/CCtop --alg gene_homology --use_thr 1 --omega 0.8 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function CCTop"
 
     with open(res_folder + "/scoring/CCtop/Crispys.sh", "w") as f:
         f.write(header + "\n" + cmd)
