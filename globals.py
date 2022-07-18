@@ -1,6 +1,7 @@
 """
 this script is for storing global variables
 """
+import os
 
 # get the path of the scripts directory
 import os
