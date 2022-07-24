@@ -3,6 +3,7 @@ __author__ = 'Gal Hyams'
 
 from typing import Dict, List
 import CasSites
+from CrisprNetLoad import load_crispr_net
 import Stage1
 import Distance_matrix_and_UPGMA
 import timeit
@@ -12,17 +13,7 @@ import argparse
 import os
 import make_tree_display_CSV
 import globals
-import warnings
-from tensorflow.keras.models import model_from_json
-# set tensorflow to use 1 core
-from tensorflow.config import threading
 
-threading.set_inter_op_parallelism_threads(1)
-
-
-warnings.filterwarnings('ignore')
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 # get the output_path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))
@@ -42,28 +33,29 @@ def sort_expectation(candidates: List, is_gene_homology_alg: bool):
                                                reverse=True)
 
 
+def sort_subgroup(candidates: List, omega: float):
+    """
+    Accessory function for sorting candidates when sorting with threshold was chosen. For each candidate the function calculates
+    the number of genes that the candidate sgRNA cuts with probability higher than omega,
+    :param candidates:
+    :param omega:
+    """
+    for candidate in candidates:
+        num_of_genes_above_thr = 0
+        cleave_all = 1
+        for gene, score in candidate.genes_score_dict.items():
+            if score >= omega:
+                cleave_all *= score
+                num_of_genes_above_thr += 1
+        candidate.cleve_all_above_thr = cleave_all
+        candidate.num_of_genes_above_thr = num_of_genes_above_thr
+    candidates.sort(key=lambda item: (item.num_of_genes_above_thr, item.cleave_all_above_thr), reverse=True)
+
+
 def sort_threshold(candidates: List, omega: float, homology: bool):
     """
     Sort the candidates by number of genes with cut probability > omega and then by the probability to cleave all of
     these genes"""
-
-    def sort_subgroup(candidates: List, omega: float):
-        """
-
-        :param candidates:
-        :param omega:
-        """
-        for candidate in candidates:
-            num_of_genes_above_thr = 0
-            cleave_all = 1
-            for gene, score in candidate.genes_score_dict.items():
-                if score >= omega:
-                    cleave_all *= score
-                    num_of_genes_above_thr += 1
-            candidate.cleve_all_above_thr = cleave_all
-            candidate.num_of_genes_above_thr = num_of_genes_above_thr
-        candidates.sort(key=lambda item: (item.num_of_genes_above_thr, item.cleave_all_above_thr), reverse=True)
-
     if not homology:
         sort_subgroup(candidates, omega)
     else:
@@ -92,16 +84,7 @@ def choose_scoring_function(input_scoring_function: str):
     elif input_scoring_function == "ucrispr" or input_scoring_function == "uCRISPR":
         return Distance_matrix_and_UPGMA.ucrispr
     elif input_scoring_function == "crispr_net" or input_scoring_function == "CRISPR_Net" or input_scoring_function == "crisprnet":
-        # load the model and make it available globally
-        json_file = open(f"{globals.CODE_PATH}/CRISPR_Net/scoring_models/CRISPR_Net_structure.json", 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-        crisprnet_loaded_model = model_from_json(loaded_model_json)
-        crisprnet_loaded_model.load_weights(
-            f"{globals.CODE_PATH}/CRISPR_Net/scoring_models/CRISPR_Net_CIRCLE_elevation_SITE_weights.h5")
-        globals.set_crisprnet_model(crisprnet_loaded_model)
-        print("Loaded model from disk!")
-        return Distance_matrix_and_UPGMA.crisprnet
+        return load_crispr_net()
     else:
         print("Did not specify valid scoring function")
 
