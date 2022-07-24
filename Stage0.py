@@ -21,7 +21,8 @@ PATH = os.path.dirname(os.path.realpath(__file__))
 
 def sort_expectation(candidates: List, is_gene_homology_alg: bool):
     """
-    Given a list of candidates the function sorts them by
+    Given a list of candidates the function sorts them by their cut expectation - the sum of cutting probabilities for
+    all the genes the candidate cuts, and then by the number of mismatches between the candidate and its targets.
     :param candidates: the result of the algorithm run as a list of candidates
     :param is_gene_homology_alg: True if the algorithm run was with gene homology
     """
@@ -36,9 +37,10 @@ def sort_expectation(candidates: List, is_gene_homology_alg: bool):
 def sort_subgroup(candidates: List, omega: float):
     """
     Accessory function for sorting candidates when sorting with threshold was chosen. For each candidate the function calculates
-    the number of genes that the candidate sgRNA cuts with probability higher than omega,
-    :param candidates:
-    :param omega:
+    the number of genes that the candidate sgRNA cuts with probability higher than omega, and the product of the cleaving
+    probability across all the genes the candidate cleaves.
+    :param candidates: current sgRNA candidate as a Candidate object
+    :param omega: input omega threshold in the algorithm run
     """
     for candidate in candidates:
         num_of_genes_above_thr = 0
@@ -55,7 +57,11 @@ def sort_subgroup(candidates: List, omega: float):
 def sort_threshold(candidates: List, omega: float, homology: bool):
     """
     Sort the candidates by number of genes with cut probability > omega and then by the probability to cleave all of
-    these genes"""
+    these genes
+    :param candidates: current sgRNA candidate as a Candidate object or as a SubgroupRes object
+    :param omega: input omega threshold in the algorithm run
+    :param homology: True if the algorithm run was with gene homology
+    """
     if not homology:
         sort_subgroup(candidates, omega)
     else:
@@ -65,7 +71,7 @@ def sort_threshold(candidates: List, omega: float, homology: bool):
 
 def choose_scoring_function(input_scoring_function: str):
     """
-    this function translates the chosen input for the scoring function and returns its pointer in the algorithm files.
+    This function translates the chosen input for the scoring function and returns its pointer in the algorithm files.
 
     :param input_scoring_function: chosen scoring function by the user
     :return: scoring function pointer to use in the algorithm
@@ -171,7 +177,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param pams: the pams by which potential sgRNA target sites will be searched
-    :return:
+    :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
     """
     start = timeit.default_timer()
     globals.set_res_path(output_path)
