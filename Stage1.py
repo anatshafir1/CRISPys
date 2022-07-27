@@ -37,7 +37,8 @@ def default_alg(input_targets_genes_dict: Dict, omega: float, scoring_function,
     best_permutations = Stage2.stage_two_main(potential_targets_list, targets_names, input_targets_genes_dict, omega,
                                               scoring_function, max_target_polymorphic_sites, cfd_dict)
     best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)
-    return best_permutations
+    res = [SubgroupRes.SubgroupRes(get_genes_list(best_permutations), best_permutations, "total")]
+    return res
 
 
 ########################################################################################################################
