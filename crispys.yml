@@ -5,7 +5,7 @@ channels:
   - biobuilds
 dependencies:
 
-  - Biopython=1.72
+  - Biopython=1.79
   - python=3.7
   - phylip=3.697
   - regex=2021.11.10

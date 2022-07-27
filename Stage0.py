@@ -3,6 +3,7 @@ __author__ = 'Gal Hyams'
 
 from typing import Dict, List
 import CasSites
+from CrisprNetLoad import load_crispr_net
 import Stage1
 import Distance_matrix_and_UPGMA
 import timeit
@@ -12,17 +13,7 @@ import argparse
 import os
 import make_tree_display_CSV
 import globals
-import warnings
-from tensorflow.keras.models import model_from_json
-# set tensorflow to use 1 core
-from tensorflow.config import threading
 
-threading.set_inter_op_parallelism_threads(1)
-
-
-warnings.filterwarnings('ignore')
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 # get the output_path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))
@@ -30,7 +21,8 @@ PATH = os.path.dirname(os.path.realpath(__file__))
 
 def sort_expectation(candidates: List, is_gene_homology_alg: bool):
     """
-    Given a list of candidates the function sorts them by
+    Given a list of candidates the function sorts them by their cut expectation - the sum of cutting probabilities for
+    all the genes the candidate cuts, and then by the number of mismatches between the candidate and its targets.
     :param candidates: the result of the algorithm run as a list of candidates
     :param is_gene_homology_alg: True if the algorithm run was with gene homology
     """
@@ -42,28 +34,34 @@ def sort_expectation(candidates: List, is_gene_homology_alg: bool):
                                                reverse=True)
 
 
+def sort_subgroup(candidates: List, omega: float):
+    """
+    Accessory function for sorting candidates when sorting with threshold was chosen. For each candidate the function calculates
+    the number of genes that the candidate sgRNA cuts with probability higher than omega, and the product of the cleaving
+    probability across all the genes the candidate cleaves.
+    :param candidates: current sgRNA candidate as a Candidate object
+    :param omega: input omega threshold in the algorithm run
+    """
+    for candidate in candidates:
+        num_of_genes_above_thr = 0
+        cleave_all = 1
+        for gene, score in candidate.genes_score_dict.items():
+            if score >= omega:
+                cleave_all *= score
+                num_of_genes_above_thr += 1
+        candidate.cleve_all_above_thr = cleave_all
+        candidate.num_of_genes_above_thr = num_of_genes_above_thr
+    candidates.sort(key=lambda item: (item.num_of_genes_above_thr, item.cleave_all_above_thr), reverse=True)
+
+
 def sort_threshold(candidates: List, omega: float, homology: bool):
     """
     Sort the candidates by number of genes with cut probability > omega and then by the probability to cleave all of
-    these genes"""
-
-    def sort_subgroup(candidates: List, omega: float):
-        """
-
-        :param candidates:
-        :param omega:
-        """
-        for candidate in candidates:
-            num_of_genes_above_thr = 0
-            cleave_all = 1
-            for gene, score in candidate.genes_score_dict.items():
-                if score >= omega:
-                    cleave_all *= score
-                    num_of_genes_above_thr += 1
-            candidate.cleve_all_above_thr = cleave_all
-            candidate.num_of_genes_above_thr = num_of_genes_above_thr
-        candidates.sort(key=lambda item: (item.num_of_genes_above_thr, item.cleave_all_above_thr), reverse=True)
-
+    these genes
+    :param candidates: current sgRNA candidate as a Candidate object or as a SubgroupRes object
+    :param omega: input omega threshold in the algorithm run
+    :param homology: True if the algorithm run was with gene homology
+    """
     if not homology:
         sort_subgroup(candidates, omega)
     else:
@@ -73,7 +71,7 @@ def sort_threshold(candidates: List, omega: float, homology: bool):
 
 def choose_scoring_function(input_scoring_function: str):
     """
-    this function translates the chosen input for the scoring function and returns its pointer in the algorithm files.
+    This function translates the chosen input for the scoring function and returns its pointer in the algorithm files.
 
     :param input_scoring_function: chosen scoring function by the user
     :return: scoring function pointer to use in the algorithm
@@ -92,16 +90,7 @@ def choose_scoring_function(input_scoring_function: str):
     elif input_scoring_function == "ucrispr" or input_scoring_function == "uCRISPR":
         return Distance_matrix_and_UPGMA.ucrispr
     elif input_scoring_function == "crispr_net" or input_scoring_function == "CRISPR_Net" or input_scoring_function == "crisprnet":
-        # load the model and make it available globally
-        json_file = open(f"{globals.CODE_PATH}/CRISPR_Net/scoring_models/CRISPR_Net_structure.json", 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-        crisprnet_loaded_model = model_from_json(loaded_model_json)
-        crisprnet_loaded_model.load_weights(
-            f"{globals.CODE_PATH}/CRISPR_Net/scoring_models/CRISPR_Net_CIRCLE_elevation_SITE_weights.h5")
-        globals.set_crisprnet_model(crisprnet_loaded_model)
-        print("Loaded model from disk!")
-        return Distance_matrix_and_UPGMA.crisprnet
+        return load_crispr_net()
     else:
         print("Did not specify valid scoring function")
 
@@ -169,7 +158,7 @@ def inverse_genes_targets_dict(genes_targets_dict: Dict) -> Dict:
     return targets_genes_dict
 
 
-def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_in_gene: float = 1, use_thr: int = 0,
+def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_in_gene: float = 1, use_thr: int = 1,
                  omega: float = 1, scoring_function: str = "cfd_funct", min_length: int = 20, max_length: int = 20,
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
                  pams: int = 0) -> List:
@@ -188,7 +177,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param pams: the pams by which potential sgRNA target sites will be searched
-    :return:
+    :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
     """
     start = timeit.default_timer()
     globals.set_res_path(output_path)
@@ -245,7 +234,7 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--where_in_gene', type=float, default=1,
                             help='input a number between 0 to 1 in order to ignore targets sites downstream to the '
                                  'fractional part of the gene')
-    parser_obj.add_argument('--use_thr', '-t', type=int, default=0,
+    parser_obj.add_argument('--use_thr', '-t', type=int, default=1,
                             help='0 for using sgRNA to gain maximal gaining score among all of the input genes or 1 for'
                                  ' the maximal cleavage likelihood only among genes with score higher than the average.'
                                  ' Default: 0.')

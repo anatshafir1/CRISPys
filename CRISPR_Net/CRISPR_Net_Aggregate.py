@@ -109,7 +109,7 @@ file = args.input_file
 if not os.path.exists(args.input_file):
     print("File doesn't exist!")
     os.system("python CRISPR_Net.py -h")
-# elif(len(args) < 3):
+# elif(len(args_main) < 3):
 #     os.system("python CRISPR_Net.py -h")
 else:
     main(file)
