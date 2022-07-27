@@ -158,7 +158,7 @@ def inverse_genes_targets_dict(genes_targets_dict: Dict) -> Dict:
     return targets_genes_dict
 
 
-def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_in_gene: float = 1, use_thr: int = 0,
+def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_in_gene: float = 1, use_thr: int = 1,
                  omega: float = 1, scoring_function: str = "cfd_funct", min_length: int = 20, max_length: int = 20,
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
                  pams: int = 0) -> List:
@@ -234,7 +234,7 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--where_in_gene', type=float, default=1,
                             help='input a number between 0 to 1 in order to ignore targets sites downstream to the '
                                  'fractional part of the gene')
-    parser_obj.add_argument('--use_thr', '-t', type=int, default=0,
+    parser_obj.add_argument('--use_thr', '-t', type=int, default=1,
                             help='0 for using sgRNA to gain maximal gaining score among all of the input genes or 1 for'
                                  ' the maximal cleavage likelihood only among genes with score higher than the average.'
                                  ' Default: 0.')
