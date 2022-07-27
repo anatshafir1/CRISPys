@@ -58,7 +58,7 @@ def set_res_path(path: str) -> str:
         path: The path for crispys output
 
     Returns:
-        global vatiable that contain the results path
+        global variable that contain the results path
     """
     global RES_PATH
     RES_PATH = path

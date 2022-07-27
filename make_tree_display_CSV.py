@@ -3,7 +3,7 @@ import pickle
 import make_tree_display
 
 
-def sub_tree_display(path, candidates_lst, f, consider_homology, counter, genes_names, genes_lst):
+def sub_tree_display(candidates_lst, f, consider_homology, genes_names, genes_lst):
 
     header_row = "sgRNA index,sgRNA,Score,Genes,Genes score,Target site,#mms,Position\n"  # new
 
@@ -94,25 +94,20 @@ def tree_display(path, consider_homology=False, set_cover=False):
     :param set_cover:
     """
     if set_cover:
-        candidates_lst = pickle.load(open(path + "/greedy_cover.p", "rb"))
+        subgroups_lst = pickle.load(open(path + "/greedy_cover.p", "rb"))
     else:
-        candidates_lst = pickle.load(open(path + "/res_in_lst.p", "rb"))
+        subgroups_lst = pickle.load(open(path + "/res_in_lst.p", "rb"))
     genes_names = pickle.load(open(path + "/genes_names.p", "rb"))
     genes_list = pickle.load(open(path + '/genes_list.p', 'rb'))
 
     filepath = path + "/CRISPys_output.csv"
     f = open(filepath, 'w')
-    counter = 0
-    if not consider_homology:
-        sub_tree_display(path, candidates_lst, f, consider_homology, counter, genes_names, genes_list)
-    else:
-        f.write(
-            "The designed sgRNAs for the genes in your input are listed in the table below. Every section of the table corresponds to a homologous genes subgroup as specified by the internal nodes of the constructed genes tree.<br>The name of the subgroup and the list of genes are given in the header of each section.\n")
+    f.write(
+        "The designed sgRNAs for the genes in your input are listed in the table below. Every section of the table corresponds to a homologous genes subgroup as specified by the internal nodes of the constructed genes tree.<br>The name of the subgroup and the list of genes are given in the header of each section.\n")
 
-        for subgroup_item in candidates_lst:
-            # create the main table
-            counter += 1
-            sub_tree_display(path, subgroup_item.candidates_list, f, consider_homology, counter, genes_names, genes_list)
+    for subgroup_item in subgroups_lst:
+        # create the main table
+        sub_tree_display(subgroup_item.candidates_list, f, consider_homology, genes_names, genes_list)
     f.close()
 
 

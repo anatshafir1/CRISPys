@@ -19,19 +19,15 @@ import globals
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 
-def sort_expectation(candidates: List, is_gene_homology_alg: bool):
+def sort_expectation(subgroups: List):
     """
     Given a list of candidates the function sorts them by their cut expectation - the sum of cutting probabilities for
     all the genes the candidate cuts, and then by the number of mismatches between the candidate and its targets.
-    :param candidates: the result of the algorithm run as a list of candidates
-    :param is_gene_homology_alg: True if the algorithm run was with gene homology
+    :param subgroups: the result of the algorithm run as a list of candidates
     """
-    if not is_gene_homology_alg:
-        candidates.sort(key=lambda item: (item.cut_expectation, item.total_num_of_mismatches()), reverse=True)
-    else:
-        for i in range(len(candidates)):
-            candidates[i].candidates_list.sort(key=lambda item: (item.cut_expectation, item.total_num_of_mismatches()),
-                                               reverse=True)
+    for i in range(len(subgroups)):
+        subgroups[i].candidates_list.sort(key=lambda item: (item.cut_expectation, item.total_num_of_mismatches()),
+                                          reverse=True)
 
 
 def sort_subgroup(candidates: List, omega: float):
@@ -54,19 +50,15 @@ def sort_subgroup(candidates: List, omega: float):
     candidates.sort(key=lambda item: (item.num_of_genes_above_thr, item.cleave_all_above_thr), reverse=True)
 
 
-def sort_threshold(candidates: List, omega: float, homology: bool):
+def sort_threshold(subgroups: List, omega: float):
     """
     Sort the candidates by number of genes with cut probability > omega and then by the probability to cleave all of
     these genes
-    :param candidates: current sgRNA candidate as a Candidate object or as a SubgroupRes object
+    :param subgroups: current sgRNA candidate as a Candidate object or as a SubgroupRes object
     :param omega: input omega threshold in the algorithm run
-    :param homology: True if the algorithm run was with gene homology
     """
-    if not homology:
-        sort_subgroup(candidates, omega)
-    else:
-        for i in range(len(candidates)):
-            sort_subgroup(candidates[i].candidates_list, omega)
+    for i in range(len(subgroups)):
+        sort_subgroup(subgroups[i].candidates_list, omega)
 
 
 def choose_scoring_function(input_scoring_function: str):
@@ -192,17 +184,18 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     targets_genes_dict = inverse_genes_targets_dict(genes_targets_dict)  # target seq -> list of gene names
     genes_names_list = list(genes_targets_dict.keys())
     genes_list = get_genes_list(genes_exons_dict)  # a list of all the input genes in the algorithm
+    res = []
     if alg == 'gene_homology':
         res = Stage1.gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict, omega,
                                        output_path, scoring_function_targets, internal_node_candidates,
                                        max_target_polymorphic_sites)
-    else:  # alg == "default" (look in article for better name)
+    elif alg == 'default':  # alg == "default" (look in article for better name)
         res = Stage1.default_alg(targets_genes_dict, omega, scoring_function_targets, max_target_polymorphic_sites)
 
     if use_thr:
-        sort_threshold(res, omega, alg == 'gene_homology')
+        sort_threshold(res, omega)
     else:
-        sort_expectation(res, alg == 'gene_homology')
+        sort_expectation(res)
 
     pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
     pickle.dump(genes_names_list, open(output_path + "/genes_names.p", "wb"))
