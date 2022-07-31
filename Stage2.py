@@ -3,12 +3,12 @@ from typing import List, Dict
 import Distance_matrix_and_UPGMA
 import Stage1
 import Stage3
-import Candidate
+from Candidate import Candidate
 from TreeConstruction_changed import CladeNew
 
 
-def targets_tree_top_down(best_permutations: List, node: CladeNew, omega: float, targets_genes_dict: Dict,
-                          scoring_function, max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None):
+def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, omega: float, targets_genes_dict: Dict[str, List[str]],
+                          scoring_function, max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None, singletons: int = 0):
     """
     Given an initial input of genomic targets UPGMA tree root, the function traverses the tree in a top-town (depth first) order.
     For each node with creates a dictionary of genes -> targets (leaves under the node) found in them, if the number of
@@ -22,9 +22,12 @@ def targets_tree_top_down(best_permutations: List, node: CladeNew, omega: float,
     :param scoring_function: scoring function of the potential targets
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
+    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     """
+    if node.is_terminal() and singletons == 1:  # check if the node is a leaf - one target, to exclude singletons
+        return
     if len(node.polymorphic_sites) < max_target_polymorphic_sites:  # was hardcoded to be 12, change it to be the max_target_polymorphic_sites argument Udi 24/02/22
-        # make current_genes_sg_dict
+        # make current_genes_targets_dict
         current_genes_targets_dict = dict()
         for target in node.node_leaves:
             genes_leaf_from = targets_genes_dict[target]  # which gene is this target came from. usually it will be only 1 gene
@@ -34,21 +37,23 @@ def targets_tree_top_down(best_permutations: List, node: CladeNew, omega: float,
                         current_genes_targets_dict[gene_name] += [target]
                 else:
                     current_genes_targets_dict[gene_name] = [target]
+        if len(current_genes_targets_dict) == 1 and singletons == 1:  # check if the dictionary contains only one gene
+            return
         # get candidates for the current node
-        list_of_candidates = Stage3.return_candidates(current_genes_targets_dict, omega, scoring_function, node, cfd_dict)
+        list_of_candidates = Stage3.return_candidates(current_genes_targets_dict, omega, scoring_function, node, cfd_dict, singletons)
         # current best perm is a tuple with the perm and metadata of this perm.
         if list_of_candidates:
             best_permutations += list_of_candidates
         return
     else:
         targets_tree_top_down(best_permutations, node.clades[0], omega, targets_genes_dict, scoring_function, max_target_polymorphic_sites,
-                              cfd_dict)
+                              cfd_dict, singletons)
         targets_tree_top_down(best_permutations, node.clades[1], omega, targets_genes_dict, scoring_function, max_target_polymorphic_sites,
-                              cfd_dict)
+                              cfd_dict, singletons)
 
 
-def stage_two_main(targets_list: List, targets_names: List, targets_genes_dict: Dict, omega: float,
-                   scoring_function, max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None) -> List:
+def stage_two_main(targets_list: List[str], targets_names: List[str], targets_genes_dict: Dict[str, List[str]], omega: float,
+                   scoring_function, max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None, singletons: int = 0) -> List[Candidate]:
     """
     the main function of stage 2 of the algorithm. the function creates a UPGMA tree from the potential targets in
     'targets_list' and the given scoring function. Then finds the best sgRNA for the potential targets in the tree.
@@ -60,13 +65,14 @@ def stage_two_main(targets_list: List, targets_names: List, targets_genes_dict: 
     :param scoring_function: scoring function of the potential targets
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
+    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     :return: list of Candidate objects representing the best sgRNAs to cleave the targets in the UPGMA tree
     """
     best_permutations = []
     if len(targets_list) == 1:
         print("only one sgRNA in the group")
         genes = targets_genes_dict[targets_list[0]]
-        candidate = Candidate.Candidate(targets_list[0])
+        candidate = Candidate(targets_list[0])
         candidate.fill_default_fields(genes)
         best_permutations.append(candidate)
     else:
@@ -74,13 +80,14 @@ def stage_two_main(targets_list: List, targets_names: List, targets_genes_dict: 
         Stage1.fill_nodes_leaves_list(upgma_tree)
         fill_polymorphic_sites(upgma_tree.root)
         targets_tree_top_down(best_permutations, upgma_tree.root, omega, targets_genes_dict, scoring_function,
-                              max_target_polymorphic_sites, cfd_dict)
+                              max_target_polymorphic_sites, cfd_dict, singletons)
     return best_permutations
 
 
 def two_seqs_differences_set(seq1: str, seq2: str) -> set:
     """
     Returns a set of polymorphic sites between the given sequences
+
     :param seq1: first sequence
     :param seq2: second sequence
     :return: set of polymorphic sites
@@ -99,6 +106,7 @@ def two_seqs_differences_set(seq1: str, seq2: str) -> set:
 def fill_polymorphic_site_node(node: CladeNew):
     """
     Accessory function for 'fill_polymorphic_sites' function
+
     :param node: current node in the function recursion
     """
     # find differences between the representors
@@ -116,6 +124,7 @@ def fill_polymorphic_sites(node: CladeNew):
     """
     For each node in the given targets' tree find the polymorphic sites between the targets under the node (leaves of
     the node) and fill the node's 'polymorphic_sites' with the set of polymorphic sites.
+
     :param node: tree's root
     """
     if not node:

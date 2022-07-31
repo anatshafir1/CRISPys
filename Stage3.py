@@ -1,15 +1,16 @@
-
+"""Finding sgRNA candidates"""
 __author__ = 'GH'
 
 # the naive algorithm - for a given family, with its group of sgRNA, find the most promising sgRNAs
-from typing import List, Dict
-import Candidate
+from typing import List, Dict, Tuple
+from Candidate import Candidate
 import Distance_matrix_and_UPGMA
 import Metric
 from TreeConstruction_changed import CladeNew
 
 
-def generate_scores(genes_targets_dict, list_of_candidates, scoring_function, cfd_dict=None) -> Dict:  # Omer caldararu 24/3
+def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates: List[str], scoring_function,
+                    cfd_dict=None) -> Dict[str, List[Tuple[str, List[float]]]]:  # Omer caldararu 24/3
     """
 	generates a data structure that contains the candidates and their off-target scores.
 	(in the case of gold off, or any other function that can accept several sgRNA's in a single call)
@@ -37,7 +38,7 @@ def generate_scores(genes_targets_dict, list_of_candidates, scoring_function, cf
     return scores_dict
 
 
-def generate_scores_one_batch(genes_targets_dict: Dict, list_of_candidates: List, scoring_function, scores_dict: Dict) -> Dict:
+def generate_scores_one_batch(genes_targets_dict: Dict[str, List[str]], list_of_candidates: List[str], scoring_function, scores_dict: Dict) -> Dict:
     """
 	  generates a data structure that contains the candidates and their off-target scores,
 	  using a single call of the scoring function.
@@ -75,15 +76,16 @@ def generate_scores_one_batch(genes_targets_dict: Dict, list_of_candidates: List
     return scores_dict
 
 
-def return_candidates(genes_targets_dict: Dict, omega: float, scoring_function, node: CladeNew, cfd_dict: Dict = None) -> List:
+def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, scoring_function, node: CladeNew,
+                      cfd_dict: Dict = None, singletons: int = 0) -> List[Candidate]:
     """
 
     :param genes_targets_dict: a dictionary of gene -> list of potential targets found in the gene
     :param omega: Threshold of targeting propensity of a gene by a considered sgRNA (see article p. 4)
     :param scoring_function: scoring function of the potential targets
-    :param node:
+    :param node: current node in the targets UPGMA tree that the targets in genes_targets_dict belong to
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
-    :return:
+    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     """
     # stage one: make a list of all the sgRNAs
     list_of_targets = []
@@ -97,7 +99,7 @@ def return_candidates(genes_targets_dict: Dict, omega: float, scoring_function, 
     list_of_different_places.sort(key=lambda item: item[0])
     # going over all the permutations
     list_of_perms_seqs = all_perms(initial_seq, None, list_of_different_places)
-    list_of_candidates = []  # a list of tuples: (candidate_str,fraction_of_cut, cut_expectation, genes_list)
+    list_of_candidates = []  # a list of tuples: (candidate_str, fraction_of_cut, cut_expectation, genes_list)
     scores_dict = generate_scores(genes_targets_dict, list_of_perms_seqs, scoring_function, cfd_dict)
     for i in range(len(list_of_perms_seqs)):
         targets_dict = {}  # a list of tuples: (gene name, list of target of this gene that might be cut by the candidate_str)
@@ -111,7 +113,7 @@ def return_candidates(genes_targets_dict: Dict, omega: float, scoring_function, 
                     # there isn't attachment of the guide and target nad no cut event) don't consider the target
                     continue
                 candidate_cut_prob = 1 - candidates_target_scores[i]
-                sg_site_differences = two_seqs_differences(list_of_perms_seqs[i], target)  # the differences between the ith candidate and the target
+                sg_site_differences = two_seqs_differences(list_of_perms_seqs[i], target)  # the differences between the i-th candidate and the target
                 list_of_targets.append([target[:20], sg_site_differences])
                 prob_gene_will_not_cut = prob_gene_will_not_cut * (1 - candidate_cut_prob)  # lowering the not cut prob in each sgRNA
                 num_of_cuts_per_gene += candidate_cut_prob
@@ -119,20 +121,22 @@ def return_candidates(genes_targets_dict: Dict, omega: float, scoring_function, 
             if prob_gene_cut >= omega:
                 targets_dict[gene] = list_of_targets
                 genes_covering.append((gene, prob_gene_cut))
+        if len(genes_covering) < 2 and singletons == 1:  # check if the potential candidate covers less than two genes
+            continue
         cut_expectation = 0  # the probability the permutated sequence will cut all the genes, that the probability each
         # of them will be cut is greater then omega
         genes_score_dict = {}  # a dict of genes: genes considered cut by this sequence, and cut prob
         for gene_cut_prob in genes_covering:  # tuple : (gene name, probability to be cut)
             cut_expectation += gene_cut_prob[1]  # the prob to cut all the genes
             genes_score_dict[gene_cut_prob[0]] = gene_cut_prob[1]
-        if len(genes_covering) >= 1:  # If the candidate has at least one gene with a score above omega, add it to the result  omer 18/04
-            current_candidate = Candidate.Candidate(list_of_perms_seqs[i], cut_expectation, genes_score_dict, targets_dict)
+        if len(genes_covering) >= 1:  # If the candidate has at least one gene with a score above omega, add it to the result omer 18/04
+            current_candidate = Candidate(list_of_perms_seqs[i], cut_expectation, genes_score_dict, targets_dict)
             list_of_candidates.append(current_candidate)
     del list_of_perms_seqs
     return list_of_candidates
 
 
-def all_perms(initial_seq: str, list_of_seqs: List, list_of_differences: List) -> List:
+def all_perms(initial_seq: str, list_of_seqs: List[str], list_of_differences: List[Tuple[int, List[str]]]) -> List[str]:
     """Given an initial sequence and a list of possible polymorphisms and their indices in that sequence, this function
     creates a list of all the possible permutations of the initial sequence.
     list_of_seqs is initialized on the first call of the function. each recursive call adds to list_of_seqs the
@@ -167,7 +171,7 @@ def all_perms(initial_seq: str, list_of_seqs: List, list_of_differences: List) -
         return all_perms(initial_seq, new_list_of_seqs, list_of_differences[1:])
 
 
-def two_seqs_differences(seq1: str, seq2: str) -> Dict:
+def two_seqs_differences(seq1: str, seq2: str) -> Dict[int, List[str]]:
     """Given two sequences of genomic targets this function finds the differences between them returns the index of
     the difference (starting at 0) with the residing nucleotides of each sequence at that location. The differences are
     stored in a dictionary where keys are indices of the differences and the values are lists of length 2 where value[0]
@@ -187,7 +191,7 @@ def two_seqs_differences(seq1: str, seq2: str) -> Dict:
     return differences
 
 
-def find_polymorphic_sites(leaves: List) -> Dict:
+def find_polymorphic_sites(leaves: List) -> Dict[int, List[str]]:
     """Given a list of genomic targets sequences this function takes the first sequence (leaves_ds[0]) as a reference
     and finds the polymorphic sites between it and the rest of the sequences, and returns a dictionary representing
     these polymorphisms, where keys are indices of the polymorphisms (starting at 0) and values are lists of possible
