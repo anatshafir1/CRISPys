@@ -121,7 +121,7 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, sc
             if prob_gene_cut >= omega:
                 targets_dict[gene] = list_of_targets
                 genes_covering.append((gene, prob_gene_cut))
-        if len(genes_covering) < 2 and singletons == 1:  #
+        if len(genes_covering) < 2 and singletons == 1:  # check if the potential candidate covers less than two genes
             continue
         cut_expectation = 0  # the probability the permutated sequence will cut all the genes, that the probability each
         # of them will be cut is greater then omega

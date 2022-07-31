@@ -173,7 +173,7 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
             if target not in targets_list:  # creating a list of target sequences and a list of target names
                 targets_list.append(target)
                 targets_names.append(target)
-    if N_genes_in_node >= len(node.node_leaves) > singletons:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22
+    if N_genes_in_node >= len(node.node_leaves) > singletons:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22. check if the node is one gene
         best_permutations = Stage2.stage_two_main(targets_list, targets_names, current_targets_genes_dict, omega,
                                                   scoring_function, max_target_polymorphic_sites, cfd_dict, singletons)
         if not best_permutations:

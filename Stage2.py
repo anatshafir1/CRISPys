@@ -24,7 +24,7 @@ def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, om
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     """
-    if node.is_terminal() and singletons == 1:
+    if node.is_terminal() and singletons == 1:  # check if the node is a leaf - one target, to exclude singletons
         return
     if len(node.polymorphic_sites) < max_target_polymorphic_sites:  # was hardcoded to be 12, change it to be the max_target_polymorphic_sites argument Udi 24/02/22
         # make current_genes_targets_dict
@@ -37,7 +37,7 @@ def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, om
                         current_genes_targets_dict[gene_name] += [target]
                 else:
                     current_genes_targets_dict[gene_name] = [target]
-        if len(current_genes_targets_dict) == 1 and singletons == 1:  # if the dictionary contains only one gene
+        if len(current_genes_targets_dict) == 1 and singletons == 1:  # check if the dictionary contains only one gene
             return
         # get candidates for the current node
         list_of_candidates = Stage3.return_candidates(current_genes_targets_dict, omega, scoring_function, node, cfd_dict, singletons)
