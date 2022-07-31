@@ -16,6 +16,8 @@ import globals
 
 
 # get the output_path of this script file
+from SubgroupRes import SubgroupRes
+
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -156,7 +158,7 @@ def inverse_genes_targets_dict(genes_targets_dict: Dict) -> Dict:
 def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_in_gene: float = 1, use_thr: int = 1,
                  omega: float = 1, scoring_function: str = "cfd_funct", min_length: int = 20, max_length: int = 20,
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                 pams: int = 0) -> List:
+                 pams: int = 0, singletons: int = 0) -> List[SubgroupRes]:
     """
     Algorithm main function
 
@@ -173,6 +175,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param pams: the pams by which potential sgRNA target sites will be searched
+    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
     """
     start = timeit.default_timer()
@@ -192,9 +195,9 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     if alg == 'gene_homology':
         res = Stage1.gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict, omega,
                                        output_path, scoring_function_targets, internal_node_candidates,
-                                       max_target_polymorphic_sites)
+                                       max_target_polymorphic_sites, singletons)
     elif alg == 'default':  # alg == "default" (look in article for better name)
-        res = Stage1.default_alg(targets_genes_dict, omega, scoring_function_targets, max_target_polymorphic_sites)
+        res = Stage1.default_alg(targets_genes_dict, omega, scoring_function_targets, max_target_polymorphic_sites, singletons)
 
     if use_thr:
         sort_threshold(res, omega)
@@ -255,6 +258,9 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                             help='the maximal number of possible polymorphic sites in a target. Default: 12')
     parser_obj.add_argument('--pams', type=int, default=0,
                             help='0 to search NGG pam or 1 to search for NGG and NAG. Default: 0')
+    parser_obj.add_argument('--singletons', choices=[0, 1], type=int, default=0,
+                            help='0 to return results with singletons (sgRNAs that target only 1 gene) 1 to exclude'
+                                 ' singletons. Default: 0')
 
     arguments = parser_obj.parse_args()
     return arguments
@@ -275,4 +281,5 @@ if __name__ == "__main__":
                  start_with_g=args.start_with_g,
                  internal_node_candidates=args.internal_node_candidates,
                  max_target_polymorphic_sites=args.max_target_polymorphic_sites,
-                 pams=args.pams)
+                 pams=args.pams,
+                 singletons=args.singletons)

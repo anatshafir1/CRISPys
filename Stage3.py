@@ -1,4 +1,4 @@
-
+"""Finding sgRNA candidates"""
 __author__ = 'GH'
 
 # the naive algorithm - for a given family, with its group of sgRNA, find the most promising sgRNAs
@@ -9,7 +9,8 @@ import Metric
 from TreeConstruction_changed import CladeNew
 
 
-def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates: List[str], scoring_function, cfd_dict=None) -> Dict[str, List[Tuple[str, List[float]]]]:  # Omer caldararu 24/3
+def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates: List[str], scoring_function,
+                    cfd_dict=None) -> Dict[str, List[Tuple[str, List[float]]]]:  # Omer caldararu 24/3
     """
 	generates a data structure that contains the candidates and their off-target scores.
 	(in the case of gold off, or any other function that can accept several sgRNA's in a single call)
@@ -75,7 +76,8 @@ def generate_scores_one_batch(genes_targets_dict: Dict[str, List[str]], list_of_
     return scores_dict
 
 
-def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, scoring_function, node: CladeNew, cfd_dict: Dict = None) -> List[Candidate]:
+def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, scoring_function, node: CladeNew,
+                      cfd_dict: Dict = None, singletons: int = 0) -> List[Candidate]:
     """
 
     :param genes_targets_dict: a dictionary of gene -> list of potential targets found in the gene
@@ -83,6 +85,7 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, sc
     :param scoring_function: scoring function of the potential targets
     :param node: current node in the targets UPGMA tree that the targets in genes_targets_dict belong to
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
+    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     """
     # stage one: make a list of all the sgRNAs
     list_of_targets = []
@@ -118,7 +121,7 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, sc
             if prob_gene_cut >= omega:
                 targets_dict[gene] = list_of_targets
                 genes_covering.append((gene, prob_gene_cut))
-        if len(genes_covering) < 2:
+        if len(genes_covering) < 2 and singletons == 1:  #
             continue
         cut_expectation = 0  # the probability the permutated sequence will cut all the genes, that the probability each
         # of them will be cut is greater then omega

@@ -15,7 +15,7 @@ import copy
 
 
 def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, scoring_function,
-                max_target_polymorphic_sites: int = 12) -> List[SubgroupRes]:
+                max_target_polymorphic_sites: int = 12, singletons: int = 0) -> List[SubgroupRes]:
     """
     Called by the main function when choosing the default algorithm run. Given a dictionary of potential genomic targets
     this function returns a list of candidate sgRNAs (Candidate objects) that are the best suitable to target the input
@@ -26,6 +26,7 @@ def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, sc
     :param omega: threshold of targeting propensity of a gene by a considered sgRNA (see article p. 4)
     :param scoring_function: scoring function of the potential targets
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
+    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     :return: list of Candidate objects which are the best suitable to target the input genes
     """
     potential_targets_list = list(input_targets_genes_dict.keys())
@@ -35,7 +36,7 @@ def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, sc
         script_path = dirname(abspath(__file__))
         cfd_dict = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))
     best_permutations = Stage2.stage_two_main(potential_targets_list, targets_names, input_targets_genes_dict, omega,
-                                              scoring_function, max_target_polymorphic_sites, cfd_dict)
+                                              scoring_function, max_target_polymorphic_sites, cfd_dict, singletons)
     best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)
     res = [SubgroupRes(get_genes_list(best_permutations), best_permutations, "total")]
     return res
@@ -46,7 +47,7 @@ def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, sc
 
 def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: Dict, targets_genes_dict: Dict,
                       omega: float, output_path: str, scoring_function, internal_node_candidates: int,
-                      max_target_polymorphic_sites: int = 12) -> List[SubgroupRes]:
+                      max_target_polymorphic_sites: int = 12, singletons: int = 0) -> List[SubgroupRes]:
     """
     Called by the main function when choosing algorithm with gene homology taken in consideration. Creates a UPGMA tree
     from the input genes by their homology. Writes the tree to a newick format file and a preorder format file. Then
@@ -62,6 +63,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     :param scoring_function: scoring function of the potential targets
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
+    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     :return:
     """
     # make a tree and distance matrix of the genes
@@ -76,7 +78,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
         script_path = dirname(abspath(__file__))
         cfd_dict = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))
     genes_tree_top_down(list_of_subgroups, genes_upgma_tree.root, omega, genes_targets_dict, targets_genes_dict,
-                        scoring_function, internal_node_candidates, max_target_polymorphic_sites, cfd_dict)
+                        scoring_function, internal_node_candidates, max_target_polymorphic_sites, cfd_dict, singletons)
     return list_of_subgroups
 
 
@@ -138,7 +140,7 @@ def fill_nodes_leaves_list(tree: BaseTree):
 
 def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_dict: Dict[str, List[str]],
                         targets_genes_dict: Dict[str, List[str]], scoring_function, internal_node_candidates: int = 10,
-                        max_target_polymorphic_sites: int = 12, cfd_dict=None):
+                        max_target_polymorphic_sites: int = 12, cfd_dict=None, singletons: int = 0):
     """
     Given an initial input of genes UPGMA tree root the function traverses the tree in a top-town (depth first) order.
     For each node creates a dictionary of node's genes (leaves under the node) -> targets found in them, and then find
@@ -153,6 +155,7 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
+    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     """
     # making the genes_targets dict for this subtree and the targets_genes_dict to send to the intermediate algorithm
     current_targets_genes_dict = dict()
@@ -170,9 +173,9 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
             if target not in targets_list:  # creating a list of target sequences and a list of target names
                 targets_list.append(target)
                 targets_names.append(target)
-    if N_genes_in_node >= len(node.node_leaves) > 1:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22
+    if N_genes_in_node >= len(node.node_leaves) > singletons:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22
         best_permutations = Stage2.stage_two_main(targets_list, targets_names, current_targets_genes_dict, omega,
-                                                  scoring_function, max_target_polymorphic_sites, cfd_dict)
+                                                  scoring_function, max_target_polymorphic_sites, cfd_dict, singletons)
         if not best_permutations:
             return
         best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)
@@ -183,11 +186,11 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
     if node.clades[0]:
         genes_tree_top_down(res, node.clades[0], omega, genes_targets_dict, targets_genes_dict,
                             scoring_function, internal_node_candidates, max_target_polymorphic_sites,
-                            cfd_dict)
+                            cfd_dict, singletons)
     if node.clades[1]:
         genes_tree_top_down(res, node.clades[1], omega, genes_targets_dict, targets_genes_dict,
                             scoring_function, internal_node_candidates, max_target_polymorphic_sites,
-                            cfd_dict)
+                            cfd_dict, singletons)
 
 
 def get_genes_list(candidates_lst: List) -> List[str]:
