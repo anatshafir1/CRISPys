@@ -1,4 +1,3 @@
-
 import argparse
 import os
 import time
@@ -38,7 +37,7 @@ test_folders = ["gain_score/t_1", "gain_score/t_0", "N_internal_node/10",
                 "N_internal_node/200", "scoring/CrisprMIT", "scoring/CCtop", "scoring/gold_off", "scoring/cfd",
                 "scoring/crispr_net", "scoring/DeepHF", "where_in_gene/0.8", "where_in_gene/0.4", "algo/E", "algo/A",
                 "threshold/th_0.8", "threshold/th_0.45", "N_poly_sites/12", "N_poly_sites/2", "PAM/pams_GG",
-                "PAM/pams_GGAG"]
+                "PAM/pams_GGAG", "/singletons/with_singletons", "/singletons/without_singletons"]
 
 
 def run_crispys_test(code_folder, res_folder, queue):
@@ -220,6 +219,22 @@ def run_crispys_test(code_folder, res_folder, queue):
         f.write(header + "\n" + cmd)
     os.system("qsub " + res_folder + "/PAM/pams_GGAG/Crispys.sh")
 
+    # singletons/with_singletons
+    header = createHeaderJob(res_folder + "/singletons/with_singletons", "with_singletons", queue)
+    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/PAM/pams_GGAG --alg gene_homology --use_thr 1 --omega 0.45 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function cfd_funct --singletons 0"
+
+    with open(res_folder + "/singletons/with_singletons/Crispys.sh", "w") as f:
+        f.write(header + "\n" + cmd)
+    os.system("qsub " + res_folder + "/singletons/with_singletons/Crispys.sh")
+
+    # singletons/without_singletons
+    header = createHeaderJob(res_folder + "/singletons/without_singletons", "without_singletons", queue)
+    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/PAM/pams_GGAG --alg gene_homology --use_thr 1 --omega 0.45 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function cfd_funct --singletons 1"
+
+    with open(res_folder + "/singletons/without_singletons/Crispys.sh", "w") as f:
+        f.write(header + "\n" + cmd)
+    os.system("qsub " + res_folder + "/singletons/without_singletons/Crispys.sh")
+
 
 def compare_output(old_res_folder, new_res_folder):
     """
@@ -398,7 +413,7 @@ if __name__ == "__main__":
 # main(code_folder="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
 #      res_folder_new="/groups/itay_mayrose/udiland/crispys_test/test_files_git/res",
-#      mode="run_and_compare")
+#      mode="run_and_compare", queue="itaymaa")
 
 # main(code_folder="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
 #      ref_folder="/groups/itay_mayrose/udiland/crispys_test/test_files_git/reference",
