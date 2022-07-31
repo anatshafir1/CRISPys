@@ -4,8 +4,6 @@ this script is for storing global variables
 import os
 
 # get the path of the scripts directory
-import os
-
 CODE_PATH = os.path.dirname(os.path.realpath(__file__))
 
 # this variable will determine the maximum number of genes that will be considered for finding

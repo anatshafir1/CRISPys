@@ -169,7 +169,7 @@ def sub_tree_display(path, results_url, candidates_lst, f, consider_homology, co
     f.write("</table>\n")
 
 
-def change_mismatch_to_lowercase(target_str, mm_lst):
+def change_mismatch_to_lowercase(target_str, mm_lst) -> str:
     """
 
     :param target_str:
@@ -247,7 +247,7 @@ def tree_display(path, consider_homology=False, data='regular', genomeAssembly='
         filepath = path + "/the_table.html"
         f = open(filepath, 'w')
         results_url = multicrispr_url + "/results.html?jobId=" + runId + "&removeRepetitions=1"
-    genes_names = pickle.load(open(path + "/genes_names_list.p", "rb"))
+    genes_names = pickle.load(open(path + "/genes_names.p", "rb"))
     genes_list = pickle.load(open(path + '/genes_list.p', 'rb'))
 
     # create crispys page
@@ -257,19 +257,12 @@ def tree_display(path, consider_homology=False, data='regular', genomeAssembly='
         sgrna_list = ''
 
         # create sgrna_list
-        if not consider_homology:
-            for c in candidates_lst:
-                if c.off_targets:
+        for subgroup_item in candidates_lst:
+            for candidate in subgroup_item.candidates_list:
+                if candidate.off_targets:
                     if sgrna_list:
                         sgrna_list += ','
-                    sgrna_list += c.seq
-        else:
-            for subgroup_item in candidates_lst:
-                for c in subgroup_item.candidate_list:
-                    if c.off_targets:
-                        if sgrna_list:
-                            sgrna_list += ','
-                        sgrna_list += c.seq
+                    sgrna_list += candidate.seq
 
         # write and execute shell command
         if sgrna_list:
@@ -280,8 +273,12 @@ def tree_display(path, consider_homology=False, data='regular', genomeAssembly='
 
     counter = 0
 
-    if not consider_homology:
+    if not consider_homology and data == 'greedy_set_cover':
         sub_tree_display(path, results_url, candidates_lst, f, consider_homology, counter, genes_names, genes_list,
+                         data == 'removed_repetitions', genomeAssembly, use_thr)
+
+    elif not consider_homology:
+        sub_tree_display(path, results_url, candidates_lst[0].candidates_list, f, consider_homology, counter, genes_names, genes_list,
                          data == 'removed_repetitions', genomeAssembly, use_thr)
     else:
         f.write(
@@ -332,9 +329,8 @@ def tree_display(path, consider_homology=False, data='regular', genomeAssembly='
             f.write("<table class=\"table group\" style=\"font-size:20px; font-family:aharoni; \">\n")
             f.write("  <tr class=\"group\">\n       <td onclick='show(this, " + str(
                 counter) + ")'>+ " + subgroup_item.name + ": " + genes + "</td>\n")
-            sub_tree_display(path, results_url, subgroup_item.candidate_list, f, consider_homology, counter,
-                             genes_names,
-                             genes_list, data == 'removed_repetitions', genomeAssembly, use_thr)
+            sub_tree_display(path, results_url, subgroup_item.candidates_list, f, consider_homology, counter,
+                             genes_names, genes_list, data == 'removed_repetitions', genomeAssembly, use_thr)
     f.write(
         "<script>\nfunction hide(sgRNA) {\n\t var lst_r = document.getElementsByClassName(sgRNA.concat('_r'));\n    for(var i = 0; i < lst_r.length; ++i) {\n")
     f.write(
