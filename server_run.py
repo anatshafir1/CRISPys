@@ -6,7 +6,7 @@ from remove_rep import *
 import argparse
 
 
-def run_server(fasta_file: str, output_path: str, alg: str, where_in_gene: float, use_thr: int, Omega: float, scoring_function: str,
+def run_server(fasta_file: str, output_path: str, alg: str, where_in_gene: float, use_thr: int, omega: float, scoring_function: str,
                min_length: int, max_length: int, start_with_g: bool, internal_node_candidates: int,
                max_target_polymorphic_sites: int, pams: int, off_targets='Not_selected'):
     """
@@ -19,7 +19,7 @@ def run_server(fasta_file: str, output_path: str, alg: str, where_in_gene: float
     """
 
     # run the 'local' crispys
-    CRISPys_main(fasta_file, output_path, alg, where_in_gene, use_thr, Omega, scoring_function, min_length, max_length,
+    CRISPys_main(fasta_file, output_path, alg, where_in_gene, use_thr, omega, scoring_function, min_length, max_length,
                  start_with_g, internal_node_candidates, max_target_polymorphic_sites, pams)
 
     # read the results of crispys
@@ -27,14 +27,14 @@ def run_server(fasta_file: str, output_path: str, alg: str, where_in_gene: float
         res = pickle.load(cri_res)
 
     with open(output_path + "/sg_genes.p", "rb") as sg_genes:
-        sg_genes_dict = pickle.load(sg_genes)
+        targets_genes_dict = pickle.load(sg_genes)
 
     # create set cover html output
-    if alg == 'default' and use_thr > 0:
+    if alg == 'default' and use_thr == 1:
         print('use thr: ', use_thr)
-        greedy_cover = set_cover_greedy.find_set_cover(res, sg_genes_dict, Omega)
-        for c in greedy_cover:
-            c.off_targets = True
+        greedy_cover = set_cover_greedy.find_set_cover(res, targets_genes_dict, omega)
+        for candidate in greedy_cover:
+            candidate.off_targets = True
         pickle.dump(greedy_cover, open(output_path + '/greedy_cover.p', 'wb'))
         make_tree_display.tree_display(output_path, alg == 'gene_homology', 'greedy_set_cover', genomeAssembly=off_targets)
 
@@ -42,7 +42,7 @@ def run_server(fasta_file: str, output_path: str, alg: str, where_in_gene: float
     make_tree_display.tree_display(output_path, alg == 'gene_homology', genomeAssembly=off_targets, use_thr=use_thr)
 
     # make a removed repetition results.
-    removed_rep = remove_repetitions_in_targets_sites(res, alg, use_thr, Omega)
+    removed_rep = remove_repetitions_in_targets_sites(res, use_thr, omega)
     pickle.dump(removed_rep, open(output_path + '/res_in_lst_removed_rep.p', 'wb'))
 
     make_tree_display.tree_display(output_path, alg == 'gene_homology', data='removed_repetitions', genomeAssembly=off_targets,
@@ -72,7 +72,7 @@ if __name__ == "__main__":
                alg=args_main.alg,
                where_in_gene=args_main.where_in_gene,
                use_thr=args_main.t,
-               Omega=args_main.v,
+               omega=args_main.v,
                scoring_function=args_main.s,
                min_length=args_main.l,
                max_length=args_main.m,
