@@ -6,8 +6,9 @@ import regex
 import Distance_matrix_and_UPGMA
 import globals
 
+
 def fill_genes_targets_dict(genes_exons_dict: Dict, scoring_function, where_in_gene: float, min_length: int,
-                            max_length: int, start_with_g: bool, pams: int) -> Dict:
+                            max_length: int, start_with_g: bool, pams: int) -> Dict[str, List[str]]:
     """
     creates a dictionary of genes names and the potential targets sequences for sgRNA, so that
     keys = gene names (strings) and values = lists of target sequences in the gene (list of strs).
@@ -36,7 +37,7 @@ def fill_genes_targets_dict(genes_exons_dict: Dict, scoring_function, where_in_g
 
 
 def get_targets_sites_from_exons_lst(exons_lst: List, scoring_function, where_in_gene: float = 1, min_length: int = 20,
-                                     max_length: int = 20, start_with_g: bool = False, pams: int = 0) -> List:
+                                     max_length: int = 20, start_with_g: bool = False, pams: int = 0) -> List[str]:
     """Given an exons list of a single gene, this function loops through the exons sequences and finds potential target
     sites of sgRNA for each of them. The function then returns a list of all the potential target sites of the single
     gene. The function uses a complementary function ("get_sites") to find the targets in the exons, using the given pams.
@@ -103,7 +104,7 @@ def get_targets_sites_from_exons_lst(exons_lst: List, scoring_function, where_in
 
 
 def get_sites(exon: str, scoring_function, min_length: int = 20, max_length: int = 20, start_with_g: bool = False,
-              pams: int = 0) -> List:
+              pams: int = 0) -> List[str]:
     """
     This function is used to find CRISPR cut site sequences (targets) from an input DNA sequence, which is
     usually an exon. the minimum length of an input exon str is 23. Using regex this function searches for all the

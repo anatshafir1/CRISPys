@@ -23,6 +23,7 @@ def sort_expectation(subgroups: List):
     """
     Given a list of candidates the function sorts them by their cut expectation - the sum of cutting probabilities for
     all the genes the candidate cuts, and then by the number of mismatches between the candidate and its targets.
+
     :param subgroups: the result of the algorithm run as a list of candidates
     """
     for i in range(len(subgroups)):
@@ -35,6 +36,7 @@ def sort_subgroup(candidates: List, omega: float):
     Accessory function for sorting candidates when sorting with threshold was chosen. For each candidate the function calculates
     the number of genes that the candidate sgRNA cuts with probability higher than omega, and the product of the cleaving
     probability across all the genes the candidate cleaves.
+
     :param candidates: current sgRNA candidate as a Candidate object
     :param omega: input omega threshold in the algorithm run
     """
@@ -53,7 +55,8 @@ def sort_subgroup(candidates: List, omega: float):
 def sort_threshold(subgroups: List, omega: float):
     """
     Sort the candidates by number of genes with cut probability > omega and then by the probability to cleave all of
-    these genes
+    these genes.
+
     :param subgroups: current sgRNA candidate as a Candidate object or as a SubgroupRes object
     :param omega: input omega threshold in the algorithm run
     """
@@ -156,6 +159,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
                  pams: int = 0) -> List:
     """
     Algorithm main function
+
     :param fasta_file: input text file output_path of gene names and their sequences (or their exons sequences) as lines
     :param output_path: the output_path to the directory in which the output files will be written
     :param alg: the type of the algorithm run - with gene homology or without

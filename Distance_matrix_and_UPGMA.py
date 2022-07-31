@@ -17,7 +17,7 @@ from CRISPR_Net import Encoder_sgRNA_off
 from DeepHF.scripts import prediction_util
 
 
-def gold_off_func(sg_seq_list: List, target_seq_list: List) -> List:  # Omer Caldararu 28/3
+def gold_off_func(sg_seq_list: List, target_seq_list: List) -> List[float]:  # Omer Caldararu 28/3
     """
     Scoring function based on gold-off regressor. This function uses a model.xgb file.
 
@@ -80,7 +80,7 @@ def ccTop(sgseq: str, target_seq: str) -> float:
     return curScore / max_score  # a value between 0 and 1
 
 
-def ucrispr(sg_seq_list: List) -> List:
+def ucrispr(sg_seq_list: List) -> List[float]:
     """
     This function will run the uCRISPR algorithm for a list of targets and will return a list of the on-target scores
     IMPORTANT: before running you need to give the path to data tables that are part of uCRISPR
@@ -110,7 +110,7 @@ def ucrispr(sg_seq_list: List) -> List:
     return [float(i.split(" ")[1]) for i in res_lst[1:len(res_lst) - 1]]
 
 
-def crisprnet(candidate_lst: List, target_lst: List) -> List:
+def crisprnet(candidate_lst: List, target_lst: List) -> List[float]:
     """
     This function take list of sgrnas (candidate) and lisr of targets and returns a list of  1 - crispr_net score
     Args:
@@ -149,7 +149,7 @@ def deephf(target_lst: List) -> List:
     return list(scores)
 
 
-def make_upgma(distance_matrix: TreeConstruction._DistanceMatrix) -> BaseTree:
+def make_upgma(distance_matrix: TreeConstruction._DistanceMatrix) -> TreeConstruction_changed.TreeNew:
     """use by the doc in http://biopython.org/DIST/docs/api/Bio.Phylo.TreeConstruction.DistanceTreeConstructor-class.html"""
     constructor = TreeConstruction_changed.DistanceTreeConstructor()
     tree = constructor.upgma(distance_matrix)
@@ -222,7 +222,7 @@ def return_protdist_upgma(seq_list, names_list, output_path) -> TreeConstruction
     return tree
 
 
-def return_targets_upgma(targets_seqs_list: List, names_list: List, scoring_function, cfd_dict: Dict) -> BaseTree:
+def return_targets_upgma(targets_seqs_list: List, names_list: List, scoring_function, cfd_dict: Dict) -> TreeConstruction_changed.TreeNew:
     """the function creates a UPGMA tree object from the potential targets in 'targets_seqs_list' using the given
     'scoring_function', in 3 steps:
     1) for each target in targets_seqs_list and using the given scoring function, creates a vectors list representing
