@@ -221,7 +221,7 @@ def run_crispys_test(code_folder, res_folder, queue):
 
     # singletons/with_singletons
     header = createHeaderJob(res_folder + "/singletons/with_singletons", "with_singletons", queue)
-    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/PAM/pams_GGAG --alg gene_homology --use_thr 1 --omega 0.45 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function cfd_funct --singletons 0"
+    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/singletons/with_singletons --alg gene_homology --use_thr 1 --omega 0.45 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function cfd_funct --singletons 0"
 
     with open(res_folder + "/singletons/with_singletons/Crispys.sh", "w") as f:
         f.write(header + "\n" + cmd)
@@ -229,7 +229,7 @@ def run_crispys_test(code_folder, res_folder, queue):
 
     # singletons/without_singletons
     header = createHeaderJob(res_folder + "/singletons/without_singletons", "without_singletons", queue)
-    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/PAM/pams_GGAG --alg gene_homology --use_thr 1 --omega 0.45 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function cfd_funct --singletons 1"
+    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/udiland/crispys_test/test_files_git/HOM04D000350/HOM04D000350.txt {res_folder}/singletons/without_singletons --alg gene_homology --use_thr 1 --omega 0.45 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function cfd_funct --singletons 1"
 
     with open(res_folder + "/singletons/without_singletons/Crispys.sh", "w") as f:
         f.write(header + "\n" + cmd)
