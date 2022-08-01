@@ -37,7 +37,7 @@ test_folders = ["gain_score/t_1", "gain_score/t_0", "N_internal_node/10",
                 "N_internal_node/200", "scoring/CrisprMIT", "scoring/CCtop", "scoring/gold_off", "scoring/cfd",
                 "scoring/crispr_net", "scoring/DeepHF", "where_in_gene/0.8", "where_in_gene/0.4", "algo/E", "algo/A",
                 "threshold/th_0.8", "threshold/th_0.45", "N_poly_sites/12", "N_poly_sites/2", "PAM/pams_GG",
-                "PAM/pams_GGAG", "/singletons/with_singletons", "/singletons/without_singletons"]
+                "PAM/pams_GGAG", "singletons/with_singletons", "singletons/without_singletons"]
 
 
 def run_crispys_test(code_folder, res_folder, queue):
