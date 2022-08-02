@@ -1,7 +1,7 @@
 """Main"""
 __author__ = 'Gal Hyams'
 
-from typing import Dict, List
+from typing import List, Dict
 import CasSites
 from CrisprNetLoad import load_crispr_net
 import Stage1
@@ -13,15 +13,15 @@ import argparse
 import os
 import make_tree_display_CSV
 import globals
-
-
-# get the output_path of this script file
 from SubgroupRes import SubgroupRes
+from Candidate import Candidate
+# get the output_path of this script file
+
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 
-def sort_expectation(subgroups: List):
+def sort_expectation(subgroups: List[SubgroupRes]):
     """
     Given a list of candidates the function sorts them by their cut expectation - the sum of cutting probabilities for
     all the genes the candidate cuts, and then by the number of mismatches between the candidate and its targets.
@@ -33,7 +33,7 @@ def sort_expectation(subgroups: List):
                                           reverse=True)
 
 
-def sort_subgroup(candidates: List, omega: float):
+def sort_subgroup(candidates: List[Candidate], omega: float):
     """
     Accessory function for sorting candidates when sorting with threshold was chosen. For each candidate the function calculates
     the number of genes that the candidate sgRNA cuts with probability higher than omega, and the product of the cleaving
@@ -54,7 +54,7 @@ def sort_subgroup(candidates: List, omega: float):
     candidates.sort(key=lambda item: (item.num_of_genes_above_thr, item.cleave_all_above_thr), reverse=True)
 
 
-def sort_threshold(subgroups: List, omega: float):
+def sort_threshold(subgroups: List[SubgroupRes], omega: float):
     """
     Sort the candidates by number of genes with cut probability > omega and then by the probability to cleave all of
     these genes.
@@ -92,7 +92,7 @@ def choose_scoring_function(input_scoring_function: str):
         print("Did not specify valid scoring function")
 
 
-def fill_genes_exons_dict(fasta_file: str) -> Dict:
+def fill_genes_exons_dict(fasta_file: str) -> Dict[str, str]:
     """
     this function takes a fasta format file of genes and sequences and creates a dictionary where key are gene names
     and values are (one or more) exon sequences. If the input file has multiple exons per gene, the value will be
@@ -123,7 +123,7 @@ def fill_genes_exons_dict(fasta_file: str) -> Dict:
     return genes_exons_dict
 
 
-def get_genes_list(genes_exons_dict: Dict) -> List:
+def get_genes_list(genes_exons_dict: Dict[str, str]) -> List[str]:
     """
     this function extracts the whole genes sequences from an input dictionary of {gene name: exons of gene} and returns
     a list of the genes.
@@ -137,7 +137,7 @@ def get_genes_list(genes_exons_dict: Dict) -> List:
     return genes_list
 
 
-def inverse_genes_targets_dict(genes_targets_dict: Dict) -> Dict:
+def inverse_genes_targets_dict(genes_targets_dict: Dict[str, List[str]]) -> Dict[str, List[str]]:
     """
     inverts a dictionary of {gene names: list of target seqs in the gene} to a dictionary of
     {target sequence: list of gene names where the targets are found}.
