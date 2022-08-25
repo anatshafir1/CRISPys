@@ -49,7 +49,7 @@ def set_crisprnet_model(model):
     crisprnet_loaded_model = model
 
 
-def set_res_path(path: str) -> str:
+def set_res_path(path: str):
     """
     set variable of results path
     Args:

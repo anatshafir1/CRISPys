@@ -47,7 +47,7 @@ def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, sc
 
 def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: Dict, targets_genes_dict: Dict,
                       omega: float, output_path: str, scoring_function, internal_node_candidates: int,
-                      max_target_polymorphic_sites: int = 12, singletons: int = 0) -> List[SubgroupRes]:
+                      max_target_polymorphic_sites: int = 12, singletons: int = 0, slim_output: bool = False) -> List[SubgroupRes]:
     """
     Called by the main function when choosing algorithm with gene homology taken in consideration. Creates a UPGMA tree
     from the input genes by their homology. Writes the tree to a newick format file and a preorder format file. Then
@@ -64,12 +64,14 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
+    :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
     :return:
     """
     # make a tree and distance matrix of the genes
     genes_upgma_tree = Distance_matrix_and_UPGMA.return_protdist_upgma(genes_list, genes_names, output_path)
     # store the genes UPGMA tree in a newick format file
-    write_newick_to_file(genes_upgma_tree.root, output_path)
+    if not slim_output:
+        write_newick_to_file(genes_upgma_tree.root, output_path)
     fill_nodes_leaves_list(genes_upgma_tree)  # tree leaves are genes
     # making the sgList for gene homology algorithm:
     list_of_subgroups = []
@@ -162,18 +164,19 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
     current_genes_targets_dict = dict()
     targets_list = list()
     targets_names = list()
-    for leaf in node.node_leaves:  # leaf here is a gene. taking only the relevant genes
-        current_genes_targets_dict[leaf] = genes_targets_dict[leaf]
-        # filling the targets to genes dict
-        for target in current_genes_targets_dict[leaf]:
-            if target in current_targets_genes_dict:
-                current_targets_genes_dict[target] += [leaf]
-            else:
-                current_targets_genes_dict[target] = [leaf]
-            if target not in targets_list:  # creating a list of target sequences and a list of target names
-                targets_list.append(target)
-                targets_names.append(target)
     if N_genes_in_node >= len(node.node_leaves) > singletons:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22. check if the node is one gene
+        for leaf in node.node_leaves:  # leaf here is a gene. taking only the relevant genes
+            current_genes_targets_dict[leaf] = genes_targets_dict[leaf]
+            # filling the targets to genes dict
+            for target in current_genes_targets_dict[leaf]:
+                if target in current_targets_genes_dict:
+                    current_targets_genes_dict[target] += [leaf]
+                else:
+                    current_targets_genes_dict[target] = [leaf]
+                if target not in targets_list:  # creating a list of target sequences and a list of target names
+                    targets_list.append(target)
+                    targets_names.append(target)
+
         best_permutations = Stage2.stage_two_main(targets_list, targets_names, current_targets_genes_dict, omega,
                                                   scoring_function, max_target_polymorphic_sites, cfd_dict, singletons)
         if not best_permutations:

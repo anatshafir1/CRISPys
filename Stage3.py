@@ -40,8 +40,8 @@ def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates
 
 def generate_scores_one_batch(genes_targets_dict: Dict[str, List[str]], list_of_candidates: List[str], scoring_function, scores_dict: Dict) -> Dict:
     """
-	  generates a data structure that contains the candidates and their off-target scores,
-	  using a single call of the scoring function.
+	generates a data structure that contains the candidates and their off-target scores,
+	using a single call of the scoring function.
   
     :param genes_targets_dict: a dictionary : gene name -> targets within the gene
     :param list_of_candidates: a list of all possible candidates, given by all_perms()

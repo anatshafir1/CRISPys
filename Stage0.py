@@ -158,7 +158,7 @@ def inverse_genes_targets_dict(genes_targets_dict: Dict[str, List[str]]) -> Dict
 def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_in_gene: float = 1, use_thr: int = 1,
                  omega: float = 1, scoring_function: str = "cfd_funct", min_length: int = 20, max_length: int = 20,
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                 pams: int = 0, singletons: int = 0) -> List[SubgroupRes]:
+                 pams: int = 0, singletons: int = 0, slim_output: bool = False) -> List[SubgroupRes]:
     """
     Algorithm main function
 
@@ -176,6 +176,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param pams: the pams by which potential sgRNA target sites will be searched
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
+    :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
     """
     start = timeit.default_timer()
@@ -195,7 +196,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     if alg == 'gene_homology':
         res = Stage1.gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict, omega,
                                        output_path, scoring_function_targets, internal_node_candidates,
-                                       max_target_polymorphic_sites, singletons)
+                                       max_target_polymorphic_sites, singletons, slim_output)
     elif alg == 'default':  # alg == "default" (look in article for better name)
         res = Stage1.default_alg(targets_genes_dict, omega, scoring_function_targets, max_target_polymorphic_sites, singletons)
 
@@ -204,16 +205,20 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     else:
         sort_expectation(res)
 
+    if slim_output:
+        os.system(f"rm -r {output_path}/*")
+    else:
+        pickle.dump(genes_names_list, open(output_path + "/genes_names.p", "wb"))
+        # add saving the gene_list in pickle in order to produce the results like in the server version - Udi 28/02/22
+        pickle.dump(genes_list, open(output_path + '/genes_list.p', 'wb'))
+        pickle.dump(targets_genes_dict, open(output_path + "/sg_genes.p", "wb"))
+        # new output function taken from the crispys server code. Udi 13/04/2022
+        make_tree_display_CSV.tree_display(output_path, alg == 'gene_homology')
     pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
-    pickle.dump(genes_names_list, open(output_path + "/genes_names.p", "wb"))
-    # add saving the gene_list in pickle in order to produce the results like in the server version - Udi 28/02/22
-    pickle.dump(genes_list, open(output_path + '/genes_list.p', 'wb'))
-    pickle.dump(targets_genes_dict, open(output_path + "/sg_genes.p", "wb"))
-    # new output function taken from the crispys server code. Udi 13/04/2022
-    make_tree_display_CSV.tree_display(output_path, alg == 'gene_homology')
     stop = timeit.default_timer()
-    with open("time.txt", 'w') as time_file:
-        time_file.write(str(stop - start))
+    if not slim_output:
+        with open("time.txt", 'w') as time_file:
+            time_file.write(str(stop - start))
     return res
 
 
@@ -261,6 +266,9 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--singletons', choices=[0, 1], type=int, default=0,
                             help='0 to return results with singletons (sgRNAs that target only 1 gene) 1 to exclude'
                                  ' singletons. Default: 0')
+    parser_obj.add_argument('--slim_output', type=bool, default=False,
+                            help='optional choice to store only "res_in_lst" as the result of the algorithm run.'
+                                 'Default: False')
 
     arguments = parser_obj.parse_args()
     return arguments
@@ -282,4 +290,5 @@ if __name__ == "__main__":
                  internal_node_candidates=args.internal_node_candidates,
                  max_target_polymorphic_sites=args.max_target_polymorphic_sites,
                  pams=args.pams,
-                 singletons=args.singletons)
+                 singletons=args.singletons,
+                 slim_output=args.slim_output)
