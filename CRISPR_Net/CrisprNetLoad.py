@@ -1,4 +1,4 @@
-
+"""CRISPR_net imports and model loading"""
 import globals
 import warnings
 import os
@@ -23,6 +23,6 @@ def load_crispr_net():
     crisprnet_loaded_model = model_from_json(loaded_model_json)
     crisprnet_loaded_model.load_weights(
         f"{globals.CODE_PATH}/CRISPR_Net/scoring_models/CRISPR_Net_CIRCLE_elevation_SITE_weights.h5")
-    globals.set_crisprnet_model(crisprnet_loaded_model)
+    globals.crisprnet_loaded_model = crisprnet_loaded_model
     print("Loaded model from disk!")
     return Distance_matrix_and_UPGMA.crisprnet

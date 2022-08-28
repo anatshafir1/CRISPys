@@ -1,7 +1,7 @@
 
 from typing import List, Dict
 import numpy as np
-from Bio.Phylo import TreeConstruction, BaseTree
+from Bio.Phylo import TreeConstruction
 import math
 import Metric
 import TreeConstruction_changed
@@ -15,6 +15,7 @@ from numpy import clip
 import subprocess
 from CRISPR_Net import Encoder_sgRNA_off
 from DeepHF.scripts import prediction_util
+from MOFF.MOFF_prediction import MOFF_score
 
 
 def gold_off_func(sg_seq_list: List, target_seq_list: List) -> List[float]:  # Omer Caldararu 28/3
@@ -147,6 +148,18 @@ def deephf(target_lst: List) -> List:
     scores = prediction_util.get_predictions(os.path.join(
         f"{globals.CODE_PATH}", "DeepHF", "models", "model1", "no_bio", "multi_task", "parallel/"), targets)
     return list(scores)
+
+
+def moff(candidate_lst: List, target_lst: List) -> List[float]:
+    """
+    Calling MOFF algorithm
+
+    :param candidate_lst:
+    :param target_lst:
+    :return:
+    """
+    scores = MOFF_score(globals.moff_mtx1, globals.moff_mtx2, candidate_lst, target_lst)
+    return scores
 
 
 def make_upgma(distance_matrix: TreeConstruction._DistanceMatrix) -> TreeConstruction_changed.TreeNew:

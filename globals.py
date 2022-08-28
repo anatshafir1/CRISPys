@@ -36,27 +36,7 @@ protdist_path = "/groups/itay_mayrose/josefbrook/miniconda3/envs/crispys/bin/pro
 # mafft_path = None
 # protdist_path = None
 
-
-def set_crisprnet_model(model):
-    """
-    A function to make a global variable 0f the model of crispr-net
-    Args:
-        model: crispr_net trained model
-
-    Returns: global variable
-    """
-    global crisprnet_loaded_model
-    crisprnet_loaded_model = model
-
-
-def set_res_path(path: str):
-    """
-    set variable of results path
-    Args:
-        path: The path for crispys output
-
-    Returns:
-        global variable that contain the results path
-    """
-    global RES_PATH
-    RES_PATH = path
+crisprnet_loaded_model = None
+moff_loaded_model = None
+moff_mtx1 = None
+moff_mtx2 = None
