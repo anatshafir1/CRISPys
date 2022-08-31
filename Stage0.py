@@ -15,6 +15,7 @@ import make_tree_display_CSV
 import globals
 from SubgroupRes import SubgroupRes
 from Candidate import Candidate
+
 # get the output_path of this script file
 
 
@@ -80,7 +81,7 @@ def choose_scoring_function(input_scoring_function: str):
         return Distance_matrix_and_UPGMA.MITScore
     elif input_scoring_function == "CCTop":
         return Distance_matrix_and_UPGMA.ccTop
-    elif input_scoring_function == "cfd_funct":
+    elif input_scoring_function == "cfd_funct" or input_scoring_function == "cfd":
         return Metric.cfd_funct
     elif input_scoring_function == "DeepHF" or input_scoring_function == "deephf":
         return Distance_matrix_and_UPGMA.deephf
@@ -198,7 +199,8 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
                                        output_path, scoring_function_targets, internal_node_candidates,
                                        max_target_polymorphic_sites, singletons, slim_output)
     elif alg == 'default':  # alg == "default" (look in article for better name)
-        res = Stage1.default_alg(targets_genes_dict, omega, scoring_function_targets, max_target_polymorphic_sites, singletons)
+        res = Stage1.default_alg(targets_genes_dict, omega, scoring_function_targets, max_target_polymorphic_sites,
+                                 singletons)
 
     if use_thr:
         sort_threshold(res, omega)
@@ -206,7 +208,10 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
         sort_expectation(res)
 
     if slim_output:
-        os.system(f"rm -r {output_path}/*")
+        for walk in os.walk(output_path):
+            for file in walk[2]:
+                if os.path.join(output_path, file) != fasta_file:  # The fasta file should not be deleted. Omer 31/08
+                    os.system(f"rm {os.path.join(output_path, file)}")
     else:
         pickle.dump(genes_names_list, open(output_path + "/genes_names.p", "wb"))
         # add saving the gene_list in pickle in order to produce the results like in the server version - Udi 28/02/22
