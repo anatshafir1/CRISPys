@@ -203,7 +203,10 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
         sort_expectation(res)
 
     if slim_output:
-        os.system(f"rm -r {output_path}/*")
+        for walk in os.walk(output_path):
+            for file in walk[2]:
+                if os.path.join(output_path, file) != fasta_file:  # The fasta file should not be deleted. Omer 31/08
+                    os.system(f"rm {os.path.join(output_path, file)}")
         pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
     else:
         pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
