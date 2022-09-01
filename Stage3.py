@@ -23,7 +23,8 @@ def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates
 	Returns: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]}
 	"""
     scores_dict = {}
-    if scoring_function == Distance_matrix_and_UPGMA.gold_off_func or scoring_function == Distance_matrix_and_UPGMA.crisprnet:
+    if scoring_function == Distance_matrix_and_UPGMA.gold_off_func or scoring_function == Distance_matrix_and_UPGMA.crisprnet\
+            or scoring_function == Distance_matrix_and_UPGMA.moff:
         return generate_scores_one_batch(genes_targets_dict, list_of_candidates, scoring_function, scores_dict)
     for gene in genes_targets_dict:
         scores_dict[gene] = []
@@ -61,7 +62,7 @@ def generate_scores_one_batch(genes_targets_dict: Dict[str, List[str]], list_of_
     if scoring_function == Distance_matrix_and_UPGMA.gold_off_func:
         list_of_all_scores = scoring_function(batch_candidates_list, batch_targets_list)
     # if the scoring function take the candidate with pam (e.g. crispr-net)
-    if scoring_function == Distance_matrix_and_UPGMA.crisprnet:
+    if scoring_function == Distance_matrix_and_UPGMA.crisprnet or scoring_function == Distance_matrix_and_UPGMA.moff:
         batch_candidates_list_withPAM = []
         for candidate, target in zip(batch_candidates_list, batch_targets_list):
             batch_candidates_list_withPAM.append(candidate + target[20:23])
