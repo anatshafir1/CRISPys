@@ -184,7 +184,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
     """
     start = timeit.default_timer()
-    # set the recursion limit to pervent
+    # set the recursion limit to prevent recursion error
     sys.setrecursionlimit(10 ** 6)
     # choosing the scoring function:
     scoring_function_targets = choose_scoring_function(scoring_function)
