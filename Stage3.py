@@ -119,7 +119,7 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, sc
                 prob_gene_will_not_cut = prob_gene_will_not_cut * (1 - candidate_cut_prob)  # lowering the not cut prob in each sgRNA
                 num_of_cuts_per_gene += candidate_cut_prob
             prob_gene_cut = 1 - prob_gene_will_not_cut
-            if prob_gene_cut >= omega:
+            if prob_gene_cut >= omega and len(list_of_targets) > 0:
                 targets_dict[gene] = list_of_targets
                 genes_covering.append((gene, prob_gene_cut))
         if len(genes_covering) < 2 and singletons == 1:  # check if the potential candidate covers less than two genes
