@@ -122,7 +122,12 @@ def build_sequence_features(dataset_df, nucleotides_to_position_mapping,
 
     # convert dataset_df["target"] -3 position to 'N'
     dataset_df['target'] = dataset_df['target'].apply(lambda s: s[:-3] + 'N' + s[-2:])
-
+    if n_cores == 1:
+        # Avoid multi-processing when running with a single core
+        final_result = build_sequences_encoding(dataset_df,
+                                                nucleotides_to_position_mapping=nucleotides_to_position_mapping,
+                                                include_distance_feature=include_distance_feature)
+        return final_result
     dataset_df_splits = np.array_split(dataset_df, n_cores)
     with Pool(n_cores) as pool:
         final_result = np.concatenate(
