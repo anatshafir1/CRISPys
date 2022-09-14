@@ -16,6 +16,7 @@ import make_tree_display_CSV
 from MOFF.MoffLoad import load_moff
 from SubgroupRes import SubgroupRes
 from Candidate import Candidate
+import glob
 
 # get the output_path of this script file
 
@@ -212,10 +213,9 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
         sort_expectation(res)
 
     if slim_output:
-        for walk in os.walk(output_path):
-            for file in walk[2]:
-                if os.path.join(output_path, file) != fasta_file:  # The fasta file should not be deleted. Omer 31/08
-                    os.system(f"rm {os.path.join(output_path, file)}")
+        for path in glob.glob(os.path.join(output_path,"*")):
+            if path != fasta_file and not os.path.isdir(path):
+                os.remove(path)
         pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
     else:
         pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
