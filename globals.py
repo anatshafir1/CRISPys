@@ -86,3 +86,9 @@ def createHeaderJob(path, job_name, queue="itaym", ncpu=1, mem=16):
     text += "export PATH='$CONDA_PREFIX/bin:$PATH'\n"
     text += "conda activate /groups/itay_mayrose/udiland/miniconda3/envs/crispys\n"
     return text
+
+crisprnet_loaded_model = None
+moff_loaded_model = None
+moff_mtx1 = None
+moff_mtx2 = None
+

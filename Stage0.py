@@ -3,7 +3,7 @@ __author__ = 'Gal Hyams'
 
 from typing import List, Dict
 import CasSites
-from CrisprNetLoad import load_crispr_net
+from CRISPR_Net.CrisprNetLoad import load_crispr_net
 import Stage1
 import Distance_matrix_and_UPGMA
 import timeit
@@ -11,10 +11,13 @@ import pickle
 import Metric
 import argparse
 import os
+import sys
 import make_tree_display_CSV
-import globals
+from MOFF.MoffLoad import load_moff
 from SubgroupRes import SubgroupRes
 from Candidate import Candidate
+import glob
+
 # get the output_path of this script file
 
 
@@ -80,7 +83,7 @@ def choose_scoring_function(input_scoring_function: str):
         return Distance_matrix_and_UPGMA.MITScore
     elif input_scoring_function == "CCTop":
         return Distance_matrix_and_UPGMA.ccTop
-    elif input_scoring_function == "cfd_funct":
+    elif input_scoring_function == "cfd_funct" or input_scoring_function == "cfd":
         return Metric.cfd_funct
     elif input_scoring_function == "DeepHF" or input_scoring_function == "deephf":
         return Distance_matrix_and_UPGMA.deephf
@@ -88,6 +91,8 @@ def choose_scoring_function(input_scoring_function: str):
         return Distance_matrix_and_UPGMA.ucrispr
     elif input_scoring_function == "crispr_net" or input_scoring_function == "CRISPR_Net" or input_scoring_function == "crisprnet":
         return load_crispr_net()
+    elif input_scoring_function == "moff":
+        return load_moff()
     else:
         print("Did not specify valid scoring function")
 
@@ -180,7 +185,8 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
     """
     start = timeit.default_timer()
-    globals.set_res_path(output_path)
+    # set the recursion limit to prevent recursion error
+    sys.setrecursionlimit(10 ** 6)
     # choosing the scoring function:
     scoring_function_targets = choose_scoring_function(scoring_function)
     genes_exons_dict = fill_genes_exons_dict(fasta_file)  # gene name -> list of exons
@@ -198,7 +204,8 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
                                        output_path, scoring_function_targets, internal_node_candidates,
                                        max_target_polymorphic_sites, singletons, slim_output)
     elif alg == 'default':  # alg == "default" (look in article for better name)
-        res = Stage1.default_alg(targets_genes_dict, omega, scoring_function_targets, max_target_polymorphic_sites, singletons)
+        res = Stage1.default_alg(targets_genes_dict, omega, scoring_function_targets, max_target_polymorphic_sites,
+                                 singletons)
 
     if use_thr:
         sort_threshold(res, omega)
@@ -206,15 +213,19 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
         sort_expectation(res)
 
     if slim_output:
-        os.system(f"rm -r {output_path}/*")
+        for path in glob.glob(os.path.join(output_path,"*")):
+            if path != fasta_file and not os.path.isdir(path):
+                os.remove(path)
+        pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
     else:
+        pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
         pickle.dump(genes_names_list, open(output_path + "/genes_names.p", "wb"))
         # add saving the gene_list in pickle in order to produce the results like in the server version - Udi 28/02/22
         pickle.dump(genes_list, open(output_path + '/genes_list.p', 'wb'))
         pickle.dump(targets_genes_dict, open(output_path + "/sg_genes.p", "wb"))
         # new output function taken from the crispys server code. Udi 13/04/2022
         make_tree_display_CSV.tree_display(output_path, alg == 'gene_homology')
-    pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
+
     stop = timeit.default_timer()
     if not slim_output:
         with open("time.txt", 'w') as time_file:
