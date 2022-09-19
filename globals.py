@@ -36,7 +36,59 @@ protdist_path = "/groups/itay_mayrose/josefbrook/miniconda3/envs/crispys/bin/pro
 # mafft_path = None
 # protdist_path = None
 
+
+def set_crisprnet_model(model):
+    """
+    A function to make a global variable 0f the model of crispr-net
+    Args:
+        model: crispr_net trained model
+
+    Returns: global variable
+    """
+    global crisprnet_loaded_model
+    crisprnet_loaded_model = model
+
+
+def set_res_path(path: str):
+    """
+    set variable of results path
+    Args:
+        path: The path for crispys output
+
+    Returns:
+        global variable that contain the results path
+    """
+    global RES_PATH
+    RES_PATH = path
+
+
+def createHeaderJob(path, job_name, queue="itaym", ncpu=1, mem=16):
+    """
+    A function to create qsub file with activating crispys conda env
+
+    :param path: path to log files
+    :param job_name: job name
+    :param queue:
+    :param ncpu: cpu number default 1
+    :param mem: memory to use (in gb) default 16
+    :return: a string that can be used to write sh file to run on the cluster (need to add command before running on the cluster)
+    """
+    text = ""
+    text += "#!/bin/bash\n\n"
+    text += "#PBS -S /bin/bash\n"
+    text += "#PBS -r y\n"
+    text += f"#PBS -q {queue}\n"
+    text += "#PBS -N " + job_name + "\n"
+    text += "#PBS -e " + path + "/" + job_name + ".ER" + "\n"
+    text += "#PBS -o " + path + "/" + job_name + ".OU" + "\n"
+    text += "#PBS -l select=ncpus=" + str(ncpu) + ":mem=" + str(mem) + "gb\n"
+    text += "source ~/.bashrc\n"
+    text += "export PATH='$CONDA_PREFIX/bin:$PATH'\n"
+    text += "conda activate /groups/itay_mayrose/udiland/miniconda3/envs/crispys\n"
+    return text
+
 crisprnet_loaded_model = None
 moff_loaded_model = None
 moff_mtx1 = None
 moff_mtx2 = None
+
