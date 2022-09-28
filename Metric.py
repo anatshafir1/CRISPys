@@ -4,11 +4,10 @@ from functools import reduce
 import Distance_matrix_and_UPGMA
 import random
 import globals
-from globals import vector_size_cutoff
 from typing import List, Dict
 
 
-def pos_in_metric_general_single_batch(list_of_targets: List, metric_sequences_list: List, distance_function) -> List:
+def pos_in_metric_general_single_batch(list_of_targets: List, metric_sequences_list: List, off_scoring_function, on_scoring_function) -> List:
     """
     This function is called from pos_in_metric_general for cases where the scoring function takes a list of several
     targets, rather than a single target. This function calls the distance_function on all the targets in a single batch.
@@ -20,7 +19,8 @@ def pos_in_metric_general_single_batch(list_of_targets: List, metric_sequences_l
 
     :param list_of_targets: a list of targets
     :param metric_sequences_list: a list of sampled sequences used for the metric calculation.
-    :param distance_function: the distance function used
+    :param off_scoring_function: the off target scoring function
+	:param on_scoring_function: the on target scoring function
     :return: a vector of distances between those strings
     """
     input_target_list = []
@@ -30,14 +30,17 @@ def pos_in_metric_general_single_batch(list_of_targets: List, metric_sequences_l
         # update the PAM in each constant target according to the PAM of the target
         metric_sequences_with_pam = [f"{t}{target[20:]}" for t in metric_sequences_list]
         input_metric_sequences_list.extend(metric_sequences_with_pam)
-    concatenated_vectors_list = distance_function(input_metric_sequences_list, input_target_list)
+    concatenated_vectors_list_off = off_scoring_function(input_metric_sequences_list, input_target_list)
+    concatenated_vectors_list_on = on_scoring_function(input_target_list)
+    concatenated_vectors_list_on_off = zip(concatenated_vectors_list_on, concatenated_vectors_list_off)
+    concatenated_vectors_list = [x * y for x, y in concatenated_vectors_list_on_off]
     output_vectors_list = []
     for i in range(0, len(concatenated_vectors_list), len(metric_sequences_list)):
         output_vectors_list.append(concatenated_vectors_list[i:i + len(metric_sequences_list)])
     return output_vectors_list
 
 
-def pos_in_metric_general(list_of_targets: List, distance_function, cfd_dict: Dict) -> List:
+def pos_in_metric_general(list_of_targets: List, off_scoring_function, on_scoring_function, cfd_dict: Dict) -> List:
     """
     This function takes a list of targets and creates a new list of vectors,
     where each target is converted into a point in number-of-targets dimensional space.
@@ -46,28 +49,30 @@ def pos_in_metric_general(list_of_targets: List, distance_function, cfd_dict: Di
     e.g. vectors_list[i] = [scoring_function(1,i),scoring_function(2,i),...]
 
     :param list_of_targets: a list of all targets found in Stage0
-    :param distance_function: the input distance function when running the algorithm
+    :param off_scoring_function: the off target scoring function
+	:param on_scoring_function: the on target scoring function
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
     :return: a list of vectors, each representing the location of the target in a multidimensional space
     """
 
     random.seed(globals.seed)
-    if distance_function == cfd_funct:
+    if off_scoring_function == cfd_funct:
         list_of_vectors = []
         for target in list_of_targets:
             list_of_vectors.append(pos_in_metric_cfd(target, cfd_dict))
         return list_of_vectors
-    elif distance_function == Distance_matrix_and_UPGMA.gold_off_func or distance_function == Distance_matrix_and_UPGMA.crisprnet\
-            or distance_function == Distance_matrix_and_UPGMA.moff:
+    elif (off_scoring_function == Distance_matrix_and_UPGMA.gold_off_func or off_scoring_function == Distance_matrix_and_UPGMA.crisprnet
+            or off_scoring_function == Distance_matrix_and_UPGMA.moff) and (on_scoring_function == Distance_matrix_and_UPGMA.deephf
+            or on_scoring_function == Distance_matrix_and_UPGMA.default_on_target):
         metric_sequences_list = create_list_of_metric_sequences(list_of_targets)
-        return pos_in_metric_general_single_batch(list_of_targets, metric_sequences_list, distance_function)
-    elif distance_function == Distance_matrix_and_UPGMA.ccTop or distance_function == Distance_matrix_and_UPGMA.MITScore:
+        return pos_in_metric_general_single_batch(list_of_targets, metric_sequences_list, off_scoring_function, on_scoring_function)
+    elif off_scoring_function == Distance_matrix_and_UPGMA.ccTop or off_scoring_function == Distance_matrix_and_UPGMA.MITScore:
         metric_sequences_list = create_list_of_metric_sequences(list_of_targets)
         list_of_vectors = []
         for target in list_of_targets:
             score_vector = []
             for sequence in metric_sequences_list:
-                score_vector.append(distance_function(sequence, target))
+                score_vector.append(off_scoring_function(sequence, target))
             list_of_vectors.append(score_vector)
         return list_of_vectors
 
@@ -84,12 +89,12 @@ def create_list_of_metric_sequences(list_of_targets: List) -> List:
 	:param list_of_targets: a list of targets
 	:return: a list of sampled sequences of length @globals.vector_size_cutoff.
 	"""
-    if len(list_of_targets) >= vector_size_cutoff:
-        shuffled_targets_list = random.sample(list_of_targets, vector_size_cutoff)[:vector_size_cutoff]
+    if len(list_of_targets) >= globals.vector_size_cutoff:
+        shuffled_targets_list = random.sample(list_of_targets, globals.vector_size_cutoff)[:globals.vector_size_cutoff]
         return [t[:20] for t in shuffled_targets_list]
-    elif len(list_of_targets) < vector_size_cutoff:
+    elif len(list_of_targets) < globals.vector_size_cutoff:
         metric_sequences_list = [t[:20] for t in list_of_targets]
-        for i in range(vector_size_cutoff - len(list_of_targets)):
+        for i in range(globals.vector_size_cutoff - len(list_of_targets)):
             perturbed_target = create_perturbed_target(random.choice(list_of_targets))
             metric_sequences_list.append(perturbed_target)
         return metric_sequences_list

@@ -1,41 +1,25 @@
-
-from typing import List, Dict
-import numpy as np
-from Bio.Phylo import TreeConstruction
-import math
-import Metric
-import TreeConstruction_changed
-import gold_off
-from os.path import dirname, abspath
-import os
-import globals
-import re
-import mafft_and_phylip
-from numpy import clip
+"""Scoring functions and tree calculations"""
 import subprocess
+from os.path import dirname, abspath, join
+from os import rename
+import math
+from typing import List, Dict
+
+import numpy as np
+import re
+from Bio.Phylo.TreeConstruction import _DistanceMatrix
+
+import globals
+from mafft_and_phylip import create_protdist
 from CRISPR_Net import Encoder_sgRNA_off
 from DeepHF.scripts import prediction_util
 from MOFF.MOFF_prediction import MOFF_score
+from Metric import pos_in_metric_general
+from TreeConstruction_changed import TreeNew, DistanceTreeConstructor
+from gold_off import predict
 
 
-def gold_off_func(sg_seq_list: List, target_seq_list: List) -> List[float]:  # Omer Caldararu 28/3
-    """
-    Scoring function based on gold-off regressor. This function uses a model.xgb file.
-
-    :param sg_seq_list: a list of sgRNA sequence or sequences
-    :param target_seq_list: a list of target sequences
-    :return: A list of scores where list[i] = score between the ith sgRNA and the ith target
-    """
-    if len(sg_seq_list[0]) == 20:
-        for i in range(len(sg_seq_list)):
-            sg_seq_list[i] = sg_seq_list[i] + target_seq_list[i][-3:]
-    # get the xgb model output_path
-    script_path = dirname(abspath(__file__))
-    xgb_model_path = script_path + "/" + globals.xgb_model_name
-    list_of_scores = gold_off.predict(sg_seq_list, target_seq_list, xgb_model_path, include_distance_feature=True,
-                                      n_process=globals.n_cores_for_gold_off, model_type="regression")
-    list_of_scores = clip(list_of_scores, 0, 1)  # clipping is done when the score is above 1 or below 0
-    return [1 - score for score in list_of_scores]
+# ###################################### off target functions ###################################### #
 
 
 def MITScore(seq1: str, seq2: str) -> float:
@@ -81,18 +65,36 @@ def ccTop(sgseq: str, target_seq: str) -> float:
     return curScore / max_score  # a value between 0 and 1
 
 
-def ucrispr(sg_seq_list: List) -> List[float]:
+def gold_off_func(sg_seq_list: List[str], target_seq_list: List[str]) -> List[float]:  # Omer Caldararu 28/3
+    """
+    Scoring function based on gold-off regressor. This function uses a model.xgb file.
+
+    :param sg_seq_list: a list of sgRNA sequence or sequences
+    :param target_seq_list: a list of target sequences
+    :return: A list of scores where list[i] = score between the ith sgRNA and the ith target
+    """
+    if len(sg_seq_list[0]) == 20:
+        for i in range(len(sg_seq_list)):
+            sg_seq_list[i] = sg_seq_list[i] + target_seq_list[i][-3:]
+    # get the xgb model output_path
+    script_path = dirname(abspath(__file__))
+    xgb_model_path = script_path + "/" + globals.xgb_model_name
+    list_of_scores = predict(sg_seq_list, target_seq_list, xgb_model_path, include_distance_feature=True,
+                             n_process=globals.n_cores_for_gold_off, model_type="regression")
+    list_of_scores = np.clip(list_of_scores, 0, 1)  # clipping is done when the score is above 1 or below 0
+    return [1 - score for score in list_of_scores]
+
+
+def ucrispr(sg_seq_list: List[str]) -> List[float]:
     """
     This function will run the uCRISPR algorithm for a list of targets and will return a list of the on-target scores
     IMPORTANT: before running you need to give the path to data tables that are part of uCRISPR
     enter this to the .sh file
     'export DATAPATH=<path to folder>/uCRISPR/RNAstructure/data_tables/'
     Also make sure the uCRISPR file inside the uCRISPR folder has exe permission
-    Args:
-        sg_seq_list: list of sgrnas (with PAM)
 
-    Returns:
-        a list of ucrispr on-target scores
+    :param sg_seq_list: list of sgrnas (with PAM)
+    :return: a list of ucrispr on-target scores
     """
     # make a file with guides for inputs to ucrispr
     with open(f"{globals.CODE_PATH}/targets.txt", "w") as f:
@@ -111,15 +113,13 @@ def ucrispr(sg_seq_list: List) -> List[float]:
     return [float(i.split(" ")[1]) for i in res_lst[1:len(res_lst) - 1]]
 
 
-def crisprnet(candidate_lst: List, target_lst: List) -> List[float]:
+def crisprnet(candidate_lst: List[str], target_lst: List[str]) -> List[float]:
     """
-    This function take list of sgrnas (candidate) and lisr of targets and returns a list of  1 - crispr_net score
-    Args:
-        candidate_lst: list of candidates
-        target_lst: list of targets
+    This function take list of sgrnas (candidate) and list of targets and returns a list of  1 - crispr_net score
 
-    Returns:
-        list of crispr_net scores
+    :param candidate_lst: list of candidates
+    :param target_lst: list of targets
+    :return: list of crispr_net scores
     """
     input_codes = []
     for seqs in zip(candidate_lst, target_lst):
@@ -133,43 +133,58 @@ def crisprnet(candidate_lst: List, target_lst: List) -> List[float]:
     return [1 - float(y) for y in y_pred]
 
 
+def moff(candidate_lst: List[str], target_lst: List[str]) -> List[float]:
+    """
+    Calling MOFF algorithm, this function take list of sgrnas (candidate) and list of targets and
+    returns a list of  1 - MOFF score
+
+    :param candidate_lst: list of candidates
+    :param target_lst: list of targets
+    :return: list of  1 - MOFF score
+    """
+    scores = MOFF_score(globals.moff_mtx1, globals.moff_mtx2, candidate_lst, target_lst)
+    return [1 - score for score in scores]
+
+
+# ###################################### on target functions ###################################### #
+
 def deephf(target_lst: List) -> List:
     """
     This function use the model of deephf that was improved by Yaron Orenstein`s lab
-    Args:
-        target_lst: list of targets with PAM
 
-    Returns:
-        list of on-target scores
+    :param target_lst: list of targets with PAM
+    :return: list of on-target scores
     """
     # take 21 nt from targets
     targets = [target[0:21] for target in target_lst]
     # get deephf scores
-    scores = prediction_util.get_predictions(os.path.join(
-        f"{globals.CODE_PATH}", "DeepHF", "models", "model1", "no_bio", "multi_task", "parallel/"), targets)
+    scores = prediction_util.get_predictions(
+        join(f"{globals.CODE_PATH}", "DeepHF", "models", "model1", "no_bio", "multi_task", "parallel/"), targets)
     return list(scores)
 
 
-def moff(candidate_lst: List, target_lst: List) -> List[float]:
+def default_on_target(target_lst: List[str]) -> List[int]:
     """
-    Calling MOFF algorithm
+    This function is used in the case when no on-target scoring function is chosen. Returns a list of ones in the length
+    of the given target list.
 
-    :param candidate_lst:
-    :param target_lst:
-    :return:
+    :param target_lst: list of targets with PAM
+    :return: list of ones in the length of the given target list.
     """
-    scores = MOFF_score(globals.moff_mtx1, globals.moff_mtx2, candidate_lst, target_lst)
-    return scores
+    result = [1 for _ in target_lst]
+    return result
 
 
-def make_upgma(distance_matrix: TreeConstruction._DistanceMatrix) -> TreeConstruction_changed.TreeNew:
+# ###################################### UPGMA tree functions ###################################### #
+
+def make_upgma(distance_matrix: _DistanceMatrix) -> TreeNew:
     """use by the doc in http://biopython.org/DIST/docs/api/Bio.Phylo.TreeConstruction.DistanceTreeConstructor-class.html"""
-    constructor = TreeConstruction_changed.DistanceTreeConstructor()
+    constructor = DistanceTreeConstructor()
     tree = constructor.upgma(distance_matrix)
     return tree
 
 
-def make_distance_matrix(names: List, vectors_list: List) -> TreeConstruction._DistanceMatrix:
+def make_distance_matrix(names: List, vectors_list: List) -> _DistanceMatrix:
     """
     Given a list of names of the sequences, a list of vectors where the i-th vector is the position of the i-th target in a
     len(vectors_list) dimensional space, this function returns a distance matrix object, to use in the UPGMA function.
@@ -185,11 +200,11 @@ def make_distance_matrix(names: List, vectors_list: List) -> TreeConstruction._D
             tempDistance = np.linalg.norm(np.array(vectors_list[i]) - np.array(vectors_list[j]))
             row.append(tempDistance)
         matrix += [row]
-    distance_matrix = TreeConstruction._DistanceMatrix(names, matrix)
+    distance_matrix = _DistanceMatrix(names, matrix)
     return distance_matrix
 
 
-def make_distance_matrix_from_protdist(output_path: str, names_list: List) -> TreeConstruction._DistanceMatrix:
+def make_distance_matrix_from_protdist(output_path: str, names_list: List) -> _DistanceMatrix:
     """
     this function creates a list of list representing a lower triangular distance matrix using distances created
     by PHYLIP's protDist method. this function is used to make a distance matrix object and to build a UPGMA tree.
@@ -199,7 +214,7 @@ def make_distance_matrix_from_protdist(output_path: str, names_list: List) -> Tr
     :return: lower triangular distance matrix
     """
     protdist_outfile = output_path + "/outfile"
-    os.rename(protdist_outfile, protdist_outfile + ".txt")
+    rename(protdist_outfile, protdist_outfile + ".txt")
     in_file = open(protdist_outfile + ".txt", 'r')
     p = re.compile("[a-zA-Z][a-zA-Z]")
     temp_res = re.split(p, in_file.read())[1:]
@@ -211,11 +226,11 @@ def make_distance_matrix_from_protdist(output_path: str, names_list: List) -> Tr
         if to_append:
             matrix.append(to_append)
         i += 1
-    distance_matrix = TreeConstruction._DistanceMatrix(names_list, matrix)
+    distance_matrix = _DistanceMatrix(names_list, matrix)
     return distance_matrix
 
 
-def return_protdist_upgma(seq_list, names_list, output_path) -> TreeConstruction_changed.TreeNew:
+def return_protdist_upgma(seq_list: List[str], names_list: List[str], output_path: str) -> TreeNew:
     """
     this function is called by 'gene_homology_alg' to create a UPGMA tree and a distance matrix using PHYLIP's protDist.
     Given a list of DNA sequences (genes) and their names, this function returns a UPGMA tree and a distance matrix
@@ -229,13 +244,14 @@ def return_protdist_upgma(seq_list, names_list, output_path) -> TreeConstruction
     new_names_list = list()
     for i in range(len(names_list)):
         new_names_list.append("GG" + str(i))  # for the regex
-    mafft_and_phylip.create_protdist(new_names_list, seq_list, output_path)
+    create_protdist(new_names_list, seq_list, output_path)
     distance_matrix = make_distance_matrix_from_protdist(output_path, names_list)
     tree = make_upgma(distance_matrix)
     return tree
 
 
-def return_targets_upgma(targets_seqs_list: List, names_list: List, scoring_function, cfd_dict: Dict) -> TreeConstruction_changed.TreeNew:
+def return_targets_upgma(targets_seqs_list: List[str], names_list: List[str], off_scoring_function, on_scoring_function,
+                         cfd_dict: Dict) -> TreeNew:
     """the function creates a UPGMA tree object from the potential targets in 'targets_seqs_list' using the given
     'scoring_function', in 3 steps:
     1) for each target in targets_seqs_list and using the given scoring function, creates a vectors list representing
@@ -245,12 +261,13 @@ def return_targets_upgma(targets_seqs_list: List, names_list: List, scoring_func
 
     :param targets_seqs_list: list of all the target sequences found in stage0
     :param names_list: a deep copy of targets_list
-    :param scoring_function: scoring function of the potential targets
+    :param off_scoring_function: the off target scoring function
+	:param on_scoring_function: the on target scoring function
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
     :return: potential targets' tree hierarchically clustered by UPGMA.
     """
     # create a list of vectors for the targets, which is then used to create the distance matrix
-    vectors_list = Metric.pos_in_metric_general(targets_seqs_list, scoring_function, cfd_dict)
+    vectors_list = pos_in_metric_general(targets_seqs_list, off_scoring_function, on_scoring_function, cfd_dict)
     # create the distance matrix
     distance_matrix = make_distance_matrix(names_list, vectors_list)
     # apply UPGMA, return a target tree
