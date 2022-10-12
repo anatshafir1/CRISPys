@@ -31,35 +31,14 @@ CONDA = "source /groups/itay_mayrose/udiland/miniconda3/etc/profile.d/conda.sh; 
 # command that is used to connect to server and run crista
 ssh_connect = 'ssh bioseq@powerlogin "module load python/python-anaconda3.6.5 && '
 
-mafft_path = "/groups/itay_mayrose/josefbrook/miniconda3/envs/crispys/bin/mafft"
-protdist_path = "/groups/itay_mayrose/josefbrook/miniconda3/envs/crispys/bin/protdist"
-# mafft_path = None
-# protdist_path = None
 
+# protdist_path = "/groups/itay_mayrose/josefbrook/miniconda3/envs/crispys/bin/protdist"
+protdist_path = 0
 
-def set_crisprnet_model(model):
-    """
-    A function to make a global variable 0f the model of crispr-net
-    Args:
-        model: crispr_net trained model
-
-    Returns: global variable
-    """
-    global crisprnet_loaded_model
-    crisprnet_loaded_model = model
-
-
-def set_res_path(path: str):
-    """
-    set variable of results path
-    Args:
-        path: The path for crispys output
-
-    Returns:
-        global variable that contain the results path
-    """
-    global RES_PATH
-    RES_PATH = path
+crisprnet_loaded_model = None
+moff_loaded_model = None
+moff_mtx1 = None
+moff_mtx2 = None
 
 
 def createHeaderJob(path, job_name, queue="itaym", ncpu=1, mem=16):
@@ -86,9 +65,3 @@ def createHeaderJob(path, job_name, queue="itaym", ncpu=1, mem=16):
     text += "export PATH='$CONDA_PREFIX/bin:$PATH'\n"
     text += "conda activate /groups/itay_mayrose/udiland/miniconda3/envs/crispys\n"
     return text
-
-crisprnet_loaded_model = None
-moff_loaded_model = None
-moff_mtx1 = None
-moff_mtx2 = None
-

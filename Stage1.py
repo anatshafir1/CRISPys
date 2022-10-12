@@ -169,8 +169,7 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
     current_genes_targets_dict = dict()
     targets_list = list()
     targets_names = list()
-    if N_genes_in_node >= len(
-            node.node_leaves) > singletons:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22. check if the node is one gene
+    if N_genes_in_node >= len(node.node_leaves) > singletons:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22. check if the node is one gene
         for leaf in node.node_leaves:  # leaf here is a gene. taking only the relevant genes
             current_genes_targets_dict[leaf] = genes_targets_dict[leaf]
             # filling the targets to genes dict

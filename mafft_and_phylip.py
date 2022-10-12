@@ -60,12 +60,12 @@ def call_protdist(outpath: str):
     :param outpath: the path of the input and output file for protdist
     """
     os.chdir(outpath)
-    # when running the algorithm on Unix operating systems
-    if globals.protdist_path is None:
-        os.system(f'echo "Y\r\n" | "{sys.exec_prefix}/bin/protdist"')
     # when running the algorithm from Microsoft Windows using POSIX:
-    else:
+    if isinstance(globals.protdist_path, str):
         subprocess.run([globals.protdist_path], input=b"Y")
+    # when running the algorithm on Unix operating systems
+    else:
+        os.system(f'echo "Y\r\n" | "{sys.exec_prefix}/bin/protdist"')
 
 
 def fasta_to_phylip(in_f: str, out_f: str):

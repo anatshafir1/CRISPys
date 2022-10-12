@@ -148,7 +148,7 @@ def moff(candidate_lst: List[str], target_lst: List[str]) -> List[float]:
 
 # ###################################### on target functions ###################################### #
 
-def deephf(target_lst: List) -> List:
+def deephf(target_lst: List[str]) -> List[float]:
     """
     This function use the model of deephf that was improved by Yaron Orenstein`s lab
 

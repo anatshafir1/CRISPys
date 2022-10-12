@@ -27,7 +27,7 @@ def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, om
     """
     if node.is_terminal() and singletons == 1:  # check if the node is a leaf - one target, to exclude singletons
         return
-    if len(node.polymorphic_sites) < max_target_polymorphic_sites:  # was hardcoded to be 12, change it to be the max_target_polymorphic_sites argument Udi 24/02/22
+    if len(node.polymorphic_sites) < max_target_polymorphic_sites:
         # make current_genes_targets_dict
         current_genes_targets_dict = dict()
         for target in node.node_leaves:

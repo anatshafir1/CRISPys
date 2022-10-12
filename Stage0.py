@@ -88,9 +88,6 @@ def choose_scoring_function(input_scoring_function: str):
     elif input_scoring_function == "gold_off":
         pam_included = True
         return gold_off_func, pam_included
-    elif input_scoring_function == "DeepHF" or input_scoring_function == "deephf":
-        pam_included = True
-        return deephf, pam_included
     elif input_scoring_function == "ucrispr" or input_scoring_function == "uCRISPR":
         pam_included = True
         return ucrispr, pam_included
@@ -100,6 +97,9 @@ def choose_scoring_function(input_scoring_function: str):
     elif input_scoring_function == "moff":
         pam_included = True
         return load_moff(), pam_included
+    elif input_scoring_function == "DeepHF" or input_scoring_function == "deephf":
+        pam_included = True
+        return deephf, pam_included
     elif input_scoring_function == "default":
         pam_included = True
         return default_on_target, pam_included
