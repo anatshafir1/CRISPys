@@ -153,4 +153,4 @@ def MOFF_score(m1_dic, m2_dic, sg_ls, tg_ls):
     mms = MisNum(sg_ls, tg_ls)
     gmt = [a ** b for a, b in zip(gop, mms)]
     moff = [a * b * c for a, b, c in zip(mde, ce, gmt)]
-    return [1 - score for score in moff]
+    return moff

@@ -4,104 +4,130 @@ __author__ = 'GH'
 # the naive algorithm - for a given family, with its group of sgRNA, find the most promising sgRNAs
 from typing import List, Dict, Tuple
 from Candidate import Candidate
-import Distance_matrix_and_UPGMA
-import Metric
+from Distance_matrix_and_UPGMA import gold_off_func, crisprnet, moff, ccTop, MITScore, default_on_target
+from Metric import cfd_funct
 from TreeConstruction_changed import CladeNew
 
 
-def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates: List[str], scoring_function,
-                    cfd_dict=None) -> Dict[str, List[Tuple[str, List[float]]]]:  # Omer caldararu 24/3
+def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates: List[str], off_scoring_function,
+                    on_scoring_function, cfd_dict=None) -> Dict[str, List[Tuple[str, List[float]]]]:  # Omer caldararu 24/3
     """
 	generates a data structure that contains the candidates and their off-target scores.
 	(in the case of gold off, or any other function that can accept several sgRNA's in a single call)
-	Args:
-		genes_targets_dict: a dictionary : gene name -> targets within the gene
-		list_of_candidates: a list of all possible candidates, given by all_perms()
-		scoring_function: the scoring function
-		cfd_dict: cfd dictionary used for the cfd function
-
-	Returns: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]}
+	
+	:param genes_targets_dict: a dictionary : gene name -> targets within the gene
+	:param list_of_candidates: a list of all possible candidates, given by all_perms()
+	:param off_scoring_function: the off target scoring function
+	:param on_scoring_function: the on target scoring function
+	:param cfd_dict: cfd dictionary used for the cfd function
+	:return: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]}
 	"""
     scores_dict = {}
-    if scoring_function == Distance_matrix_and_UPGMA.gold_off_func or scoring_function == Distance_matrix_and_UPGMA.crisprnet\
-            or scoring_function == Distance_matrix_and_UPGMA.moff:
-        return generate_scores_one_batch(genes_targets_dict, list_of_candidates, scoring_function, scores_dict)
-    for gene in genes_targets_dict:
-        scores_dict[gene] = []
-        for target in genes_targets_dict[gene]:
-            candidates_target_scores = []
-            if scoring_function == Metric.cfd_funct:
-                candidates_target_scores = list(map(lambda sg: scoring_function(sg, target, cfd_dict),
-                                                    list_of_candidates))
-            elif scoring_function == Distance_matrix_and_UPGMA.ccTop or scoring_function == Distance_matrix_and_UPGMA.MITScore:
-                candidates_target_scores = list(map(lambda sg: scoring_function(sg, target), list_of_candidates))
-            scores_dict[gene].append((target, candidates_target_scores))
-    return scores_dict
+    if off_scoring_function == gold_off_func or off_scoring_function == crisprnet or off_scoring_function == moff:
+        return generate_scores_one_batch(genes_targets_dict, list_of_candidates, off_scoring_function, on_scoring_function)
+    if on_scoring_function == default_on_target:  # if no on-target scoring function was given
+        for gene in genes_targets_dict:
+            scores_dict[gene] = []
+            for target in genes_targets_dict[gene]:
+                candidates_target_scores = []
+                for sg in list_of_candidates:
+                    if off_scoring_function == cfd_funct:
+                        candidates_target_scores += [off_scoring_function(sg, target, cfd_dict)]
+                    elif off_scoring_function == ccTop or off_scoring_function == MITScore:
+                        candidates_target_scores += [off_scoring_function(sg, target[:20])]
+                scores_dict[gene].append((target, candidates_target_scores))
+        return scores_dict
+    else:
+        batch_candidates_list = []
+        for gene in genes_targets_dict:
+            for target in genes_targets_dict[gene]:
+                candidates_with_pam = [f"{c[:20]}{target[20]}" for c in list_of_candidates]
+                batch_candidates_list += candidates_with_pam
+        on_scores = on_scoring_function(batch_candidates_list)
+        i = 0
+        for gene in genes_targets_dict:
+            scores_dict[gene] = []
+            for target in genes_targets_dict[gene]:
+                candidates_target_scores = []
+                for sg in list_of_candidates:
+                    if off_scoring_function == cfd_funct:
+                        candidates_target_scores += [off_scoring_function(sg, target, cfd_dict) * on_scores[i]]
+                    elif off_scoring_function == ccTop or off_scoring_function == MITScore:
+                        candidates_target_scores += [off_scoring_function(sg, target[:20]) * on_scores[i]]
+                    i += 1
+                scores_dict[gene].append((target, candidates_target_scores))
+        return scores_dict
 
 
-def generate_scores_one_batch(genes_targets_dict: Dict[str, List[str]], list_of_candidates: List[str], scoring_function, scores_dict: Dict) -> Dict:
+def generate_scores_one_batch(genes_targets_dict: Dict[str, List[str]], list_of_candidates: List[str],
+                              off_scoring_function, on_scoring_function) -> Dict[str, List[Tuple[str, List[float]]]]:
     """
 	generates a data structure that contains the candidates and their off-target scores,
 	using a single call of the scoring function.
   
     :param genes_targets_dict: a dictionary : gene name -> targets within the gene
     :param list_of_candidates: a list of all possible candidates, given by all_perms()
-    :param scoring_function: the scoring function
-    :param scores_dict: an empty dictionary
+	:param off_scoring_function: the off target scoring function
+	:param on_scoring_function: the on target scoring function
     :return: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]},
     """
-    genes_list = list(genes_targets_dict.keys())
+    scores_dict = {}
     batch_targets_list = []
     batch_candidates_list = []
-    for gene in genes_list:
+    for gene in genes_targets_dict:
         for target in genes_targets_dict[gene]:
-            batch_targets_list += [target] * len(list_of_candidates)
-        batch_candidates_list += list_of_candidates * len(genes_targets_dict[gene])
-    list_of_all_scores = []
-    # if the scoring function take the candidate without pam (e.g. gold-off)
-    if scoring_function == Distance_matrix_and_UPGMA.gold_off_func:
-        list_of_all_scores = scoring_function(batch_candidates_list, batch_targets_list)
-    # if the scoring function take the candidate with pam (e.g. crispr-net)
-    if scoring_function == Distance_matrix_and_UPGMA.crisprnet or scoring_function == Distance_matrix_and_UPGMA.moff:
-        batch_candidates_list_withPAM = []
-        for candidate, target in zip(batch_candidates_list, batch_targets_list):
-            batch_candidates_list_withPAM.append(candidate + target[20:23])
-        list_of_all_scores = scoring_function(batch_candidates_list_withPAM, batch_targets_list)
-    i = 0
-    for gene in genes_list:
-        scores_dict[gene] = []
-        for target in genes_targets_dict[gene]:
-            candidates_target_scores = list_of_all_scores[i:i + len(list_of_candidates)]
-            scores_dict[gene].append((target, candidates_target_scores))
-            i += len(list_of_candidates)
-    return scores_dict
+            batch_targets_list.extend([target] * len(list_of_candidates))
+            candidates_with_pam = [f"{c[:20]}{target[20:]}" for c in list_of_candidates]
+            batch_candidates_list += candidates_with_pam
+    off_scores = off_scoring_function(batch_candidates_list, batch_targets_list)
+    if on_scoring_function == default_on_target:  # if no on-target scoring function was given
+        i = 0
+        for gene in genes_targets_dict:
+            scores_dict[gene] = []
+            for target in genes_targets_dict[gene]:
+                candidates_target_scores = off_scores[i:i + len(list_of_candidates)]
+                scores_dict[gene].append((target, candidates_target_scores))
+                i += len(list_of_candidates)
+        return scores_dict
+    else:
+        on_scores = on_scoring_function(batch_candidates_list)
+        all_scores = [x * y for x, y in zip(off_scores, on_scores)]
+        i = 0
+        for gene in genes_targets_dict:
+            scores_dict[gene] = []
+            for target in genes_targets_dict[gene]:
+                candidates_target_scores = all_scores[i:i + len(list_of_candidates)]
+                scores_dict[gene].append((target, candidates_target_scores))
+                i += len(list_of_candidates)
+        return scores_dict
 
 
-def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, scoring_function, node: CladeNew,
-                      cfd_dict: Dict = None, singletons: int = 0) -> List[Candidate]:
+def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, off_scoring_function, on_scoring_function,
+                      node: CladeNew, cfd_dict: Dict = None, singletons: int = 0) -> List[Candidate]:
     """
 
     :param genes_targets_dict: a dictionary of gene -> list of potential targets found in the gene
     :param omega: Threshold of targeting propensity of a gene by a considered sgRNA (see article p. 4)
-    :param scoring_function: scoring function of the potential targets
+    :param off_scoring_function: the off target scoring function
+	:param on_scoring_function: the on target scoring function
     :param node: current node in the targets UPGMA tree that the targets in genes_targets_dict belong to
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
+    :return:
     """
     # stage one: make a list of all the sgRNAs
     list_of_targets = []
     for gene in genes_targets_dict:
         list_of_targets += genes_targets_dict[gene]
-    initial_seq = list_of_targets[0]
     # stage two: find the suitable sgRNA:
     dict_of_different_places = find_polymorphic_sites(list_of_targets)
     node.polymorphic_sites = dict_of_different_places
     list_of_different_places = list(dict_of_different_places.items())
     list_of_different_places.sort(key=lambda item: item[0])
     # going over all the permutations
-    list_of_perms_seqs = all_perms(initial_seq, None, list_of_different_places)
+    list_of_perms_seqs = all_perms(str(list_of_targets[0]), [], list_of_different_places)
     list_of_candidates = []  # a list of tuples: (candidate_str, fraction_of_cut, cut_expectation, genes_list)
-    scores_dict = generate_scores(genes_targets_dict, list_of_perms_seqs, scoring_function, cfd_dict)
+    scores_dict = generate_scores(genes_targets_dict, list_of_perms_seqs, off_scoring_function, on_scoring_function, cfd_dict)
     for i in range(len(list_of_perms_seqs)):
         targets_dict = {}  # a list of tuples: (gene name, list of target of this gene that might be cut by the candidate_str)
         genes_covering = []  # a list of tuples: (gene name, probability to be cut).
@@ -211,7 +237,8 @@ def find_polymorphic_sites(leaves: List) -> Dict[int, List[str]]:
         current_differences = two_seqs_differences(ref, leaves[i])
         for polymorphism_site in current_differences:
             if polymorphism_site in differences:
-                differences[polymorphism_site] = list(set(differences[polymorphism_site] + current_differences[polymorphism_site]))
+                differences[polymorphism_site] = list(
+                    set(differences[polymorphism_site] + current_differences[polymorphism_site]))
             else:
                 differences[polymorphism_site] = current_differences[polymorphism_site]
     return differences

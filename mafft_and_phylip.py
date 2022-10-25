@@ -3,13 +3,12 @@ __author__ = 'GH'
 
 # Unix version
 import subprocess
+import sys
 from typing import List
 import os
 from Bio.Align.Applications import MafftCommandline
 from Bio import SeqIO  # app to read fasta files (added by Udi)
 import globals
-# get the absolute output_path of the script
-PATH = os.path.dirname(os.path.realpath(__file__))
 
 
 ########################################################################################################################
@@ -39,24 +38,34 @@ def make_fasta_file(names_lst: List, seq_lst: List, outfile: str):
 
 def call_mafft(in_file: str, out_file: str):
     """
-    calls the MAFFT algorithm to align the input DNA sequences of 'in_file' - a fasta format file. the aligned sequences
-    are then stored in a fasta format file 'out_file' and the output path of the file is returned.
+    Calls the MAFFT algorithm to align the input DNA sequences of 'in_file' - a fasta format file. The aligned sequences
+    are then stored in a fasta format file 'out_file'.
 
     :param in_file: fasta format file of sequences to be aligned
     :param out_file: fasta format file of aligned sequences
-    :return: the output path of the out_file
-    :rtype: str
     """
-    # when running the algorithm on Unix operating systems
-    if globals.mafft_path is None:
-        mafft_cline = MafftCommandline(input=in_file)
-    # when running the algorithm from Microsoft Windows using POSIX:
-    else:
-        mafft_cline = MafftCommandline(globals.mafft_path, input=in_file)
+    mafft_cline = MafftCommandline(cmd=sys.exec_prefix + "/bin/mafft", input=in_file)
     stdout, stderr = mafft_cline()
     with open(out_file, "w") as handle:
         handle.write(stdout)
-    return out_file
+
+
+def call_protdist(outpath: str):
+    """
+    calls the protDist algorithm to create a distance matrix from a phylip format file. the input file for protdist
+    algorithm has to be a phylip format, in the 'outpath' and under the name 'infile' (these will be asserted in
+    'create_protdist' and 'fasta_to_phylip' functions). the output distance matrix will be stored in 'outpath' under the
+    name 'outfile'.
+
+    :param outpath: the path of the input and output file for protdist
+    """
+    os.chdir(outpath)
+    # when running the algorithm from Microsoft Windows using POSIX:
+    if isinstance(globals.protdist_path, str):
+        subprocess.run([globals.protdist_path], input=b"Y")
+    # when running the algorithm on Unix operating systems
+    else:
+        os.system(f'echo "Y\r\n" | "{sys.exec_prefix}/bin/protdist"')
 
 
 def fasta_to_phylip(in_f: str, out_f: str):
@@ -86,21 +95,3 @@ def create_protdist(names_lst: List, seq_lst: List, out_path: str):
     call_mafft(genes_fasta_for_mafft, mafft_output_aligned_fasta)
     fasta_to_phylip(mafft_output_aligned_fasta, phylip_file)
     call_protdist(out_path)
-
-
-def call_protdist(outpath: str):
-    """
-    calls the protDist algorithm to create a distance matrix from a phylip format file. the input file for protdist
-    algorithm has to be a phylip format, in the 'outpath' and under the name 'infile' (these will be asserted in
-    'create_protdist' and 'fasta_to_phylip' functions). the output distance matrix will be stored in 'outpath' under the
-    name 'outfile'.
-
-    :param outpath: the path of the input and output file for protdist
-    """
-    os.chdir(outpath)
-    # when running the algorithm on Unix operating systems
-    if globals.protdist_path is None:
-        os.system('echo "Y\r\n" | protdist')
-    # when running the algorithm from Microsoft Windows using POSIX:
-    else:
-        subprocess.run([globals.protdist_path], input=b"Y")

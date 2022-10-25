@@ -2,6 +2,7 @@ import pickle
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+
 def get_data(config):
     if config.data_source == 'old':
         dir_path = 'data/preprocessed_data/original_data/'
@@ -18,8 +19,6 @@ def get_data(config):
             # train_seq.X = train_seq.X[:1000]
             # train_seq.X_biofeat = train_seq.X_biofeat[:1000]
             # train_seq.y = train_seq.y[:1000]
-
-
 
     with open(dir_path + 'valid_seq.pkl', "rb") as fp:
         valid_seq = pickle.load(fp)
@@ -42,18 +41,17 @@ def get_data(config):
     else:
         single_enzyme_loader(config, DataHandler, test_seq, valid_seq, train_seq)
 
-
     if not config.has_embedding:
         # X_train_val = np.eye(5)[X_train_val]
         DataHandler['X_test'] = np.eye(5)[DataHandler['X_test']]
         DataHandler['X_train'] = np.eye(5)[DataHandler['X_train']]
         DataHandler['X_val'] = np.eye(5)[DataHandler['X_val']]
 
-
     if config.eda:
         eda(DataHandler)
 
     return DataHandler
+
 
 def single_enzyme_loader(config, DataHandler, test_seq, valid_seq, train_seq):
     DataHandler['y_test'] = test_seq.y[config.enzyme]
@@ -108,7 +106,6 @@ def parallel_enzyme_loader(config, DataHandler, test_seq, valid_seq, train_seq):
 
 
 def parallel_target(data_seq, drop_nans):
-
     if drop_nans:
         wt_valid_indexes = np.logical_not(np.isnan(data_seq.y['wt']))
         esp_valid_indexes = np.logical_not(np.isnan(data_seq.y['esp']))
@@ -126,6 +123,7 @@ def parallel_target(data_seq, drop_nans):
 
     return y_data, valid_indexes
 
+
 ### Serial loader for multi_task
 def serial_enzyme_loader(config, DataHandler, test_seq, valid_seq, train_seq):
     # The test data is being tested for every enzyme separately, so we can use nan values
@@ -136,21 +134,21 @@ def serial_enzyme_loader(config, DataHandler, test_seq, valid_seq, train_seq):
 
     # The validation data need to be filtered to hold only not nan values. Because the data is being entered serially,
     # we can filter the not nan data for each enzyme separately.
-    enzymes =['wt', 'esp', 'hf']
-    y_valid = np.empty(shape=[0,], dtype=np.float16)
-    conf_valid = np.empty(shape=[0,])
-    X_valid = np.empty(shape=[0,22])
-    X_biofeat_valid = np.empty(shape=[0,14])
+    enzymes = ['wt', 'esp', 'hf']
+    y_valid = np.empty(shape=[0, ], dtype=np.float16)
+    conf_valid = np.empty(shape=[0, ])
+    X_valid = np.empty(shape=[0, 22])
+    X_biofeat_valid = np.empty(shape=[0, 14])
 
     for ind, enzyme in enumerate(enzymes):
         valid_indexes = np.logical_not(np.isnan(valid_seq.y[enzyme]))
-        y_valid = np.concatenate((y_valid,valid_seq.y[enzyme][valid_indexes]), axis=0)
-        conf_valid = np.concatenate((conf_valid,valid_seq.confidence[enzyme][valid_indexes]), axis=0)
-        X_valid = np.concatenate((X_valid,valid_seq.X[valid_indexes]), axis=0)
+        y_valid = np.concatenate((y_valid, valid_seq.y[enzyme][valid_indexes]), axis=0)
+        conf_valid = np.concatenate((conf_valid, valid_seq.confidence[enzyme][valid_indexes]), axis=0)
+        X_valid = np.concatenate((X_valid, valid_seq.X[valid_indexes]), axis=0)
         x_biofeat_valid_enzyme = valid_seq.X_biofeat[valid_indexes]
         ohe = np.eye(3)[np.zeros((x_biofeat_valid_enzyme.shape[0]), dtype=np.int) + ind]
         x_biofeat_valid_enzyme = np.append(x_biofeat_valid_enzyme, ohe, axis=-1)
-        X_biofeat_valid = np.concatenate((X_biofeat_valid,x_biofeat_valid_enzyme), axis=0)
+        X_biofeat_valid = np.concatenate((X_biofeat_valid, x_biofeat_valid_enzyme), axis=0)
 
     DataHandler['y_valid'] = y_valid
     DataHandler['conf_valid'] = conf_valid
@@ -160,20 +158,19 @@ def serial_enzyme_loader(config, DataHandler, test_seq, valid_seq, train_seq):
     # The train data can be loaded same as the validation data.
     # For old data - we need to filter the not nan values
     # For the new data (raw reads) the data is already filtered - we need only to combine the 3 files.
-    y_train = np.empty(shape=[0,], dtype=np.float16)
-    conf_train = np.empty(shape=[0,])
-    X_train = np.empty(shape=[0,22])
-    X_biofeat_train = np.empty(shape=[0,14])
+    y_train = np.empty(shape=[0, ], dtype=np.float16)
+    conf_train = np.empty(shape=[0, ])
+    X_train = np.empty(shape=[0, 22])
+    X_biofeat_train = np.empty(shape=[0, 14])
     for ind, enzyme in enumerate(enzymes):
         valid_indexes = np.logical_not(np.isnan(train_seq.y[enzyme]))
         y_train = np.concatenate((y_train, train_seq.y[enzyme][valid_indexes]), axis=0)
-        conf_train = np.concatenate((conf_train,train_seq.confidence[enzyme][valid_indexes]), axis=0)
+        conf_train = np.concatenate((conf_train, train_seq.confidence[enzyme][valid_indexes]), axis=0)
         X_train = np.concatenate((X_train, train_seq.X[valid_indexes]), axis=0)
         x_biofeat_train_enzyme = train_seq.X_biofeat[valid_indexes]
         ohe = np.eye(3)[np.zeros((x_biofeat_train_enzyme.shape[0]), dtype=np.int) + ind]
         x_biofeat_train_enzyme = np.append(x_biofeat_train_enzyme, ohe, axis=-1)
         X_biofeat_train = np.concatenate((X_biofeat_train, x_biofeat_train_enzyme), axis=0)
-
 
     DataHandler['y_train'] = y_train
     DataHandler['conf_train'] = conf_train
@@ -211,15 +208,12 @@ def eda(DataHandler):
     pyplot.savefig('confidence.png')
     exit(1)
 
-
-
     biofeatures = DataHandler['X_train_biofeat']
-
 
     plt.figure(figsize=(40, 30))
     for ind in range(11):
         biofeature = biofeatures[:, ind]
-        pyplot.subplot(11, 2, ind+1)
+        pyplot.subplot(11, 2, ind + 1)
         pyplot.hist(biofeature)
         pyplot.title('feature' + str(ind))
 
@@ -239,4 +233,3 @@ def eda(DataHandler):
     pyplot.legend()
     pyplot.savefig('efficiency_EDA_transformed.png')
     exit(1)
-

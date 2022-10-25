@@ -1,22 +1,23 @@
 """Main"""
 __author__ = 'Gal Hyams'
 
-from typing import List, Dict
-import CasSites
-from CRISPR_Net.CrisprNetLoad import load_crispr_net
-import Stage1
-import Distance_matrix_and_UPGMA
 import timeit
 import pickle
-import Metric
 import argparse
 import os
 import sys
-import make_tree_display_CSV
-from MOFF.MoffLoad import load_moff
+from typing import List, Dict
+
+from make_tree_display_CSV import tree_display
+from CasSites import fill_genes_targets_dict
+from Stage1 import default_alg, gene_homology_alg
+from Distance_matrix_and_UPGMA import MITScore, ccTop, gold_off_func, ucrispr, default_on_target
+from Metric import cfd_funct
 from SubgroupRes import SubgroupRes
 from Candidate import Candidate
-import glob
+from CRISPR_Net.CrisprNetLoad import load_crispr_net
+from MOFF.MoffLoad import load_moff
+from DeepHF.LoadDeepHF import load_deephf
 
 # get the output_path of this script file
 
@@ -71,28 +72,38 @@ def sort_threshold(subgroups: List[SubgroupRes], omega: float):
 
 def choose_scoring_function(input_scoring_function: str):
     """
-    This function translates the chosen input for the scoring function and returns its pointer in the algorithm files.
+    This function translates the chosen input for the scoring function and returns its pointer in the algorithm files
+    and whether the function takes PAMs into its calculation.
 
     :param input_scoring_function: chosen scoring function by the user
     :return: scoring function pointer to use in the algorithm
-    :rtype: function
+    :rtype: function, boolean
     """
-    if input_scoring_function == "gold_off":
-        return Distance_matrix_and_UPGMA.gold_off_func
-    elif input_scoring_function == "CrisprMIT":
-        return Distance_matrix_and_UPGMA.MITScore
+    pam_included = False
+    if input_scoring_function == "CrisprMIT":
+        return MITScore, pam_included
     elif input_scoring_function == "CCTop":
-        return Distance_matrix_and_UPGMA.ccTop
+        return ccTop, pam_included
     elif input_scoring_function == "cfd_funct" or input_scoring_function == "cfd":
-        return Metric.cfd_funct
-    elif input_scoring_function == "DeepHF" or input_scoring_function == "deephf":
-        return Distance_matrix_and_UPGMA.deephf
+        return cfd_funct, pam_included
+    elif input_scoring_function == "gold_off":
+        pam_included = True
+        return gold_off_func, pam_included
     elif input_scoring_function == "ucrispr" or input_scoring_function == "uCRISPR":
-        return Distance_matrix_and_UPGMA.ucrispr
-    elif input_scoring_function == "crispr_net" or input_scoring_function == "CRISPR_Net" or input_scoring_function == "crisprnet":
-        return load_crispr_net()
+        pam_included = True
+        return ucrispr, pam_included
+    elif input_scoring_function == "crispr_net" or input_scoring_function == "crisprnet":
+        pam_included = True
+        return load_crispr_net(), pam_included
     elif input_scoring_function == "moff":
-        return load_moff()
+        pam_included = True
+        return load_moff(), pam_included
+    elif input_scoring_function == "DeepHF" or input_scoring_function == "deephf":
+        pam_included = True
+        return load_deephf(), pam_included
+    elif input_scoring_function == "default":
+        pam_included = True
+        return default_on_target, pam_included
     else:
         print("Did not specify valid scoring function")
 
@@ -160,8 +171,8 @@ def inverse_genes_targets_dict(genes_targets_dict: Dict[str, List[str]]) -> Dict
     return targets_genes_dict
 
 
-def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_in_gene: float = 1, use_thr: int = 1,
-                 omega: float = 1, scoring_function: str = "cfd_funct", min_length: int = 20, max_length: int = 20,
+def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_in_gene: float = 1, use_thr: int = 1,
+                 omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
                  pams: int = 0, singletons: int = 0, slim_output: bool = False) -> List[SubgroupRes]:
     """
@@ -173,9 +184,8 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     :param where_in_gene: ignore targets sites downstream to the fractional part of the gene
     :param use_thr:
     :param omega: threshold of targeting propensity of a gene by a considered sgRNA (see article p. 4)
-    :param scoring_function: scoring function of the potential targets
-    :param min_length: minimal length of the target site
-    :param max_length: maximal length of the target site
+    :param off_scoring_function: off target scoring function
+    :param on_scoring_function: on target scoring function
     :param start_with_g: defines whether target sites are obligated to start with a G codon
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
@@ -188,43 +198,41 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = 'default', where_
     # set the recursion limit to prevent recursion error
     sys.setrecursionlimit(10 ** 6)
     # choosing the scoring function:
-    scoring_function_targets = choose_scoring_function(scoring_function)
+    off_scoring_function, pam_included = choose_scoring_function(off_scoring_function)
+    on_scoring_function, pam_included = choose_scoring_function(on_scoring_function)
     genes_exons_dict = fill_genes_exons_dict(fasta_file)  # gene name -> list of exons
     # find the potential sgRNA target sites for each gene:
-    genes_targets_dict = CasSites.fill_genes_targets_dict(genes_exons_dict, scoring_function_targets, where_in_gene,
-                                                          min_length, max_length,
-                                                          start_with_g,
-                                                          pams)  # gene names -> list of target seqs
+    genes_targets_dict = fill_genes_targets_dict(genes_exons_dict, pam_included, where_in_gene, start_with_g, pams)  # gene names -> list of target seqs
     targets_genes_dict = inverse_genes_targets_dict(genes_targets_dict)  # target seq -> list of gene names
     genes_names_list = list(genes_targets_dict.keys())
     genes_list = get_genes_list(genes_exons_dict)  # a list of all the input genes in the algorithm
     res = []
     if alg == 'gene_homology':
-        res = Stage1.gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict, omega,
-                                       output_path, scoring_function_targets, internal_node_candidates,
-                                       max_target_polymorphic_sites, singletons, slim_output)
+        res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict, omega,
+                                output_path, off_scoring_function, on_scoring_function, internal_node_candidates,
+                                max_target_polymorphic_sites, singletons, slim_output)
     elif alg == 'default':  # alg == "default" (look in article for better name)
-        res = Stage1.default_alg(targets_genes_dict, omega, scoring_function_targets, max_target_polymorphic_sites,
-                                 singletons)
+        res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function, max_target_polymorphic_sites, singletons)
 
     if use_thr:
         sort_threshold(res, omega)
     else:
         sort_expectation(res)
 
+    pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
+
     if slim_output:
-        for path in glob.glob(os.path.join(output_path,"*")):
-            if path != fasta_file and not os.path.isdir(path):
-                os.remove(path)
-        pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
+        os.system(f"rm {os.path.join(output_path, 'genes_fasta_for_mafft.fa')}")
+        os.system(f"rm {os.path.join(output_path, 'mafft_output_aligned_fasta.fa')}")
+        os.system(f"rm {os.path.join(output_path, 'infile')}")
+        os.system(f"rm {os.path.join(output_path, 'outfile.txt')}")
     else:
-        pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
         pickle.dump(genes_names_list, open(output_path + "/genes_names.p", "wb"))
         # add saving the gene_list in pickle in order to produce the results like in the server version - Udi 28/02/22
         pickle.dump(genes_list, open(output_path + '/genes_list.p', 'wb'))
         pickle.dump(targets_genes_dict, open(output_path + "/sg_genes.p", "wb"))
         # new output function taken from the crispys server code. Udi 13/04/2022
-        make_tree_display_CSV.tree_display(output_path, alg == 'gene_homology')
+        tree_display(output_path, alg == 'gene_homology')
 
     stop = timeit.default_timer()
     if not slim_output:
@@ -256,14 +264,13 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                                  ' Default: 0.')
     parser_obj.add_argument('--omega', '-v', type=float, default=0.43,
                             help='the value of the threshold. A number between 0 to 1 (included). Default: 0.43')
-    parser_obj.add_argument('--scoring_function', '-s', type=str, default='cfd_funct',
-                            help='the scoring function of the targets. Optional scoring systems are: cfd_funct('
+    parser_obj.add_argument('--off_scoring_function', '-s', type=str, default='cfd_funct',
+                            help='the off scoring function of the targets. Optional scoring systems are: cfd_funct('
                                  'default), gold_off, CrisprMIT and CCtop. Additional scoring function may be added '
                                  'by the user or by request.')
-    parser_obj.add_argument('--min_target_len', '-l', type=int, default=20, help='minimal length of the target site. '
-                                                                                 'Default:20')
-    parser_obj.add_argument('--max_target_len', '-m', type=bool, default=20, help='maximal length of the target site. '
-                                                                                  'Default:20')
+    parser_obj.add_argument('--on_scoring_function', '-n', type=str, default='',
+                            help='the on scoring function of the targets. Optional scoring systems are: deephf. '
+                                 'Additional scoring function may be added by the user or by request.')
     parser_obj.add_argument('--start_with_g', '-g', type=bool, default=0,
                             help='1 if the target sites are obligated to start with a G codon or 0 otherwise. '
                                  'Default: 0.')
@@ -294,9 +301,8 @@ if __name__ == "__main__":
                  where_in_gene=args.where_in_gene,
                  use_thr=args.use_thr,
                  omega=args.omega,
-                 scoring_function=args.scoring_function,
-                 min_length=args.min_target_len,
-                 max_length=args.max_target_len,
+                 off_scoring_function=args.off_scoring_function,
+                 on_scoring_function=args.on_scoring_function,
                  start_with_g=args.start_with_g,
                  internal_node_candidates=args.internal_node_candidates,
                  max_target_polymorphic_sites=args.max_target_polymorphic_sites,
