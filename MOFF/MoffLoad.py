@@ -10,7 +10,7 @@ import tensorflow.python
 
 def load_moff():
     """
-    Function to load MOFF algorithm
+    Function to load MOFF algorithm model
     """
     globals.moff_mtx1 = loads(open(f"{globals.CODE_PATH}/MOFF/StaticFiles/M1_matrix_dic_D9").read())
     globals.moff_mtx2 = loads(open(f"{globals.CODE_PATH}/MOFF/StaticFiles/M2_matrix_smooth_MLE").read())

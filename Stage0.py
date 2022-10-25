@@ -11,12 +11,13 @@ from typing import List, Dict
 from make_tree_display_CSV import tree_display
 from CasSites import fill_genes_targets_dict
 from Stage1 import default_alg, gene_homology_alg
-from Distance_matrix_and_UPGMA import MITScore, ccTop, gold_off_func, deephf, ucrispr, default_on_target
+from Distance_matrix_and_UPGMA import MITScore, ccTop, gold_off_func, ucrispr, default_on_target
 from Metric import cfd_funct
 from SubgroupRes import SubgroupRes
 from Candidate import Candidate
 from CRISPR_Net.CrisprNetLoad import load_crispr_net
 from MOFF.MoffLoad import load_moff
+from DeepHF.LoadDeepHF import load_deephf
 
 # get the output_path of this script file
 
@@ -99,7 +100,7 @@ def choose_scoring_function(input_scoring_function: str):
         return load_moff(), pam_included
     elif input_scoring_function == "DeepHF" or input_scoring_function == "deephf":
         pam_included = True
-        return deephf, pam_included
+        return load_deephf(), pam_included
     elif input_scoring_function == "default":
         pam_included = True
         return default_on_target, pam_included

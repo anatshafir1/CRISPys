@@ -1,12 +1,12 @@
-
-
-'''standard command line:
+"""standard command line:
      --data_type multi_task -s_type train -em --data_file final_df_1
      --enzyme multi_task -s_type train -ds new --model_type model3 --weighted_loss -md serial
      --enzyme esp -s_type train -ds new --model_type model3 --weighted_loss
      --enzyme esp -s_type param_search -ds new --model_type model1  -md parallel --weighted_loss
-'''
+"""
 if __name__ == '__main__':
+    import pandas as pd
+    import tensorflow as tf
     from scripts.training_util import *
     # my scripts
     import scripts.configurations as cfg
@@ -16,8 +16,6 @@ if __name__ == '__main__':
     from scripts import preprocess
     from scripts import data_handler as dh
     from scripts import prediction_util as pred
-    import pandas as pd
-    import tensorflow as tf
 
     # Using only needed memory on GPU
     conf = tf.compat.v1.ConfigProto()
@@ -28,11 +26,9 @@ if __name__ == '__main__':
     config = cfg.get_parser()
 
     if config.simulation_type == 'train':
-
         print('simulation_type = train')
         DataHandler = dh.get_data(config)
         train_model(config, DataHandler)
-
 
     if config.simulation_type == 'cross_v':
         param = get_param(config)
@@ -50,16 +46,14 @@ if __name__ == '__main__':
     if config.simulation_type == 'test_means':
         testing.test_means(config)
 
-
     if config.simulation_type == 'preprocess':
-            preprocess.split_to_train_test_file(config)
-            preprocess.prepare_test_seq(config)
-            preprocess.prepare_train_valid_seq(config)
-
+        preprocess.split_to_train_test_file(config)
+        preprocess.prepare_test_seq(config)
+        preprocess.prepare_train_valid_seq(config)
 
     if config.simulation_type == 'predict':
         model_path = 'models/{}/{}/{}/'.format(config.model_type, 'bio' if config.has_biofeatures else 'no_bio',
-                                              config.enzyme)
+                                               config.enzyme)
         if config.enzyme == 'multi_task':
             model_path += config.multi_data + '/'
 
@@ -70,5 +64,4 @@ if __name__ == '__main__':
             inputs = [DataHandler['X_test']]
         # pred.get_predictions(model_path, inputs, decoded=True)
         pred.debug(model_path, inputs, DataHandler['y_test'])
-        a=0
-
+        a = 0

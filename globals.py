@@ -35,6 +35,9 @@ ssh_connect = 'ssh bioseq@powerlogin "module load python/python-anaconda3.6.5 &&
 # protdist_path = "/groups/itay_mayrose/josefbrook/miniconda3/envs/crispys/bin/protdist"
 protdist_path = 0
 
+# Models of scoring functions loadings
+deephf_config = None
+deephf_loaded_model = None
 crisprnet_loaded_model = None
 moff_loaded_model = None
 moff_mtx1 = None

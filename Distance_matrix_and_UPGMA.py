@@ -1,6 +1,6 @@
 """Scoring functions and tree calculations"""
 import subprocess
-from os.path import dirname, abspath, join
+from os.path import dirname, abspath
 from os import rename
 import math
 from typing import List, Dict
@@ -22,7 +22,7 @@ from gold_off import predict
 # ###################################### off target functions ###################################### #
 
 
-def MITScore(seq1: str, seq2: str) -> float:
+def MITScore(seq1: str, seq2: str, for_metric: bool = False) -> float:
     """from CRISPR-MIT PAM comes at the end of the string"""
     distance, first_mm, last_mm = 0, -1, -1
 
@@ -47,11 +47,13 @@ def MITScore(seq1: str, seq2: str) -> float:
     else:
         d_avg = (last_mm - first_mm) / distance
         original_score = first_arg / ((4 * (19 - d_avg) / 19 + 1) * distance ** 2)
+    if for_metric:
+        return original_score
+    else:
+        return 1 - original_score
 
-    return 1 - original_score
 
-
-def ccTop(sgseq: str, target_seq: str) -> float:
+def ccTop(sgseq: str, target_seq: str, for_metric: bool = False) -> float:
     """
 
     :param sgseq:
@@ -62,10 +64,13 @@ def ccTop(sgseq: str, target_seq: str) -> float:
     max_score = sum([math.pow(1.2, i + 1) for i in range(len(sgseq))])
     mm = [i + 1 if sgseq[i] != target_seq[i] else 0 for i in range(len(sgseq))]
     curScore = sum(list(map(lambda x: pow(1.2, x) if x != 0 else 0, mm)))
-    return curScore / max_score  # a value between 0 and 1
+    if for_metric:
+        return curScore / max_score  # a value between 0 and 1
+    else:
+        return 1 - curScore / max_score
 
 
-def gold_off_func(sg_seq_list: List[str], target_seq_list: List[str]) -> List[float]:  # Omer Caldararu 28/3
+def gold_off_func(sg_seq_list: List[str], target_seq_list: List[str], for_metric: bool = False) -> List[float]:  # Omer Caldararu 28/3
     """
     Scoring function based on gold-off regressor. This function uses a model.xgb file.
 
@@ -82,10 +87,71 @@ def gold_off_func(sg_seq_list: List[str], target_seq_list: List[str]) -> List[fl
     list_of_scores = predict(sg_seq_list, target_seq_list, xgb_model_path, include_distance_feature=True,
                              n_process=globals.n_cores_for_gold_off, model_type="regression")
     list_of_scores = np.clip(list_of_scores, 0, 1)  # clipping is done when the score is above 1 or below 0
-    return [1 - score for score in list_of_scores]
+    if for_metric:
+        return list(list_of_scores)
+    else:
+        return [1 - score for score in list_of_scores]
 
 
-def ucrispr(sg_seq_list: List[str]) -> List[float]:
+def crisprnet(candidate_lst: List[str], target_lst: List[str], for_metric: bool = False) -> List[float]:
+    """
+    This function take list of sgrnas (candidate) and list of targets and returns a list of  1 - crispr_net score
+
+    :param candidate_lst: list of candidates
+    :param target_lst: list of targets
+    :return: list of crispr_net scores
+    """
+    input_codes = []
+    for seqs in zip(candidate_lst, target_lst):
+        on_seq = seqs[0]
+        off_seq = seqs[1]
+        en = Encoder_sgRNA_off.Encoder(on_seq=on_seq, off_seq=off_seq)
+        input_codes.append(en.on_off_code)
+    input_codes = np.array(input_codes)
+    input_codes = input_codes.reshape((len(input_codes), 1, 24, 7))
+    y_pred = globals.crisprnet_loaded_model.predict(input_codes).flatten()
+    if for_metric:
+        return list(y_pred)
+    else:
+        return [1 - float(y) for y in y_pred]
+
+
+def moff(candidate_lst: List[str], target_lst: List[str], for_metric: bool = False) -> List[float]:
+    """
+    Calling MOFF algorithm, this function take list of sgrnas (candidate) and list of targets and
+    returns a list of  1 - MOFF score
+
+    :param candidate_lst: list of candidates
+    :param target_lst: list of targets
+    :return: list of  1 - MOFF score
+    """
+    scores = MOFF_score(globals.moff_mtx1, globals.moff_mtx2, candidate_lst, target_lst)
+    if for_metric:
+        return list(scores)
+    else:
+        return [1 - score for score in scores]
+
+
+# ###################################### on target functions ###################################### #
+
+def deephf(target_lst: List[str], for_metric: bool = False) -> List[float]:
+    """
+    This function use the model of deephf that was improved by Yaron Orenstein`s lab
+
+    :param target_lst: list of targets with PAM
+    :return: list of on-target scores
+    """
+    # take 21 nt from targets
+    targets = [target[0:21] for target in target_lst]
+    # get deephf scores
+    scores = prediction_util.get_predictions(globals.deephf_loaded_model, globals.deephf_config, targets)
+    if for_metric:
+        return list(scores)
+    else:
+        return [1 - score for score in scores]
+
+
+def ucrispr(sg_seq_list: List[str], for_metric: bool = False) -> List[float]:
     """
     This function will run the uCRISPR algorithm for a list of targets and will return a list of the on-target scores
     IMPORTANT: before running you need to give the path to data tables that are part of uCRISPR
@@ -113,57 +179,7 @@ def ucrispr(sg_seq_list: List[str]) -> List[float]:
     return [float(i.split(" ")[1]) for i in res_lst[1:len(res_lst) - 1]]
 
 
-def crisprnet(candidate_lst: List[str], target_lst: List[str]) -> List[float]:
-    """
-    This function take list of sgrnas (candidate) and list of targets and returns a list of  1 - crispr_net score
-
-    :param candidate_lst: list of candidates
-    :param target_lst: list of targets
-    :return: list of crispr_net scores
-    """
-    input_codes = []
-    for seqs in zip(candidate_lst, target_lst):
-        on_seq = seqs[0]
-        off_seq = seqs[1]
-        en = Encoder_sgRNA_off.Encoder(on_seq=on_seq, off_seq=off_seq)
-        input_codes.append(en.on_off_code)
-    input_codes = np.array(input_codes)
-    input_codes = input_codes.reshape((len(input_codes), 1, 24, 7))
-    y_pred = globals.crisprnet_loaded_model.predict(input_codes).flatten()
-    return [1 - float(y) for y in y_pred]
-
-
-def moff(candidate_lst: List[str], target_lst: List[str]) -> List[float]:
-    """
-    Calling MOFF algorithm, this function take list of sgrnas (candidate) and list of targets and
-    returns a list of  1 - MOFF score
-
-    :param candidate_lst: list of candidates
-    :param target_lst: list of targets
-    :return: list of  1 - MOFF score
-    """
-    scores = MOFF_score(globals.moff_mtx1, globals.moff_mtx2, candidate_lst, target_lst)
-    return [1 - score for score in scores]
-
-
-# ###################################### on target functions ###################################### #
-
-def deephf(target_lst: List[str]) -> List[float]:
-    """
-    This function use the model of deephf that was improved by Yaron Orenstein`s lab
-
-    :param target_lst: list of targets with PAM
-    :return: list of on-target scores
-    """
-    # take 21 nt from targets
-    targets = [target[0:21] for target in target_lst]
-    # get deephf scores
-    scores = prediction_util.get_predictions(
-        join(f"{globals.CODE_PATH}", "DeepHF", "models", "model1", "no_bio", "multi_task", "parallel/"), targets)
-    return list(scores)
-
-
-def default_on_target(target_lst: List[str]) -> List[int]:
+def default_on_target(target_lst: List[str], for_metric: bool = False) -> List[int]:
     """
     This function is used in the case when no on-target scoring function is chosen. Returns a list of ones in the length
     of the given target list.

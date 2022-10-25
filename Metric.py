@@ -31,16 +31,17 @@ def pos_in_metric_general_single_batch(list_of_targets: List[str], metric_seqs_l
         # update the PAM in each constant target according to the PAM of the target
         metric_seqs_with_pam = [f"{t[:20]}{target[20:]}" for t in metric_seqs_list]
         input_metric_sequences_list.extend(metric_seqs_with_pam)
-    vectors_list_off = off_scoring_function(input_metric_sequences_list, input_target_list)
+    vectors_list_off = off_scoring_function(input_metric_sequences_list, input_target_list, True)
     output_vectors_list = []
     if on_scoring_function == Distance_matrix_and_UPGMA.default_on_target:  # if no on-target scoring function was given
         for i in range(0, len(vectors_list_off), len(metric_seqs_list)):
             output_vectors_list.append(vectors_list_off[i:i + len(metric_seqs_list)])
         return output_vectors_list
     else:
-        vectors_list_on = on_scoring_function(list_of_targets)
+        vectors_list_on = on_scoring_function(input_target_list, True)
+        all_scores = [x * y for x, y in zip(vectors_list_off, vectors_list_on)]
         for i in range(0, len(vectors_list_off), len(metric_seqs_list)):
-            output_vectors_list.append([x * y for x, y in zip(vectors_list_off[i:i + len(metric_seqs_list)], vectors_list_on)])
+            output_vectors_list.append(all_scores[i:i + len(metric_seqs_list)])
         return output_vectors_list
 
 
@@ -77,17 +78,17 @@ def pos_in_metric_general(list_of_targets: List[str], off_scoring_function, on_s
             for target in list_of_targets:
                 score_vector = []
                 for sequence in metric_sequences_list:
-                    score_vector.append(off_scoring_function(sequence, target[:20]))
+                    score_vector.append(off_scoring_function(sequence, target[:20], True))
                 list_of_vectors.append(score_vector)
             return list_of_vectors
         else:
-            on_scores = on_scoring_function(list_of_targets)
+            on_scores = on_scoring_function(list_of_targets, True)
             list_of_vectors = []
             for target in list_of_targets:
                 score_vector = []
                 i = 0
                 for sequence in metric_sequences_list:
-                    score_vector.append(off_scoring_function(sequence, target[:20]) * on_scores[i])
+                    score_vector.append(off_scoring_function(sequence, target[:20], True) * on_scores[i])
                     i += 1
                 list_of_vectors.append(score_vector)
             return list_of_vectors
