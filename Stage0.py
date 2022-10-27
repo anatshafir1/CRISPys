@@ -213,7 +213,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
     if alg == 'gene_homology':
         res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict, omega,
                                 output_path, off_scoring_function, on_scoring_function, internal_node_candidates,
-                                max_target_polymorphic_sites, singletons, slim_output, genes_target_with_position)
+                                max_target_polymorphic_sites, singletons, slim_output)
     elif alg == 'default':  # alg == "default" (look in article for better name)
         res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function, max_target_polymorphic_sites, singletons)
 

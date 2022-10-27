@@ -49,8 +49,9 @@ def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, of
 
 
 def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: Dict, targets_genes_dict: Dict,
-                      omega: float, output_path: str, off_scoring_function, on_scoring_function, internal_node_candidates: int,
-                      max_target_polymorphic_sites: int = 12, singletons: int = 0, slim_output: bool = False) -> List[SubgroupRes]:
+                      omega: float, output_path: str, off_scoring_function, on_scoring_function,
+                      internal_node_candidates: int, max_target_polymorphic_sites: int = 12, singletons: int = 0,
+                      slim_output: bool = False) -> List[SubgroupRes]:
     """
     Called by the main function when choosing algorithm with gene homology taken in consideration. Creates a UPGMA tree
     from the input genes by their homology. Writes the tree to a newick format file and a preorder format file. Then
@@ -84,7 +85,8 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
         script_path = dirname(abspath(__file__))
         cfd_dict = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))
     genes_tree_top_down(list_of_subgroups, genes_upgma_tree.root, omega, genes_targets_dict, targets_genes_dict,
-                        off_scoring_function, on_scoring_function, internal_node_candidates, max_target_polymorphic_sites, cfd_dict, singletons)
+                        off_scoring_function, on_scoring_function, internal_node_candidates,
+                        max_target_polymorphic_sites, cfd_dict, singletons)
     return list_of_subgroups
 
 
@@ -145,8 +147,9 @@ def fill_nodes_leaves_list(tree: BaseTree):
 
 
 def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_dict: Dict[str, List[str]],
-                        targets_genes_dict: Dict[str, List[str]], off_scoring_function, on_scoring_function, internal_node_candidates: int = 10,
-                        max_target_polymorphic_sites: int = 12, cfd_dict=None, singletons: int = 0):
+                        targets_genes_dict: Dict[str, List[str]], off_scoring_function, on_scoring_function,
+                        internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
+                        cfd_dict=None, singletons: int = 0):
     """
     Given an initial input of genes UPGMA tree root the function traverses the tree in a top-town (depth first) order.
     For each node creates a dictionary of node's genes (leaves under the node) -> targets found in them, and then find
@@ -183,7 +186,8 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
                     targets_names.append(target)
 
         best_permutations = stage_two_main(targets_list, targets_names, current_targets_genes_dict, omega,
-                                           off_scoring_function, on_scoring_function, max_target_polymorphic_sites, cfd_dict, singletons)
+                                           off_scoring_function, on_scoring_function, max_target_polymorphic_sites,
+                                           cfd_dict, singletons)
         if not best_permutations:
             return
         best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)
