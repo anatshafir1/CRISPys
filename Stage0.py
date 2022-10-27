@@ -160,6 +160,9 @@ def inverse_genes_targets_dict(genes_targets_dict: Dict[str, List[str]]) -> Dict
 
     :param genes_targets_dict: dictionary of {keys: gene names. values: list of target seqs}
     :return: a dictionary of {target sequence: list of gene names where the targets are found}
+
+    NOTE: the target list was modified to be a list of tuples, each tuple is of (target, pos, strand),
+    so the function here was also edited to take the first element of the tuple as the target (UDI 27/10/22)
     """
     targets_genes_dict = {}  # keys: target sequences. values: list of gene names in which the targets are found.
     for gene_name in genes_targets_dict:
@@ -202,7 +205,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
     on_scoring_function, pam_included = choose_scoring_function(on_scoring_function)
     genes_exons_dict = fill_genes_exons_dict(fasta_file)  # gene name -> list of exons
     # find the potential sgRNA target sites for each gene:
-    genes_targets_dict = fill_genes_targets_dict(genes_exons_dict, pam_included, where_in_gene, start_with_g, pams)  # gene names -> list of target seqs
+    genes_targets_dict, genes_target_with_position = fill_genes_targets_dict(genes_exons_dict, pam_included, where_in_gene, start_with_g, pams)  # gene names -> list of target seqs
     targets_genes_dict = inverse_genes_targets_dict(genes_targets_dict)  # target seq -> list of gene names
     genes_names_list = list(genes_targets_dict.keys())
     genes_list = get_genes_list(genes_exons_dict)  # a list of all the input genes in the algorithm
@@ -210,7 +213,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
     if alg == 'gene_homology':
         res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict, omega,
                                 output_path, off_scoring_function, on_scoring_function, internal_node_candidates,
-                                max_target_polymorphic_sites, singletons, slim_output)
+                                max_target_polymorphic_sites, singletons, slim_output, genes_target_with_position)
     elif alg == 'default':  # alg == "default" (look in article for better name)
         res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function, max_target_polymorphic_sites, singletons)
 
@@ -218,6 +221,19 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
         sort_threshold(res, omega)
     else:
         sort_expectation(res)
+
+    for subgroup in res:
+        for candidate in subgroup.candidates_list:
+            new_targets_dict = {}
+            for gene in candidate.targets_dict:
+                new_targets_list = []
+                for target in candidate.targets_dict[gene]:
+                    for target_list in genes_target_with_position[gene]:
+                        if target_list[0] == target[0]:
+                            new_target = target + [target_list[1], target_list[2], target_list[3]]
+                            new_targets_list.append(new_target)
+                new_targets_dict[gene] = new_targets_list
+            candidate.targets_dict = new_targets_dict
 
     pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
 
