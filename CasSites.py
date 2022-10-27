@@ -19,6 +19,7 @@ def fill_genes_targets_dict(genes_exons_dict: Dict, pam_included, where_in_gene:
     :return: dictionary of {keys: gene names. values: list of target sequences in gene}
     """
     genes_targets_dict = {}
+    genes_targets_pos_dict = {}
     for gene_name in genes_exons_dict.keys():
         genes_targets_dict[gene_name] = get_targets_sites_from_exons_lst(
             genes_exons_dict[gene_name],
@@ -26,8 +27,17 @@ def fill_genes_targets_dict(genes_exons_dict: Dict, pam_included, where_in_gene:
             where_in_gene,
             start_with_g,
             pams
-        )
-    return genes_targets_dict
+        )[0]
+
+        genes_targets_pos_dict[gene_name] = get_targets_sites_from_exons_lst(
+            genes_exons_dict[gene_name],
+            pam_included,
+            where_in_gene,
+            start_with_g,
+            pams
+        )[1]
+
+    return genes_targets_dict, genes_targets_pos_dict
 
 
 def get_targets_sites_from_exons_lst(exons_lst: List, pam_included, where_in_gene: float = 1,
@@ -41,13 +51,14 @@ def get_targets_sites_from_exons_lst(exons_lst: List, pam_included, where_in_gen
     :param where_in_gene: ignore targets sites downstream to the fractional part of the gene
     :param start_with_g: True if the guide sequence should start with G
     :param pams: the pams by which the searching function ("get_sites") finds potential sgRNA target sites
-    :return: list of all the potential sgRNA target sites for the gene
+    :return: 2 lists, a list of all the potential sgRNA target sites for the gene and a list of all the potential sgRNA target sites for the gene with the position strans and pam
     """
     original_range_in_gene = [0, where_in_gene]
     if original_range_in_gene[1] <= original_range_in_gene[0]:
         print("The range of the targets on the gene is not in the right format")
         exit(-1)
     list_of_targets = []
+    list_of_targets_with_pos = []
     exon_lengths = [len(exon) for exon in exons_lst]
     gene_length = sum(exon_lengths)
     # range in gene - used for deciding what parts to consider in the gene (multiply the 'where_in_gene' argument by
@@ -61,26 +72,33 @@ def get_targets_sites_from_exons_lst(exons_lst: List, pam_included, where_in_gen
         # if there is only one exon check target
         if i == 0:
             if range_in_gene[0] < exon_lengths[i]:
-                list_of_targets += get_sites(
+                targets_tpl = get_sites(
                     exons_lst[i][range_in_gene[0]: min(exon_lengths[i], range_in_gene[1])],
                     pam_included,
+                    exons_lst,
                     start_with_g,
                     pams
                 )
+                list_of_targets += targets_tpl[0]
+                list_of_targets_with_pos += targets_tpl[1]
         elif max(range_in_gene[0], exon_lengths[i - 1]) < min(exon_lengths[i], range_in_gene[1]):
-            list_of_targets += get_sites(
+            targets_tpl = get_sites(
                 exons_lst[i][
                     max(range_in_gene[0] - exon_lengths[i - 1], 0):
                     min(exon_lengths[i] - exon_lengths[i - 1], range_in_gene[1] - exon_lengths[i - 1])
                     ],
                 pam_included,
+                exons_lst,
                 start_with_g,
                 pams
             )
-    return list_of_targets
+            list_of_targets += targets_tpl[0]
+            list_of_targets_with_pos += targets_tpl[1]
+
+    return  list_of_targets, list_of_targets_with_pos
 
 
-def get_sites(exon: str, pam_included, start_with_g: bool = False, pams: int = 0) -> List[str]:
+def get_sites(exon: str, pam_included, exons_lst: list, start_with_g: bool = False, pams: int = 0):
     """
     This function is used to find CRISPR cut site sequences (targets) from an input DNA sequence, which is
     usually an exon. the minimum length of an input exon str is 23. Using regex this function searches for all the
@@ -100,6 +118,7 @@ def get_sites(exon: str, pam_included, start_with_g: bool = False, pams: int = 0
     elif pams == 1:
         pams = ['GG', 'AG']
     list_of_targets = []
+    list_of_targets_and_pos = []
     if len(exon) < target_len + 3:
         return list_of_targets
         # loop over different PAM's
@@ -109,18 +128,50 @@ def get_sites(exon: str, pam_included, start_with_g: bool = False, pams: int = 0
         else:
             target_and_pam = "." * (target_len + 1) + pams[i]
         compiled = regex.compile(target_and_pam)
+        # find all sense target
         found_sense_targets = regex.findall(compiled, exon, overlapped=True)
+        # find all anti-sense target
         found_antisense_targets = regex.findall(compiled, give_complementary(exon), overlapped=True)
+
+        # add position, pam and strand to sense results
+        sense_targets_and_pos = add_positions_and_strand(found_sense_targets, exons_lst, "+")
+        # add position, pam and strand to anti-sense results
+        antisense_targets_and_pos = add_positions_and_strand(found_antisense_targets, exons_lst, "-")
+
+        target_with_pos = sense_targets_and_pos
+        target_with_pos += antisense_targets_and_pos
         # functions that take targets of length 23 (used for scoring scheme that needs the PAM, e.g. gold_off)
         if pam_included:
             found_targets = [seq for seq in found_sense_targets if 'N' not in seq]
             found_targets += [seq for seq in found_antisense_targets if 'N' not in seq]
+
         # functions that take targets of length 20
         else:
             found_targets = [seq[:-3] for seq in found_sense_targets if 'N' not in seq[:-3]]
             found_targets += [seq[:-3] for seq in found_antisense_targets if 'N' not in seq[:-3]]
         list_of_targets += found_targets
-    return list_of_targets
+        list_of_targets_and_pos += target_with_pos
+    return list_of_targets, list_of_targets_and_pos
+
+def add_positions_and_strand(targets_lst, exons_lst, strand):
+    """
+    This function was added by me (Udi) in order to get the position and strand of each target and add
+     it to the output of crispys
+    Args:
+        targets_lst: list of target sequence
+        exons_lst: list of exons
+        strand: the sense or anti sense you want to search for
+    it returns list of tuples with (target, pam_seq, pos, strand)
+    """
+    target_pos_lst = []
+
+    seq = "".join(exons_lst)
+    if strand == '-':
+        seq = give_complementary(seq)
+    for target in targets_lst:
+        pos = seq.find(target)
+        target_pos_lst.append((target[0:20], target[20:23], pos, strand))
+    return target_pos_lst
 
 
 def give_complementary(seq: str) -> str:
