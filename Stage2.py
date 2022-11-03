@@ -7,8 +7,10 @@ from Candidate import Candidate
 from TreeConstruction_changed import CladeNew
 
 
-def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, omega: float, targets_genes_dict: Dict[str, List[str]],
-                          off_scoring_function, on_scoring_function, max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None, singletons: int = 0):
+def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, omega: float,
+                          targets_genes_dict: Dict[str, List[str]], on_scoring_function,
+                          max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None, singletons: int = 0,
+                          off_scoring_function: Dict = None):
     """
     Given an initial input of genomic targets UPGMA tree root, the function traverses the tree in a top-town (depth first) order.
     For each node with creates a dictionary of genes -> targets (leaves under the node) found in them, if the number of
@@ -24,6 +26,7 @@ def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, om
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
+
     """
     if node.is_terminal() and singletons == 1:  # check if the node is a leaf - one target, to exclude singletons
         return
@@ -48,14 +51,15 @@ def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, om
             best_permutations += list_of_candidates
         return
     else:
-        targets_tree_top_down(best_permutations, node.clades[0], omega, targets_genes_dict, off_scoring_function,
-                              on_scoring_function, max_target_polymorphic_sites, cfd_dict, singletons)
-        targets_tree_top_down(best_permutations, node.clades[1], omega, targets_genes_dict, off_scoring_function,
-                              on_scoring_function, max_target_polymorphic_sites, cfd_dict, singletons)
+        targets_tree_top_down(best_permutations, node.clades[0], omega, targets_genes_dict,
+                              on_scoring_function, max_target_polymorphic_sites, cfd_dict, singletons, off_scoring_function)
+        targets_tree_top_down(best_permutations, node.clades[1], omega, targets_genes_dict,
+                              on_scoring_function, max_target_polymorphic_sites, cfd_dict, singletons, off_scoring_function)
 
 
 def stage_two_main(targets_list: List[str], targets_names: List[str], targets_genes_dict: Dict[str, List[str]], omega: float,
-                   off_scoring_function, on_scoring_function, max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None, singletons: int = 0) -> List[Candidate]:
+                   off_scoring_function, on_scoring_function, max_target_polymorphic_sites: int = 12,
+                   cfd_dict: Dict = None, singletons: int = 0) -> List[Candidate]:
     """
     the main function of stage 2 of the algorithm. the function creates a UPGMA tree from the potential targets in
     'targets_list' and the given scoring function. Then finds the best sgRNA for the potential targets in the tree.
@@ -82,8 +86,9 @@ def stage_two_main(targets_list: List[str], targets_names: List[str], targets_ge
         upgma_tree = return_targets_upgma(targets_list, targets_names, off_scoring_function, on_scoring_function, cfd_dict)
         Stage1.fill_nodes_leaves_list(upgma_tree)
         fill_polymorphic_sites(upgma_tree.root)
-        targets_tree_top_down(best_permutations, upgma_tree.root, omega, targets_genes_dict, off_scoring_function, on_scoring_function,
-                              max_target_polymorphic_sites, cfd_dict, singletons)
+        targets_tree_top_down(best_permutations, upgma_tree.root, omega, targets_genes_dict,
+                              on_scoring_function, max_target_polymorphic_sites, cfd_dict, singletons,
+                              off_scoring_function)
     return best_permutations
 
 

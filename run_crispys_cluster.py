@@ -19,6 +19,6 @@ def run(crispys_code, main_fam_folder, alg="gene_homology", where_in_gene=0.7, u
                 f.write(f"{header}\n{command}")
             os.system(f"qsub {fam_path}/Crispys.sh")
 
-
+run("/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys", "/groups/itay_mayrose/udiland/crispys_off_target/test_crunch/fam_rice_omer")
 
 

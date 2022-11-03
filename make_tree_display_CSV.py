@@ -1,11 +1,12 @@
 
 import pickle
 import make_tree_display
-
+import set_cover_greedy
+import SubgroupRes
 
 def sub_tree_display(candidates_lst, f, consider_homology, genes_names, genes_lst):
 
-    header_row = "sgRNA index,sgRNA,Score,Genes,Genes score,Target site,#mms,Position\n"  # new
+    header_row = "sgRNA index,sgRNA,Score,Genes,Genes score,Target site,#mms,Position,strand,PAM\n"
 
     if consider_homology:
         # make a set of the genes in the group to write before each table. added by Udi 13/04/22
@@ -32,7 +33,7 @@ def sub_tree_display(candidates_lst, f, consider_homology, genes_names, genes_ls
             seen_sites = dict()
             first_target = 1
             for target in targets:
-                pos = make_tree_display.find_pos(target, gene_seq, seen_sites)
+                 # pos = make_tree_display.find_pos(target, gene_seq, seen_sites) # this might be needed if running with the crispr website
 
                 if first_target == 1 and first_gene == 1:
 
@@ -45,7 +46,13 @@ def sub_tree_display(candidates_lst, f, consider_homology, genes_names, genes_ls
                     f.write("," + score)
                     f.write("," + change_mismatch_to_lowercase(target[0], target[1].keys()))
                     f.write("," + str(len(target[1])))
-                    f.write("," + pos)
+                    # f.write("," + pos)
+                    #write position (added by Udi 03/11/2022)
+                    f.write("," + str(target[3]))
+                    # write strand
+                    f.write("," + target[4])
+                    # write pam
+                    f.write("," + target[2])
                     f.write("\n")
                     first_target = 0
                     continue
@@ -54,7 +61,13 @@ def sub_tree_display(candidates_lst, f, consider_homology, genes_names, genes_ls
 
                     f.write(change_mismatch_to_lowercase(target[0], target[1].keys()))
                     f.write("," + str(len(target[1])))
-                    f.write("," + pos)
+                    # f.write("," + pos)
+                    # write position
+                    f.write("," + str(target[3]))
+                    # write strand
+                    f.write("," + target[4])
+                    # write pam
+                    f.write("," + target[2])
                     f.write("\n")
                 if first_target == 1 and first_gene != 1:
                     f.write(str(sgRNA_index) + ".,,,")
@@ -66,7 +79,13 @@ def sub_tree_display(candidates_lst, f, consider_homology, genes_names, genes_ls
                     f.write("," + score)
                     f.write("," + change_mismatch_to_lowercase(target[0], target[1].keys()))
                     f.write("," + str(len(target[1])))
-                    f.write("," + pos)
+                    # f.write("," + pos)
+                    # write position
+                    f.write("," + str(target[3]))
+                    # write strand
+                    f.write("," + target[4])
+                    # write pam
+                    f.write("," + target[2])
                     f.write("\n")
 
                     first_target = 0
@@ -86,19 +105,26 @@ def change_mismatch_to_lowercase(target_str, mm_lst):
     return ''.join(target_in_lst)
 
 
-def tree_display(path, consider_homology=False, set_cover=False):
+def tree_display(path: str, subgroups_lst: list, genes_names: list, genes_list: list, targets_genes_dict: dict,
+                 omega: float, set_cover: bool = False, consider_homology: bool = False):
     """
+    This function takes the results of crispys and write the crispys results in a CSV output to the output folder
+    Args:
+        path: path to output folder
+        subgroups_lst: list os subgroup objects
+        genes_names: list of gene names
+        genes_list: a list of gene sequence
+        targets_genes_dict: a dictionary with the all targets and the genes they capture
+        omega: the value of the score threshold
+        set_cover: boolean, if True the output will use the set cover function which output a minimum number of guides that will target all genes
+        consider_homology: boolean, if the results were made with the 'consider homology' option
 
-    :param path:
-    :param consider_homology:
-    :param set_cover:
+    Returns:
+
     """
     if set_cover:
-        subgroups_lst = pickle.load(open(path + "/greedy_cover.p", "rb"))
-    else:
-        subgroups_lst = pickle.load(open(path + "/res_in_lst.p", "rb"))
-    genes_names = pickle.load(open(path + "/genes_names.p", "rb"))
-    genes_list = pickle.load(open(path + '/genes_list.p', 'rb'))
+        res = set_cover_greedy.find_set_cover(subgroups_lst, targets_genes_dict, omega)
+        subgroups_lst = [SubgroupRes.SubgroupRes(genes_list, res, "set_group")]
 
     filepath = path + "/CRISPys_output.csv"
     f = open(filepath, 'w')
