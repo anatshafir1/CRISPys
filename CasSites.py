@@ -16,7 +16,8 @@ def fill_genes_targets_dict(genes_exons_dict: Dict, pam_included, where_in_gene:
     :param where_in_gene: ignore targets sites downstream to the fractional part of the gene
     :param start_with_g: True if the guide sequence should start with G
     :param pams: the pams by which the searching function ("get_sites") finds potential sgRNA target sites
-    :return: dictionary of {keys: gene names. values: list of target sequences in gene}
+    :return: a tuple of two dictioneries. one is dictionary of {keys: gene names. values: list of target sequences in gene} and
+    the other is a dict of {keys: gene names. values: list of target sequences, pam, position and strand in gene}
     """
     genes_targets_dict = {}
     genes_targets_pos_dict = {}
@@ -95,7 +96,7 @@ def get_targets_sites_from_exons_lst(exons_lst: List, pam_included, where_in_gen
             list_of_targets += targets_tpl[0]
             list_of_targets_with_pos += targets_tpl[1]
 
-    return  list_of_targets, list_of_targets_with_pos
+    return list_of_targets, list_of_targets_with_pos
 
 
 def get_sites(exon: str, pam_included, exons_lst: list, start_with_g: bool = False, pams: int = 0):
@@ -120,7 +121,7 @@ def get_sites(exon: str, pam_included, exons_lst: list, start_with_g: bool = Fal
     list_of_targets = []
     list_of_targets_and_pos = []
     if len(exon) < target_len + 3:
-        return list_of_targets
+        return list_of_targets, list_of_targets_and_pos
         # loop over different PAM's
     for i in range(len(pams)):
         if start_with_g:

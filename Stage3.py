@@ -113,6 +113,7 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, of
     :param node: current node in the targets UPGMA tree that the targets in genes_targets_dict belong to
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
+
     :return:
     """
     # stage one: make a list of all the sgRNAs

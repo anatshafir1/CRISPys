@@ -174,10 +174,37 @@ def inverse_genes_targets_dict(genes_targets_dict: Dict[str, List[str]]) -> Dict
     return targets_genes_dict
 
 
+def add_coord_pam(res: List[SubgroupRes], genes_target_with_position: Dict) -> List[SubgroupRes]:
+    """
+    This function will add to targets of each candidate the pam the position in exome and the strand
+    Args:
+        res: list of SubgroupRes
+        genes_target_with_position: a dictionary of gene: list of targets with position
+
+    Returns:
+        list of SubgroupRes
+    """
+    for subgroup in res:
+        for candidate in subgroup.candidates_list:
+            new_targets_dict = {}
+            for gene in candidate.targets_dict:
+                new_targets_list = []
+                for target in candidate.targets_dict[gene]:
+                    for target_list in genes_target_with_position[gene]:
+                        if target_list[0] == target[0]:
+                            new_target = target + [target_list[1], target_list[2], target_list[3]]
+                            if new_target not in new_targets_list:
+                                new_targets_list.append(new_target)
+                new_targets_dict[gene] = new_targets_list
+            candidate.targets_dict = new_targets_dict
+    return res
+
+
+
 def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_in_gene: float = 1, use_thr: int = 1,
                  omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                 pams: int = 0, singletons: int = 0, slim_output: bool = False) -> List[SubgroupRes]:
+                 pams: int = 0, singletons: int = 0, slim_output: bool = False, set_cover: bool = False) -> List[SubgroupRes]:
     """
     Algorithm main function
 
@@ -195,6 +222,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
     :param pams: the pams by which potential sgRNA target sites will be searched
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
+    :param set_cover: if True will output the minimal amount of guides that will capture all genes
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
     """
     start = timeit.default_timer()
@@ -205,7 +233,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
     on_scoring_function, pam_included = choose_scoring_function(on_scoring_function)
     genes_exons_dict = fill_genes_exons_dict(fasta_file)  # gene name -> list of exons
     # find the potential sgRNA target sites for each gene:
-    genes_targets_dict, genes_target_with_position = fill_genes_targets_dict(genes_exons_dict, pam_included, where_in_gene, start_with_g, pams)  # gene names -> list of target seqs
+    genes_targets_dict, genes_target_with_position = fill_genes_targets_dict(genes_exons_dict, pam_included, where_in_gene, start_with_g, pams)
     targets_genes_dict = inverse_genes_targets_dict(genes_targets_dict)  # target seq -> list of gene names
     genes_names_list = list(genes_targets_dict.keys())
     genes_list = get_genes_list(genes_exons_dict)  # a list of all the input genes in the algorithm
@@ -222,18 +250,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
     else:
         sort_expectation(res)
 
-    for subgroup in res:
-        for candidate in subgroup.candidates_list:
-            new_targets_dict = {}
-            for gene in candidate.targets_dict:
-                new_targets_list = []
-                for target in candidate.targets_dict[gene]:
-                    for target_list in genes_target_with_position[gene]:
-                        if target_list[0] == target[0]:
-                            new_target = target + [target_list[1], target_list[2], target_list[3]]
-                            new_targets_list.append(new_target)
-                new_targets_dict[gene] = new_targets_list
-            candidate.targets_dict = new_targets_dict
+    res = add_coord_pam(res, genes_target_with_position)
 
     pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
 
@@ -248,7 +265,10 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
         pickle.dump(genes_list, open(output_path + '/genes_list.p', 'wb'))
         pickle.dump(targets_genes_dict, open(output_path + "/sg_genes.p", "wb"))
         # new output function taken from the crispys server code. Udi 13/04/2022
-        tree_display(output_path, alg == 'gene_homology')
+        if alg == 'gene_homology':
+            tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover, consider_homology=True)
+        if alg == 'default':
+            tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover, consider_homology=False)
 
     stop = timeit.default_timer()
     if not slim_output:
@@ -303,6 +323,9 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--slim_output', type=bool, default=False,
                             help='optional choice to store only "res_in_lst" as the result of the algorithm run.'
                                  'Default: False')
+    parser_obj.add_argument('--set_cover', type=bool, default=False,
+                             help='optional choice to output the minimal amount of guides that will capture all genes.'
+                                  'Default: False')
 
     arguments = parser_obj.parse_args()
     return arguments
@@ -324,4 +347,5 @@ if __name__ == "__main__":
                  max_target_polymorphic_sites=args.max_target_polymorphic_sites,
                  pams=args.pams,
                  singletons=args.singletons,
-                 slim_output=args.slim_output)
+                 slim_output=args.slim_output,
+                 set_cover=args.set_cover)
