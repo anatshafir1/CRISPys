@@ -18,10 +18,9 @@ from Candidate import Candidate
 from CRISPR_Net.CrisprNetLoad import load_crispr_net
 from MOFF.MoffLoad import load_moff
 from DeepHF.LoadDeepHF import load_deephf
+from select_n_candidate import choose_candidates
 
 # get the output_path of this script file
-
-
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -200,11 +199,11 @@ def add_coord_pam(res: List[SubgroupRes], genes_target_with_position: Dict) -> L
     return res
 
 
-
 def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_in_gene: float = 1, use_thr: int = 1,
                  omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                 pams: int = 0, singletons: int = 0, slim_output: bool = False, set_cover: bool = False) -> List[SubgroupRes]:
+                 pams: int = 0, singletons: int = 0, slim_output: bool = False, set_cover: bool = False,
+                 get_n_candidates: int = 0) -> List[SubgroupRes]:
     """
     Algorithm main function
 
@@ -223,6 +222,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
     :param set_cover: if True will output the minimal amount of guides that will capture all genes
+    :param get_n_candidates: will output n candidates that will cover the most number of genes in the family, default is 0 means output all.
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
     """
     start = timeit.default_timer()
@@ -254,6 +254,10 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
 
     pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
 
+    # output the best n candidates, n = get_n_candidates
+    if get_n_candidates:
+        res = choose_candidates(res, get_n_candidates)
+
     if slim_output:
         os.system(f"rm {os.path.join(output_path, 'genes_fasta_for_mafft.fa')}")
         os.system(f"rm {os.path.join(output_path, 'mafft_output_aligned_fasta.fa')}")
@@ -269,6 +273,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
             tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover, consider_homology=True)
         if alg == 'default':
             tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover, consider_homology=False)
+
 
     stop = timeit.default_timer()
     if not slim_output:
@@ -326,6 +331,9 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--set_cover', type=bool, default=False,
                              help='optional choice to output the minimal amount of guides that will capture all genes.'
                                   'Default: False')
+    parser_obj.add_argument('--get_n_candidates', '-n_can', type=int, default=0,
+                             help='optional: output the best n candidate that will target the highest number of genes in the family, if 0 output all'
+                                  'Default: 0')
 
     arguments = parser_obj.parse_args()
     return arguments
@@ -348,4 +356,5 @@ if __name__ == "__main__":
                  pams=args.pams,
                  singletons=args.singletons,
                  slim_output=args.slim_output,
-                 set_cover=args.set_cover)
+                 set_cover=args.set_cover,
+                 get_n_candidates=args.get_n_candidates)
