@@ -309,7 +309,7 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                             help='the off scoring function of the targets. Optional scoring systems are: cfd_funct('
                                  'default), gold_off, CrisprMIT and CCtop. Additional scoring function may be added '
                                  'by the user or by request.')
-    parser_obj.add_argument('--on_scoring_function', '-n', type=str, default='',
+    parser_obj.add_argument('--on_scoring_function', '-n', type=str, default='default',
                             help='the on scoring function of the targets. Optional scoring systems are: deephf. '
                                  'Additional scoring function may be added by the user or by request.')
     parser_obj.add_argument('--start_with_g', '-g', type=bool, default=0,
