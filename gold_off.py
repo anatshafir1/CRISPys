@@ -159,9 +159,9 @@ def predict(sg_rnas, off_targets, model_path,
     """
     # load the model
     if model_type == "classification":
-        model = xgb.XGBClassifier()
+        model = xgb.XGBClassifier(n_jobs=n_process)
     elif model_type == "regression":
-        model = xgb.XGBRegressor()
+        model = xgb.XGBRegressor(n_jobs=n_process)
     else:
         raise ValueError("Invalid model_type. should 'classification' or 'regression'")
     model.load_model(model_path)

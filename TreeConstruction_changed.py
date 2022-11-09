@@ -107,6 +107,8 @@ class DistanceTreeConstructor(TreeConstruction.TreeConstructor):
             clade2 = clades[min_j]
             inner_count += 1
             inner_clade = CladeNew(None, "Inner" + str(inner_count))
+            clade1.parent = inner_clade
+            clade2.parent = inner_clade
             inner_clade.clades.append(clade1)
             inner_clade.clades.append(clade2)
             # assign branch length
@@ -169,6 +171,7 @@ class CladeNew(BaseTree.Clade):
         super().__init__(branch_length, name, clades, confidence, color, width)
         self.node_leaves = list()
         self.polymorphic_sites = set()
+        self.parent = None
 
     def add_nodes_leaves(self, leaf: str):
         """
