@@ -3,7 +3,7 @@ import Candidate
 import SubgroupRes
 import copy
 from typing import List, Dict
-
+from make_tree_display_CSV import create_output_multiplex
 
 
 class BestSgGroup:
@@ -311,14 +311,18 @@ def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_
 #     res = pickle.load(f)
 
 # 3 genes
-# with open("/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/out1/res_in_lst.p", 'rb') as f:
-#     res = pickle.load(f)
+with open("/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/out1/res_in_lst.p", 'rb') as f:
+    res = pickle.load(f)
+#     print(f"Number of subgroups is: {len(res)}")
 #
 
 # cand_sub = choose_candidates(res, n_sgrnas=7)
 # for i in cand_sub.candidates_list:
 #     print(f"{i}\n{i.genes_score_dict.keys()}\n\n")
 
-# groups = get_n_candidates(res, number_of_groups=20, n_with_best_guide=5, n_sgrnas=2)
+groups = get_n_candidates(res, number_of_groups=20, n_with_best_guide=5, n_sgrnas=2)
 # print(groups)
 # print(len(groups))
+
+
+create_output_multiplex("/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/out", res, groups)
