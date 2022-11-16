@@ -1,10 +1,10 @@
 
-import pickle
-import make_tree_display
 import set_cover_greedy
 import SubgroupRes
+from typing import List, Dict
 
-def sub_tree_display(candidates_lst, f, consider_homology, genes_names, genes_lst):
+
+def sub_tree_display(candidates_lst, f, consider_homology):
 
     header_row = "sgRNA index,sgRNA,Score,Genes,Genes score,Target site,#mms,Position,strand,PAM\n"
 
@@ -29,7 +29,6 @@ def sub_tree_display(candidates_lst, f, consider_homology, genes_names, genes_ls
 
         for gene, targets in l:
             targets.sort(key=lambda target: len(target[1]))
-            gene_seq = genes_lst[genes_names.index(gene)]
             seen_sites = dict()
             first_target = 1
             for target in targets:
@@ -105,14 +104,13 @@ def change_mismatch_to_lowercase(target_str, mm_lst):
     return ''.join(target_in_lst)
 
 
-def tree_display(path: str, subgroups_lst: list, genes_names: list, genes_list: list, targets_genes_dict: dict,
+def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes_dict: dict,
                  omega: float, set_cover: bool = False, consider_homology: bool = False):
     """
     This function takes the results of crispys and write the crispys results in a CSV output to the output folder
     Args:
         path: path to output folder
         subgroups_lst: list os subgroup objects
-        genes_names: list of gene names
         genes_list: a list of gene sequence
         targets_genes_dict: a dictionary with the all targets and the genes they capture
         omega: the value of the score threshold
@@ -133,9 +131,41 @@ def tree_display(path: str, subgroups_lst: list, genes_names: list, genes_list: 
 
     for subgroup_item in subgroups_lst:
         # create the main table
-        sub_tree_display(subgroup_item.candidates_list, f, consider_homology, genes_names, genes_list)
+        sub_tree_display(subgroup_item.candidates_list, f, consider_homology)
     f.close()
 
+
+def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict):
+    """
+    This function is used to write the output of multiplex
+    Args:
+        path: path to output folder
+        crispys_res: the 'traditional' crispys output (list of subGroupRes)
+        multiplex_dict: the output of crispys-chips. a dictionary of node_name:dictionary of best_sg_seq:BestSgGroup
+
+    Returns:
+
+    """
+
+    filepath = path + "/CRISPys_output_multiplex.csv"
+    f = open(filepath, 'w')
+    # go over each internal node
+    for node in multiplex_dict:
+        f.write(f"Node:,{node},")
+        # get node genes
+        for subgroup in crispys_res:
+            if subgroup.name == node:
+                genes_lst = subgroup.genes_lst
+                # write the node name
+                f.write(f"genes in node:,{str(genes_lst).strip('[]')}\n")
+        # go over each 'best guide' group
+        for bestseq in multiplex_dict[node].values():
+            # write the sequence of best guide
+            f.write(f"Group of:,{bestseq.best_candidate.seq}\n")
+            # go over each pair (or more) of multiplex and write it to the file
+            for subgroup in bestseq.subgroups:
+                sub_tree_display(subgroup.candidates_list, f, consider_homology=False)
+    f.close()
 
 if __name__ == "__main__":
     tree_display("/groups/itay_mayrose/galhyams/1516893877")
