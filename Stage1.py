@@ -49,19 +49,22 @@ def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, of
 
 
 def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: Dict, targets_genes_dict: Dict,
-                      omega: float, output_path: str, off_scoring_function, on_scoring_function,
+                      genes_of_interest_set: set, omega: float, output_path: str, off_scoring_function,
+                      on_scoring_function,
                       internal_node_candidates: int, max_target_polymorphic_sites: int = 12, singletons: int = 0,
-                      slim_output: bool = False) -> List[SubgroupRes]:
+                      genes_of_interest_fraction_threshold: int = 0, slim_output: bool = False) -> List[SubgroupRes]:
     """
     Called by the main function when choosing algorithm with gene homology taken in consideration. Creates a UPGMA tree
     from the input genes by their homology. Writes the tree to a newick format file and a preorder format file. Then
     finds the candidate sgRNAs (Candidate objects) that are the best suitable to target each of the input genes and
     stores them in subgroups for each gene. The function returns a list of the subgroups (SubgroupRes objects).
 
+
     :param genes_list: a list of the genes sequences input into the algorithm
     :param genes_names: a list of the names of the genes input into the algorithm
     :param targets_genes_dict: a dictionary of target -> list of genes in which it was found
     :param genes_targets_dict: a dictionary of gene -> list of potential targets found in the gene
+    :param genes_of_interest_set: A set of genes of interest.
     :param omega: threshold of targeting propensity of a gene by a considered sgRNA (see article p. 4)
     :param output_path: the output_path to which the results will be stored
     :param off_scoring_function: the off target scoring function
@@ -70,6 +73,8 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
+    :param genes_of_interest_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
+           of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
     :return:
     """
     # make a tree and distance matrix of the genes
@@ -84,9 +89,9 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     if off_scoring_function == cfd_funct:
         script_path = dirname(abspath(__file__))
         cfd_dict = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))
-    genes_tree_top_down(list_of_subgroups, genes_upgma_tree.root, omega, genes_targets_dict, targets_genes_dict,
-                        off_scoring_function, on_scoring_function, internal_node_candidates,
-                        max_target_polymorphic_sites, cfd_dict, singletons)
+    genes_tree_top_down(list_of_subgroups, genes_upgma_tree.root, genes_of_interest_set, omega, genes_targets_dict,
+                        targets_genes_dict, off_scoring_function, on_scoring_function, internal_node_candidates,
+                        max_target_polymorphic_sites, genes_of_interest_fraction_threshold, cfd_dict, singletons)
     return list_of_subgroups
 
 
@@ -143,18 +148,22 @@ def fill_nodes_leaves_list(tree: BaseTree):
                 node.add_nodes_leaves(leaf_clade.node_leaves[0])
 
 
-# ############################################# Gene Homology top down ############################################### #
+############################################# Gene Homology top down ############################################### #
 
 
-def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_dict: Dict[str, List[str]],
+def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, omega: float,
+                        genes_targets_dict: Dict[str, List[str]],
                         targets_genes_dict: Dict[str, List[str]], off_scoring_function, on_scoring_function,
                         internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                        cfd_dict=None, singletons: int = 0):
+                        genes_of_interest_fraction_threshold: int = 0, cfd_dict=None, singletons: int = 0):
     """
     Given an initial input of genes UPGMA tree root the function traverses the tree in a top-town (depth first) order.
     For each node creates a dictionary of node's genes (leaves under the node) -> targets found in them, and then find
     the best candidate sgRNA for the targets. The candidates for each genes subgroup are stored as a SubgroupRes object.
 
+    :param genes_of_interest_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
+           of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
+    :param genes_of_interest_set: A set of genes of interest.
     :param res: the result as a list of SubgroupRes objects
     :param node: the current node in the targets UPGMA tree for which the function is called
     :param omega: Threshold of targeting propensity of a gene by a considered sgRNA (see article p. 4)
@@ -172,7 +181,9 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
     current_genes_targets_dict = dict()
     targets_list = list()
     targets_names = list()
-    if N_genes_in_node >= len(node.node_leaves) > singletons:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22. check if the node is one gene
+
+    if N_genes_in_node >= len(
+            node.node_leaves) > singletons:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22. check if the node is one gene
         for leaf in node.node_leaves:  # leaf here is a gene. taking only the relevant genes
             current_genes_targets_dict[leaf] = genes_targets_dict[leaf]
             # filling the targets to genes dict
@@ -185,23 +196,31 @@ def genes_tree_top_down(res: List, node: CladeNew, omega: float, genes_targets_d
                     targets_list.append(target)
                     targets_names.append(target)
 
-        best_permutations = stage_two_main(targets_list, targets_names, current_targets_genes_dict, omega,
-                                           off_scoring_function, on_scoring_function, max_target_polymorphic_sites,
-                                           cfd_dict, singletons)
-        if not best_permutations:
-            return
-        best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)
-        current_best_perm = best_permutations[:internal_node_candidates]  # the best sg at the current set cover
-        res.append(SubgroupRes(get_genes_list(best_permutations), current_best_perm, node.name))
+        best_permutations = []
+        # If a desired genes file was defined, and the internal node does not satisfy the conditions, move to the next
+        # internal node & don't enter Stage2.
+        if not genes_of_interest_set or determine_if_relevant_node(node, genes_of_interest_set,
+                                                                   genes_of_interest_fraction_threshold):
+            best_permutations = stage_two_main(targets_list, targets_names, current_targets_genes_dict, omega,
+                                               off_scoring_function, on_scoring_function, max_target_polymorphic_sites,
+                                               cfd_dict, singletons)
+
+        if best_permutations:
+            best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)
+            current_best_perm = best_permutations[:internal_node_candidates]  # the best sg at the current set cover
+            res.append(SubgroupRes(get_genes_list(best_permutations), current_best_perm, node.name))
+
     if not node.clades:
         return  # if the function recursion reached a final node (a leaf) - steps out of the current function call
     if node.clades[0]:
-        genes_tree_top_down(res, node.clades[0], omega, genes_targets_dict, targets_genes_dict,
-                            off_scoring_function, on_scoring_function, internal_node_candidates, max_target_polymorphic_sites,
+        genes_tree_top_down(res, node.clades[0], genes_of_interest_set, omega, genes_targets_dict, targets_genes_dict,
+                            off_scoring_function, on_scoring_function, internal_node_candidates,
+                            max_target_polymorphic_sites, genes_of_interest_fraction_threshold,
                             cfd_dict, singletons)
     if node.clades[1]:
-        genes_tree_top_down(res, node.clades[1], omega, genes_targets_dict, targets_genes_dict,
-                            off_scoring_function, on_scoring_function, internal_node_candidates, max_target_polymorphic_sites,
+        genes_tree_top_down(res, node.clades[1], genes_of_interest_set, omega, genes_targets_dict, targets_genes_dict,
+                            off_scoring_function, on_scoring_function, internal_node_candidates,
+                            max_target_polymorphic_sites, genes_of_interest_fraction_threshold,
                             cfd_dict, singletons)
 
 
@@ -218,3 +237,30 @@ def get_genes_list(candidates_lst: List) -> List[str]:
         for gene in candidate.genes_score_dict.keys():
             res.add(gene)
     return list(res)
+
+
+def determine_if_relevant_node(node: CladeNew, input_genes_set, gene_fraction_threshold=0):
+    """
+    This function determines if a node is considered relevant based on the fraction of genes from the set of genes
+    of interest.
+    :param node: The internal node, a CladeNew object.
+    :param input_genes_set: A set of genes of interest.
+    :param gene_fraction_threshold: The minimal fraction of genes to
+    :return: True if #genes_of_interest/#genes_in internal node > gene_fraction_threshold. Otherwise, returns False.
+    """
+    total_genes_in_node = {gene for gene in node.node_leaves}
+    genes_from_set_in_node = {gene for gene in input_genes_set if gene in total_genes_in_node}
+    if len(genes_from_set_in_node) / len(total_genes_in_node) > gene_fraction_threshold:
+        return True
+    return False
+"""
+do 1-4 twice with different parameters.
+
+1. scan all internal node and apply CRISPys (stage2) only on nodes in which at least one gene is in the set.
+2. go over the results in each internal node. omit sgRNAs that don't include any genes of interest.
+3. run crunch on the results to filter sgRNAs with affinity to undesired off-targets.
+4. scan the genes of interest, and verify that each gene has at least x sgRNAs that target each gene. 
+5. to consider - repeat 1-4 with a lower threshold/more permissive scoring function.
+6. if still below x sgRNAs, include singletons from the crispys run.
+
+"""
