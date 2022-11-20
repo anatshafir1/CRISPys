@@ -135,6 +135,8 @@ def fill_genes_exons_dict(fasta_file: str) -> Dict[str, str]:
         elif lines[i] != "\n":
             gene_seq += lines[i].strip()
         i += 1
+        # Turn all gene names to upper case. Important when dealing with data where the gene names differ in case.
+        genes_exons_dict = {gene_name.upper(): gene_seq for gene_name, gene_seq in genes_exons_dict.items()}
     return genes_exons_dict
 
 
@@ -199,16 +201,50 @@ def add_coord_pam(res: List[SubgroupRes], genes_target_with_position: Dict) -> L
     return res
 
 
-def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_in_gene: float = 1, use_thr: int = 1,
+def get_genes_of_interest_set(genes_of_interest_file, genes_exons_dict):
+    """
+    This function creates a genes of interest set from the genes_of_interest_file.
+    :param genes_of_interest_file: a text file containing the genes of interest, seperated by rows.
+    :return: a set of all genes of interest that appear in the family.
+    """
+    with open(genes_of_interest_file, 'r') as f:
+        genes_from_file = f.readlines()
+        return {gene.strip().upper() for gene in genes_from_file if gene.strip().upper() in genes_exons_dict}
+
+
+def remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set):
+    """
+    This function takes the results of crispys and removes any sgRNAs that don't target any genes from the set of genes
+    of interest.
+    :param res: The results of CRISPys
+    :param genes_of_interest_set: A set of all genes of interest.
+    :return: a new res containing the filtered subgroup results, without subgroups with no sgRNAs.
+    """
+    new_res = []
+    new_candidates_list = []
+    for subgroup in res:
+        new_candidates_list = [candidate for candidate in subgroup.candidates_list if
+                               set(candidate.genes_score_dict).intersection(genes_of_interest_set)]
+        new_subgroup = SubgroupRes(name=subgroup.name, genes_lst=subgroup.genes_lst, candidate_lst=new_candidates_list)
+        new_res.append(new_subgroup)
+    return [s for s in new_res if new_candidates_list]
+
+
+def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_output",
+                 genes_of_interest_file: str = '',
+                 alg: str = "default",
+                 where_in_gene: float = 1, use_thr: int = 1,
                  omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
                  pams: int = 0, singletons: int = 0, slim_output: bool = False, set_cover: bool = False,
-                 multiplex: bool = False, number_of_groups: int = 20, n_with_best_guide: int = 5, n_sgrnas: int = 2):
+                 get_n_candidates: int = 0, desired_genes_fraction_threshold: float = -1.0) -> List[SubgroupRes]:
     """
     Algorithm main function
 
     :param fasta_file: input text file output_path of gene names and their sequences (or their exons sequences) as lines
     :param output_path: the output_path to the directory in which the output files will be written
+    :param output_name: the name that would be given to the crispys output.
+    :param genes_of_interest_file: path to a txt file consisting of a "gene" column with genes of interest.
     :param alg: the type of the algorithm run - with gene homology or without
     :param where_in_gene: ignore targets sites downstream to the fractional part of the gene
     :param use_thr:
@@ -222,10 +258,9 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
     :param set_cover: if True will output the minimal amount of guides that will capture all genes
-    :param multiplex: if True output n candidates that will cover the most number of genes in the family, default is False.
-    :param number_of_groups: how many groups of 'best guide' to choose
-    :param n_with_best_guide: for each group of 'best guide' how many multiplex to return
-    :param n_sgrnas: the number of guides in each multiplex
+    :param get_n_candidates: will output n candidates that will cover the most number of genes in the family, default is 0 means output all.
+    :param desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
+           of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
     """
     start = timeit.default_timer()
@@ -235,19 +270,29 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
     off_scoring_function, pam_included = choose_scoring_function(off_scoring_function)
     on_scoring_function, pam_included = choose_scoring_function(on_scoring_function)
     genes_exons_dict = fill_genes_exons_dict(fasta_file)  # gene name -> list of exons
+    genes_of_interest_set = {}
+    if genes_of_interest_file:
+        genes_of_interest_set = get_genes_of_interest_set(genes_of_interest_file, genes_exons_dict)
+        if not genes_of_interest_set:
+            print("The family contains no genes of interest")
+            return []
     # find the potential sgRNA target sites for each gene:
-    genes_targets_dict, genes_target_with_position = fill_genes_targets_dict(genes_exons_dict, pam_included, where_in_gene, start_with_g, pams)
+    genes_targets_dict, genes_target_with_position = fill_genes_targets_dict(genes_exons_dict, pam_included,
+                                                                             where_in_gene, start_with_g, pams)
     targets_genes_dict = inverse_genes_targets_dict(genes_targets_dict)  # target seq -> list of gene names
     genes_names_list = list(genes_targets_dict.keys())
     genes_list = get_genes_list(genes_exons_dict)  # a list of all the input genes in the algorithm
     res = []
     if alg == 'gene_homology':
-        res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict, omega,
-                                output_path, off_scoring_function, on_scoring_function, internal_node_candidates,
-                                max_target_polymorphic_sites, singletons, slim_output)
+        res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict,
+                                genes_of_interest_set, omega, output_path, off_scoring_function, on_scoring_function,
+                                internal_node_candidates, max_target_polymorphic_sites, singletons,
+                                desired_genes_fraction_threshold, slim_output)
     elif alg == 'default':  # alg == "default" (look in article for better name)
-        res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function, max_target_polymorphic_sites, singletons)
-
+        res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
+                          max_target_polymorphic_sites, singletons)
+    if genes_of_interest_set:
+        res = remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set)
     if use_thr:
         sort_threshold(res, omega)
     else:
@@ -255,34 +300,35 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
 
     res = add_coord_pam(res, genes_target_with_position)
 
-    pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
+    pickle.dump(res, open(os.path.join(output_path, f"{output_name}.p"), "wb"))
 
-    # output the best n candidates, n = n_candidates
-    if multiplex:
-        multiplex_dict = get_n_candidates(res, number_of_groups, n_with_best_guide, n_sgrnas)
-        # write results to csv
-        create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas)
-        pickle.dump(multiplex_dict, open(f"{output_path}/multiplx_dict.p", "wb"))
-
+    # output the best n candidates, n = get_n_candidates
+    if get_n_candidates:
+        res = choose_candidates(res, get_n_candidates)
 
     if slim_output:
         os.system(f"rm {os.path.join(output_path, 'genes_fasta_for_mafft.fa')}")
         os.system(f"rm {os.path.join(output_path, 'mafft_output_aligned_fasta.fa')}")
         os.system(f"rm {os.path.join(output_path, 'infile')}")
         os.system(f"rm {os.path.join(output_path, 'outfile.txt')}")
-
-    # output results csv
-    if alg == 'gene_homology':
-        tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover, consider_homology=True)
-    if alg == 'default':
-        tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover, consider_homology=False)
-
+    else:
+        pickle.dump(genes_names_list, open(output_path + "/genes_names.p", "wb"))
+        # add saving the gene_list in pickle in order to produce the results like in the server version - Udi 28/02/22
+        pickle.dump(genes_list, open(output_path + '/genes_list.p', 'wb'))
+        pickle.dump(targets_genes_dict, open(output_path + "/sg_genes.p", "wb"))
+        # new output function taken from the crispys server code. Udi 13/04/2022
+        if alg == 'gene_homology':
+            tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover,
+                         consider_homology=True, output_name=output_name)
+        if alg == 'default':
+            tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover,
+                         consider_homology=False, output_name=output_name)
 
     stop = timeit.default_timer()
     if not slim_output:
         with open("time.txt", 'w') as time_file:
             time_file.write(str(stop - start))
-    return
+    return res
 
 
 def parse_arguments(parser_obj: argparse.ArgumentParser):
@@ -297,7 +343,13 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('fasta_file', type=str, metavar='<fasta_file>', help='The output_path to the input fasta '
                                                                                  'file')
     parser_obj.add_argument('output_path', type=str, metavar='<output_path>',
-                            help='THe output_path to the directory in which the output files will be written')
+                            help='THe output_path to the directory in which the output files will be written.')
+    parser_obj.add_argument('output_name', type=str, metavar='<output_name>', default='crispys_output',
+                            help="The name that would be given to the crispys output.")
+    parser_obj.add_argument('genes_of_interest_file', type=str, metavar='<gene_list_path>', default='',
+                            help="path to a csv file consisting of a 'gene' column with genes of interest, "
+                                 "and a 'family' column containing the family of the gene. the file must include a "
+                                 "header row.")
     parser_obj.add_argument('--alg', type=str, default='default', help='Choose "gene_homology" to considering homology')
     parser_obj.add_argument('--where_in_gene', type=float, default=1,
                             help='input a number between 0 to 1 in order to ignore targets sites downstream to the '
@@ -332,11 +384,17 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                             help='optional choice to store only "res_in_lst" as the result of the algorithm run.'
                                  'Default: False')
     parser_obj.add_argument('--set_cover', type=bool, default=False,
-                             help='optional choice to output the minimal amount of guides that will capture all genes.'
-                                  'Default: False')
-    parser_obj.add_argument('--multiplex', '-multi', type=bool, default=False,
-                             help='optional: use multiplex to output the best n candidate that will target the highest number of genes in the family'
-                                  'Default: False')
+                            help='optional choice to output the minimal amount of guides that will capture all genes.'
+                                 'Default: False')
+    parser_obj.add_argument('--get_n_candidates', '-n_can', type=int, default=0,
+                            help='optional: output the best n candidate that will target the highest number of genes '
+                                 'in the family, if 0 output all '
+                                 'Default: 0')
+    parser_obj.add_argument('--desired_genes_fraction_threshold', '-desired_genes_thr', type=int, default=-1,
+                            help="If a list of genes of interest was entered: the minimal fraction of genes of "
+                                 "interest. CRISPys will ignore internal nodes with lower or equal fraction of genes "
+                                 "of interest. "
+                                 'Default: -1')
 
     arguments = parser_obj.parse_args()
     return arguments
@@ -347,6 +405,8 @@ if __name__ == "__main__":
     args = parse_arguments(parser)
     CRISPys_main(fasta_file=args.fasta_file,
                  output_path=args.output_path,
+                 output_name=args.output_name,
+                 genes_of_interest_file=args.gene_list_file,
                  alg=args.alg,
                  where_in_gene=args.where_in_gene,
                  use_thr=args.use_thr,
@@ -360,4 +420,5 @@ if __name__ == "__main__":
                  singletons=args.singletons,
                  slim_output=args.slim_output,
                  set_cover=args.set_cover,
-                 n_candidates=args.n_candidates)
+                 get_n_candidates=args.get_n_candidates,
+                 desired_genes_fraction_threshold=args.desired_genes_fraction_threshold)

@@ -1,3 +1,4 @@
+import os
 
 import set_cover_greedy
 import SubgroupRes
@@ -105,7 +106,7 @@ def change_mismatch_to_lowercase(target_str, mm_lst):
 
 
 def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes_dict: dict,
-                 omega: float, set_cover: bool = False, consider_homology: bool = False):
+                 omega: float, set_cover: bool = False, consider_homology: bool = False, output_name: str = "crispys_output"):
     """
     This function takes the results of crispys and write the crispys results in a CSV output to the output folder
     Args:
@@ -116,15 +117,15 @@ def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes
         omega: the value of the score threshold
         set_cover: boolean, if True the output will use the set cover function which output a minimum number of guides that will target all genes
         consider_homology: boolean, if the results were made with the 'consider homology' option
+        output_name: The name for the output of CRISPys. The name of the file would be {output_name}.csv
 
     Returns:
-
     """
     if set_cover:
         res = set_cover_greedy.find_set_cover(subgroups_lst, targets_genes_dict, omega)
         subgroups_lst = [SubgroupRes.SubgroupRes(genes_list, res, "set_group")]
 
-    filepath = path + "/CRISPys_output.csv"
+    filepath = os.path.join(path,f"{output_name}.csv")
     f = open(filepath, 'w')
     f.write(
         "The designed sgRNAs for the genes in your input are listed in the table below. Every section of the table corresponds to a homologous genes subgroup as specified by the internal nodes of the constructed genes tree.<br>The name of the subgroup and the list of genes are given in the header of each section.\n")
@@ -135,8 +136,7 @@ def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes
     f.close()
 
 
-def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, number_of_groups: int,
-                            n_with_best_guide: int, n_sgrnas: int):
+def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict):
     """
     This function is used to write the output of multiplex
     Args:
@@ -147,10 +147,9 @@ def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, 
     Returns:
 
     """
+
     filepath = path + "/CRISPys_output_multiplex.csv"
     f = open(filepath, 'w')
-    f.write(f"Run multiplex with {number_of_groups} 'Best' groups each one with {n_with_best_guide} "
-            f"gRNA and {n_sgrnas} in each multiplex\n")
     # go over each internal node
     for node in multiplex_dict:
         f.write(f"Node:,{node},")
@@ -167,7 +166,6 @@ def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, 
             # go over each pair (or more) of multiplex and write it to the file
             for subgroup in bestseq.subgroups:
                 sub_tree_display(subgroup.candidates_list, f, consider_homology=False)
-        f.write("\n")
     f.close()
 
 if __name__ == "__main__":
