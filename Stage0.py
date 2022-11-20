@@ -8,7 +8,7 @@ import os
 import sys
 from typing import List, Dict
 
-from make_tree_display_CSV import tree_display
+from make_tree_display_CSV import tree_display, create_output_multiplex
 from CasSites import fill_genes_targets_dict
 from Stage1 import default_alg, gene_homology_alg
 from Distance_matrix_and_UPGMA import MITScore, ccTop, gold_off_func, ucrispr, default_on_target
@@ -18,7 +18,7 @@ from Candidate import Candidate
 from CRISPR_Net.CrisprNetLoad import load_crispr_net
 from MOFF.MoffLoad import load_moff
 from DeepHF.LoadDeepHF import load_deephf
-from select_n_candidate import choose_candidates
+from crispys_chips import get_n_candidates
 
 # get the output_path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))
@@ -203,7 +203,7 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
                  omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
                  pams: int = 0, singletons: int = 0, slim_output: bool = False, set_cover: bool = False,
-                 get_n_candidates: int = 0) -> List[SubgroupRes]:
+                 multiplex: bool = False, number_of_groups: int = 20, n_with_best_guide: int = 5, n_sgrnas: int = 2):
     """
     Algorithm main function
 
@@ -222,7 +222,10 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
     :param set_cover: if True will output the minimal amount of guides that will capture all genes
-    :param get_n_candidates: will output n candidates that will cover the most number of genes in the family, default is 0 means output all.
+    :param multiplex: if True output n candidates that will cover the most number of genes in the family, default is False.
+    :param number_of_groups: how many groups of 'best guide' to choose
+    :param n_with_best_guide: for each group of 'best guide' how many multiplex to return
+    :param n_sgrnas: the number of guides in each multiplex
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
     """
     start = timeit.default_timer()
@@ -254,32 +257,32 @@ def CRISPys_main(fasta_file: str, output_path: str, alg: str = "default", where_
 
     pickle.dump(res, open(output_path + "/res_in_lst.p", "wb"))
 
-    # output the best n candidates, n = get_n_candidates
-    if get_n_candidates:
-        res = choose_candidates(res, get_n_candidates)
+    # output the best n candidates, n = n_candidates
+    if multiplex:
+        multiplex_dict = get_n_candidates(res, number_of_groups, n_with_best_guide, n_sgrnas)
+        # write results to csv
+        create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas)
+        pickle.dump(multiplex_dict, open(f"{output_path}/multiplx_dict.p", "wb"))
+
 
     if slim_output:
         os.system(f"rm {os.path.join(output_path, 'genes_fasta_for_mafft.fa')}")
         os.system(f"rm {os.path.join(output_path, 'mafft_output_aligned_fasta.fa')}")
         os.system(f"rm {os.path.join(output_path, 'infile')}")
         os.system(f"rm {os.path.join(output_path, 'outfile.txt')}")
-    else:
-        pickle.dump(genes_names_list, open(output_path + "/genes_names.p", "wb"))
-        # add saving the gene_list in pickle in order to produce the results like in the server version - Udi 28/02/22
-        pickle.dump(genes_list, open(output_path + '/genes_list.p', 'wb'))
-        pickle.dump(targets_genes_dict, open(output_path + "/sg_genes.p", "wb"))
-        # new output function taken from the crispys server code. Udi 13/04/2022
-        if alg == 'gene_homology':
-            tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover, consider_homology=True)
-        if alg == 'default':
-            tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover, consider_homology=False)
+
+    # output results csv
+    if alg == 'gene_homology':
+        tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover, consider_homology=True)
+    if alg == 'default':
+        tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover, consider_homology=False)
 
 
     stop = timeit.default_timer()
     if not slim_output:
         with open("time.txt", 'w') as time_file:
             time_file.write(str(stop - start))
-    return res
+    return
 
 
 def parse_arguments(parser_obj: argparse.ArgumentParser):
@@ -331,9 +334,9 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--set_cover', type=bool, default=False,
                              help='optional choice to output the minimal amount of guides that will capture all genes.'
                                   'Default: False')
-    parser_obj.add_argument('--get_n_candidates', '-n_can', type=int, default=0,
-                             help='optional: output the best n candidate that will target the highest number of genes in the family, if 0 output all'
-                                  'Default: 0')
+    parser_obj.add_argument('--multiplex', '-multi', type=bool, default=False,
+                             help='optional: use multiplex to output the best n candidate that will target the highest number of genes in the family'
+                                  'Default: False')
 
     arguments = parser_obj.parse_args()
     return arguments
@@ -357,4 +360,4 @@ if __name__ == "__main__":
                  singletons=args.singletons,
                  slim_output=args.slim_output,
                  set_cover=args.set_cover,
-                 get_n_candidates=args.get_n_candidates)
+                 n_candidates=args.n_candidates)
