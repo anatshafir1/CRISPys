@@ -237,7 +237,8 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
                  pams: int = 0, singletons: int = 0, slim_output: bool = False, set_cover: bool = False,
-                 get_n_candidates: int = 0, desired_genes_fraction_threshold: float = -1.0) -> List[SubgroupRes]:
+                 multiplex: bool = False, number_of_groups: int = 20, n_with_best_guide: int = 5, n_sgrnas: int = 2,
+                 desired_genes_fraction_threshold: float = -1.0) -> List[SubgroupRes]:
     """
     Algorithm main function
 
@@ -258,7 +259,10 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
     :param set_cover: if True will output the minimal amount of guides that will capture all genes
-    :param get_n_candidates: will output n candidates that will cover the most number of genes in the family, default is 0 means output all.
+    :param multiplex: if True output n candidates that will cover the most number of genes in the family, default is False.
+    :param number_of_groups: how many groups of 'best guide' to choose
+    :param n_with_best_guide: for each group of 'best guide' how many multiplex to return
+    :param n_sgrnas: the number of guides in each multiplex
     :param desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
            of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
@@ -302,9 +306,11 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
 
     pickle.dump(res, open(os.path.join(output_path, f"{output_name}.p"), "wb"))
 
-    # output the best n candidates, n = get_n_candidates
-    if get_n_candidates:
-        res = choose_candidates(res, get_n_candidates)
+    if multiplex:
+        multiplex_dict = get_n_candidates(res, number_of_groups, n_with_best_guide, n_sgrnas)
+        # write results to csv
+        create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas)
+        pickle.dump(multiplex_dict, open(f"{output_path}/multiplx_dict.p", "wb"))
 
     if slim_output:
         os.system(f"rm {os.path.join(output_path, 'genes_fasta_for_mafft.fa')}")
