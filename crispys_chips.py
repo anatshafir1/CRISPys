@@ -5,6 +5,48 @@ import copy
 from typing import List, Dict
 from make_tree_display_CSV import create_output_multiplex
 
+"""
+This module will takes CRISPys output (list of SubgroupRes) and will output group of n guides that will target the 
+maximum number of the gene in the the group of genes (internal node).
+It will first select the 'best' guide, that is, the one that will target the most genes with maximum expectation score, 
+than, it will select another guide that will complement the target to capture more genes that are not capture with the 
+previous guide, this will continue until we get the number of guide we specify (usually the multiplex is of 2 guides).
+Next, this peocess will repeat but without selecting the 'additional' guides, meaning, it will keep the first ('best') 
+guide and remove from the list of all guides the guides that completed the multiplex and will find new ones to add to 
+the 'best' one, this argument is controled with the 'n_with_best_guide' parameter.
+each multiplex is stired in a SubgroupRes object and a group of them are stored in a BestSgGroup object.
+A representation of the BestSgGroup:
+ 
+                         
+                        --------------
+                        | multiplx 1 | each multiplex is a SubgroupRes object with n candidates (specify in the n_sgrnas parameter) 
+                        | multiplx 2 |
+BestSgGroup object ->   |    .       |
+                        |    .       |
+                        | multiplx n |
+                        --------------
+each BestSgGroup has 'best candidate' that is in each multiplex.
+
+for each CRISPys output of gRNAs that target group of genes we can have multiple BestSgGroup objects each one with its 
+own 'best' guide, so the next step is to remove the 'best guide' we selected from the CRISPys results and repeat the
+first part again to create the next group of multiplex this parameter is defined in 'number_of_groups'
+so we get:
+
+   BestSgGroup object 1    BestSgGroup object 2   .   .   .  BestSgGroup object n
+   --------------          --------------                    --------------
+   | multiplx 1 |          | multiplx 1 |                    | multiplx 1 |
+   | multiplx 2 |          | multiplx 2 |                    | multiplx 2 |
+   |    .       |          |    .       |      .    .   .    |    .       |
+   |    .       |          |    .       |                    |    .       |
+   | multiplx n |          | multiplx n |                    | multiplx n |
+   --------------          --------------                    --------------
+The described above is applied to each subgroup (represent internal node in the gene tree) of CRISPys results and
+the output object is a dictionary that each key is the internal node name and the value is a dictionary that each key is
+the sequence of the 'best' gRNA and the value is the BestSgGroup object of that 'best guide' 
+(in each object are all multiplexes for that 'best guide') 
+
+"""
+
 
 class BestSgGroup:
     """
@@ -26,7 +68,7 @@ class BestSgGroup:
 
 def subgroup2dict(subgroup: SubgroupRes.SubgroupRes) -> Dict:
     """
-    This function take a subgroup object and ouput a dictionary of sequence:candidate
+    This function take a subgroup object and output a dictionary of sequence:candidate
     Args:
         subgroup: subgroups objects
 
@@ -34,7 +76,8 @@ def subgroup2dict(subgroup: SubgroupRes.SubgroupRes) -> Dict:
     """
     candidates_dict = {}
     for candidate in subgroup.candidates_list:
-        if candidate.seq not in candidates_dict:
+        # if the candidate is in the dictionary replace it with the same one that have higher cut expectation (if exist)
+        if candidate.seq not in candidates_dict or candidate.cut_expectation > candidates_dict[candidate.seq].cut_expectation:
             candidates_dict[candidate.seq] = candidate
     return candidates_dict
 
@@ -77,7 +120,8 @@ def get_relative_score(candidate: Candidate, coef_dict: Dict) -> float:
 
 def select_candidate(candidates_dict: Dict, genes_coef_dict: Dict) -> Candidate:
     """
-    This function take a dictionary of candidates and go over each one and calculates its score using a dictionary of coeffitionet for each gene score
+    This function take a dictionary of candidates and go over each one and calculates its score using a dictionary of
+     coefficient for each gene score that determine the weight of each gene in the final score.
     It return the candidate that got the highest score
     Args:
         candidates_dict: a dictionary of seq:candidate
@@ -170,7 +214,8 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
         # check if no candidates left
         if not candidates_dict:
             print(f"No more candidates to choose from in {subgroup.name}")
-            return None
+            subgroup = SubgroupRes.SubgroupRes(list(best_candidate.genes_score_dict.keys()), [best_candidate], "partial")
+            return subgroup, best_candidate, pos_lst
         candidate = select_candidate(candidates_dict, genes_coef_dict)
         # calculate the guide position
         pos = get_can_positions(candidate)
@@ -201,18 +246,19 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
 
 def get_candidats_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgrnas: int):
     """
-    This function takes a group of genes and candidates as SubgroupRes object and finds m_groups of n_sgrnas each
-    It is used for multiplexing while the n_sgrnas is the amount of guides in a single vector and the m_groups is the
-    number of groups to return
-    The algorithm takes the best sgRNA and match him with different guides in each m_group
-    It returns a list of subgroups the length of m_groups, the amount of candidates in each subgroup is n_sgrnas
+    This function takes crispys output as SubgroupRes object and finds m_groups of n_sgrnas.
+    It is used for multiplexing while the n_sgrnas is the amount of guides in a single plasmid (the multiplex) and
+    the m_groups is the number of groups of sg with the same 'best candidate' to return
+    The algorithm takes the best sgRNA and match it with different guides to create m_group of multiplex each one with n_sgrnas guides.
+    It returns a BestSgGroup object with the attribute 'subgroups' that store a list of subgroups the length of m_groups,
+     each subgroup is a SubgroupRes object with n_sgrnas as the amount of candidates in its candidates_list
     Args:
         subgroup: SubgrouRes object
         m_groups: number of groups of guides (the number of BestSgGroups to create)
         n_sgrnas: number of guides in each group (for multiplexing)
 
     Returns:
-
+            BestSgGroup object
     """
     # make a copy of subgroup
     subgroup_temp = copy.deepcopy(subgroup)
@@ -225,24 +271,28 @@ def get_candidats_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgr
     # add the candidate to the all list
     current_best.all_candidates = copy.copy(current_best.subgroups[0].candidates_list)
     while m_groups > 1:
-        # remove the found sg from the subgroup
+        # remove the found sg from the subgroup (recreate it without it)
         subgroup_temp.candidates_list = [can for can in subgroup_temp.candidates_list if can not in current_best.all_candidates]
+        # check that the are candidates left in the subgroup
+        if not subgroup_temp.candidates_list:
+            break
         # choose the next group of sgRNA that will be joined with the 'best guide' found above
         try:
-            pair_group, best_candidate, pos_lst = choose_candidates(subgroup_temp, n_sgrnas, current_best.best_candidate, pos_lst)
+            # get the SubgroupRes, best_candidate and the updated positions list
+            multiplx_group, best_candidate, pos_lst = choose_candidates(subgroup_temp, n_sgrnas, current_best.best_candidate, pos_lst)
             # add the SubgrouRes object containing the list of guides to the results
-            current_best.subgroups.append(pair_group)
-            current_best.all_candidates += [can for can in pair_group.candidates_list if can not in current_best.all_candidates]
+            current_best.subgroups.append(multiplx_group)
+            current_best.all_candidates += [can for can in multiplx_group.candidates_list if can not in current_best.all_candidates]
             m_groups -= 1
         except TypeError:
             print(f"No more candidate in group {subgroup.name}")
-            return
+            return current_best
     return current_best
 
 def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas: int = 2) -> Dict:
     """
     This function takes CRISPys results (a list of SubgroupRes) and 'number of groups' that specify the number of sgRNA
-    groups for each subgroup. the 'n with best guide' specify the number of groups for each 'best guide'
+    groups for each subgroup. the 'n with best guide' specify the number of multiplex groups for each 'best guide'
     and the 'n sgrna' is the number of guides inside each group of best guide (the amount for multiplexing)
     The results are collected as follow:
      - each group of guides (the multiplexing) is in a subgroup object.
@@ -259,7 +309,9 @@ def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_
     Returns: a dictionary
 
     """
+    # initiate result dictionary
     output_dict = {}
+    # go over each group of results (for each internal node in gene tree)
     for subgroup in subgroup_lst:
         subgroup_dict = subgroup2dict(subgroup)
         bestsgroup_dict = {}
@@ -282,7 +334,7 @@ def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_
                 for pos in pos_lst:
                     if pos == best_pos:
                         skip_candidate = True
-
+            # if the
             if skip_candidate:
                 subgroup.candidates_list.remove(subgroup_dict[bestsgroup.best_candidate.seq])
                 del bestsgroup_dict[bestsgroup.best_candidate.seq]
@@ -292,7 +344,8 @@ def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_
 
             # remove the 'best candidate' from the list of candidates
             subgroup.candidates_list.remove(subgroup_dict[bestsgroup.best_candidate.seq])
-
+            if not subgroup.candidates_list:
+                break
             n -= 1
         output_dict[subgroup.name] = bestsgroup_dict
     return output_dict
@@ -310,9 +363,9 @@ def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_
 # with open("/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/out2/res_in_lst.p", 'rb') as f:
 #     res = pickle.load(f)
 
-# 3 genes
-with open("/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/out1/res_in_lst.p", 'rb') as f:
-    res = pickle.load(f)
+# # 3 genes
+# with open("/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/out1/res_in_lst.p", 'rb') as f:
+#     res = pickle.load(f)
 #     print(f"Number of subgroups is: {len(res)}")
 #
 
@@ -320,9 +373,9 @@ with open("/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/ou
 # for i in cand_sub.candidates_list:
 #     print(f"{i}\n{i.genes_score_dict.keys()}\n\n")
 
-groups = get_n_candidates(res, number_of_groups=20, n_with_best_guide=5, n_sgrnas=2)
+# groups = get_n_candidates(res, number_of_groups=5, n_with_best_guide=3, n_sgrnas=3)
 # print(groups)
 # print(len(groups))
 
 
-create_output_multiplex("/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/out", res, groups)
+# create_output_multiplex("/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/out", res, groups)

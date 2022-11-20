@@ -135,7 +135,8 @@ def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes
     f.close()
 
 
-def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict):
+def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, number_of_groups: int,
+                            n_with_best_guide: int, n_sgrnas: int):
     """
     This function is used to write the output of multiplex
     Args:
@@ -146,9 +147,10 @@ def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict):
     Returns:
 
     """
-
     filepath = path + "/CRISPys_output_multiplex.csv"
     f = open(filepath, 'w')
+    f.write(f"Run multiplex with {number_of_groups} 'Best' groups each one with {n_with_best_guide} "
+            f"gRNA and {n_sgrnas} in each multiplex\n")
     # go over each internal node
     for node in multiplex_dict:
         f.write(f"Node:,{node},")
@@ -165,6 +167,7 @@ def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict):
             # go over each pair (or more) of multiplex and write it to the file
             for subgroup in bestseq.subgroups:
                 sub_tree_display(subgroup.candidates_list, f, consider_homology=False)
+        f.write("\n")
     f.close()
 
 if __name__ == "__main__":
