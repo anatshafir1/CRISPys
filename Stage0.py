@@ -312,23 +312,25 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
         create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas)
         pickle.dump(multiplex_dict, open(f"{output_path}/multiplx_dict.p", "wb"))
 
+    if alg == 'gene_homology':
+        tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover,
+                     consider_homology=True, output_name=output_name)
+    if alg == 'default':
+        tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover,
+                     consider_homology=False, output_name=output_name)
+
     if slim_output:
         os.system(f"rm {os.path.join(output_path, 'genes_fasta_for_mafft.fa')}")
         os.system(f"rm {os.path.join(output_path, 'mafft_output_aligned_fasta.fa')}")
         os.system(f"rm {os.path.join(output_path, 'infile')}")
         os.system(f"rm {os.path.join(output_path, 'outfile.txt')}")
+
     else:
         pickle.dump(genes_names_list, open(output_path + "/genes_names.p", "wb"))
         # add saving the gene_list in pickle in order to produce the results like in the server version - Udi 28/02/22
         pickle.dump(genes_list, open(output_path + '/genes_list.p', 'wb'))
         pickle.dump(targets_genes_dict, open(output_path + "/sg_genes.p", "wb"))
         # new output function taken from the crispys server code. Udi 13/04/2022
-        if alg == 'gene_homology':
-            tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover,
-                         consider_homology=True, output_name=output_name)
-        if alg == 'default':
-            tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover,
-                         consider_homology=False, output_name=output_name)
 
     stop = timeit.default_timer()
     if not slim_output:
