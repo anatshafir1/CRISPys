@@ -3,7 +3,6 @@ import Candidate
 import SubgroupRes
 import copy
 from typing import List, Dict
-from make_tree_display_CSV import create_output_multiplex
 
 """
 This module will takes CRISPys output (list of SubgroupRes) and will output group of n guides that will target the 
@@ -239,7 +238,8 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
     for can in selected_candidates.values():
         genes += can.genes_score_dict.keys()
     genes_lst = genes
-    name = "selected_candidates"
+    # make a tuple of candidates sequence and use it as a name for the subgroup
+    name = (cand.seq for cand in cand_list)
     subgroup = SubgroupRes.SubgroupRes(list(set(genes_lst)), cand_list, name)
     return subgroup, best_candidate, pos_lst
 
