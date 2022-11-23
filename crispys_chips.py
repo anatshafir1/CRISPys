@@ -239,7 +239,7 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
         genes += can.genes_score_dict.keys()
     genes_lst = genes
     # make a tuple of candidates sequence and use it as a name for the subgroup
-    name = (cand.seq for cand in cand_list)
+    name = tuple(cand.seq for cand in cand_list)
     subgroup = SubgroupRes.SubgroupRes(list(set(genes_lst)), cand_list, name)
     return subgroup, best_candidate, pos_lst
 
@@ -262,6 +262,9 @@ def get_candidats_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgr
     """
     # make a copy of subgroup
     subgroup_temp = copy.deepcopy(subgroup)
+    # if no more candidates left stop the search
+    if not subgroup_temp.candidates_list:
+        return None
     # get the first group of sgRNAs and the best guide in the group
     multiplx_candidates = choose_candidates(subgroup_temp, n_sgrnas)
     current_best = BestSgGroup()
@@ -314,6 +317,11 @@ def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_
     # go over each group of results (for each internal node in gene tree)
     for subgroup in subgroup_lst:
         subgroup_dict = subgroup2dict(subgroup)
+        # check if no candidate in node result
+        if len(subgroup_dict) == 0:
+            print(f"No CRISPys results for node {subgroup.name}")
+            continue
+
         bestsgroup_dict = {}
         pos_lst = []
         n = number_of_groups

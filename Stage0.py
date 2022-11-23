@@ -313,11 +313,13 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
         pickle.dump(multiplex_dict, open(f"{output_path}/multiplx_dict.p", "wb"))
 
     if alg == 'gene_homology':
-        tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover,
-                     consider_homology=True, output_name=output_name)
+        consider_homology = True
+        tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
+                     consider_homology, output_name=output_name)
     if alg == 'default':
-        tree_display(output_path, res, genes_names_list, genes_list, targets_genes_dict, omega, set_cover,
-                     consider_homology=False, output_name=output_name)
+        consider_homology = False
+        tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
+                     consider_homology, output_name=output_name)
 
     if slim_output:
         os.system(f"rm {os.path.join(output_path, 'genes_fasta_for_mafft.fa')}")
