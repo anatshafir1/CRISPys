@@ -287,12 +287,12 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     genes_names_list = list(genes_targets_dict.keys())
     genes_list = get_genes_list(genes_exons_dict)  # a list of all the input genes in the algorithm
     res = []
-    if alg == 'gene_homology':
+    if alg == 'gene_homology' or len(genes_list) > 1:
         res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict,
                                 genes_of_interest_set, omega, output_path, off_scoring_function, on_scoring_function,
                                 internal_node_candidates, max_target_polymorphic_sites, singletons,
                                 desired_genes_fraction_threshold, slim_output)
-    elif alg == 'default':  # alg == "default" (look in article for better name)
+    elif alg == 'default' or len(genes_list) == 1:  # alg == "default". automatically used on single-gene families.
         res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
                           max_target_polymorphic_sites, singletons)
     if genes_of_interest_set:
@@ -309,8 +309,8 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     if multiplex:
         multiplex_dict = get_n_candidates(res, number_of_groups, n_with_best_guide, n_sgrnas)
         # write results to csv
-        create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas)
-        pickle.dump(multiplex_dict, open(f"{output_path}/multiplx_dict.p", "wb"))
+        create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas, output_name=output_name)
+        pickle.dump(multiplex_dict, open(f"{output_path}/{output_name}_multiplx_dict.p", "wb"))
 
     if alg == 'gene_homology':
         consider_homology = True
