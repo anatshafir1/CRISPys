@@ -178,22 +178,24 @@ def get_can_positions(candidate: Candidate) -> set:
 def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best_candidate: Candidate = None,
                       pos_lst:List=None):
     """
-    This is the main function that takes CRISPys output (subgroup) and returns the n best guides that will target
-     as many genes as possible.
+    This function takes SubgroupRes object and returns n guides that will target
+     as many genes as possible. this is the the function that produce the multiplex with n_sgrnas guides targeting the
+     most genes in the subgroup
     Args:
         subgroup: a subgroup obhect conatining a list of candidates
         n_sgrnas: number of guide to output
 
-    Returns: subgroup object containig a list of candidates
+    Returns: subgroup object containing a list of candidates, Candidate object containing the 'best candidate'
 
     """
 
-    # get gene names for the family
+    # get gene names for the family/node
     genes_names = subgroup.genes_lst
     # make a dictionary of seq:candidate from crispys results
     candidates_dict = subgroup2dict(subgroup)
     # create initial coefficient dictionary of gene:coef (with coef = 1)
     genes_coef_dict = {gene: coef for gene, coef in zip(genes_names, [1 for i in genes_names])}
+    # initate a dict that will store the gRNAs selected
     selected_candidates = {}
 
     # select best guide according to the initial 'genes_coef_dict'
@@ -202,9 +204,9 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
         # calculate the guide position
         pos = get_can_positions(best_candidate)
         pos_lst = [pos]
-    # store the selected guide in a dictionary
+    # store the selected 'best' guide in a dictionary
     selected_candidates[best_candidate.seq] = best_candidate
-    # re-calculate the coefficients dictionary according to the guide you found
+    # re-calculate the coefficients dictionary according to the 'best' guide you found
     recalc_coef_dict(best_candidate, genes_coef_dict)
 
     # select the rest (other than the best) of the candidates for the amount specified in n_sgrnas
@@ -212,9 +214,8 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
     while i < n_sgrnas:
         # check if no candidates left
         if not candidates_dict:
-            print(f"No more candidates to choose from in {subgroup.name}")
-            subgroup = SubgroupRes.SubgroupRes(list(best_candidate.genes_score_dict.keys()), [best_candidate], "partial")
-            return subgroup, best_candidate, pos_lst
+            return None
+        # select
         candidate = select_candidate(candidates_dict, genes_coef_dict)
         # calculate the guide position
         pos = get_can_positions(candidate)
@@ -267,6 +268,9 @@ def get_candidats_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgr
         return None
     # get the first group of sgRNAs and the best guide in the group
     multiplx_candidates = choose_candidates(subgroup_temp, n_sgrnas)
+    # check if a multiplex is found
+    if not multiplx_candidates:
+        return None
     current_best = BestSgGroup()
     # store the 'best' candidate
     current_best.subgroups = [multiplx_candidates[0]]
@@ -274,7 +278,7 @@ def get_candidats_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgr
     # add the candidate to the all list
     current_best.all_candidates = copy.copy(current_best.subgroups[0].candidates_list)
     while m_groups > 1:
-        # remove the found sg from the subgroup (recreate it without it)
+        # remove the found sg from the subgroup (recreate it without them)
         subgroup_temp.candidates_list = [can for can in subgroup_temp.candidates_list if can not in current_best.all_candidates]
         # check that the are candidates left in the subgroup
         if not subgroup_temp.candidates_list:
@@ -288,8 +292,8 @@ def get_candidats_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgr
             current_best.all_candidates += [can for can in multiplx_group.candidates_list if can not in current_best.all_candidates]
             m_groups -= 1
         except TypeError:
-            print(f"No more candidate in group {subgroup.name}")
-            return current_best
+            # print(f"No more candidate in group {current_best.best_candidate.seq} in node {subgroup_temp.name}")
+            return None
     return current_best
 
 def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas: int = 2) -> Dict:
@@ -328,7 +332,7 @@ def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_
         while n > 0:
             # get results for one group of genes
             bestsgroup = get_candidats_groups(subgroup, n_with_best_guide, n_sgrnas)
-            # if threr are no more candidate it will return None
+            # if there are no more candidate it will return None
             if not bestsgroup:
                 break
             # store the group of guides in a dictionary with best_sg_seq: BestSgGroup object
