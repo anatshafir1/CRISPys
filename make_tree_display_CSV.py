@@ -129,7 +129,6 @@ def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes
     f = open(filepath, 'w')
     f.write(
         "The designed sgRNAs for the genes in your input are listed in the table below. Every section of the table corresponds to a homologous genes subgroup as specified by the internal nodes of the constructed genes tree.<br>The name of the subgroup and the list of genes are given in the header of each section.\n")
-
     for subgroup_item in subgroups_lst:
         # create the main table
         sub_tree_display(subgroup_item.candidates_list, f, consider_homology)

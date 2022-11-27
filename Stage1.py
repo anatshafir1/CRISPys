@@ -52,7 +52,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
                       genes_of_interest_set: set, omega: float, output_path: str, off_scoring_function,
                       on_scoring_function,
                       internal_node_candidates: int, max_target_polymorphic_sites: int = 12, singletons: int = 0,
-                      genes_of_interest_fraction_threshold: int = 0, slim_output: bool = False) -> List[SubgroupRes]:
+                      genes_of_interest_fraction_threshold: float = -1.0, slim_output: bool = False) -> List[SubgroupRes]:
     """
     Called by the main function when choosing algorithm with gene homology taken in consideration. Creates a UPGMA tree
     from the input genes by their homology. Writes the tree to a newick format file and a preorder format file. Then
@@ -155,7 +155,7 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
                         genes_targets_dict: Dict[str, List[str]],
                         targets_genes_dict: Dict[str, List[str]], off_scoring_function, on_scoring_function,
                         internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                        genes_of_interest_fraction_threshold: int = 0, cfd_dict=None, singletons: int = 0):
+                        genes_of_interest_fraction_threshold: float = -1.0, cfd_dict=None, singletons: int = 0):
     """
     Given an initial input of genes UPGMA tree root the function traverses the tree in a top-town (depth first) order.
     For each node creates a dictionary of node's genes (leaves under the node) -> targets found in them, and then find
@@ -239,7 +239,7 @@ def get_genes_list(candidates_lst: List) -> List[str]:
     return list(res)
 
 
-def determine_if_relevant_node(node: CladeNew, input_genes_set, gene_fraction_threshold=0):
+def determine_if_relevant_node(node: CladeNew, input_genes_set, gene_fraction_threshold=-1.0):
     """
     This function determines if a node is considered relevant based on the fraction of genes from the set of genes
     of interest.
@@ -253,14 +253,3 @@ def determine_if_relevant_node(node: CladeNew, input_genes_set, gene_fraction_th
     if len(genes_from_set_in_node) / len(total_genes_in_node) > gene_fraction_threshold:
         return True
     return False
-"""
-do 1-4 twice with different parameters.
-
-1. scan all internal node and apply CRISPys (stage2) only on nodes in which at least one gene is in the set.
-2. go over the results in each internal node. omit sgRNAs that don't include any genes of interest.
-3. run crunch on the results to filter sgRNAs with affinity to undesired off-targets.
-4. scan the genes of interest, and verify that each gene has at least x sgRNAs that target each gene. 
-5. to consider - repeat 1-4 with a lower threshold/more permissive scoring function.
-6. if still below x sgRNAs, include singletons from the crispys run.
-
-"""
