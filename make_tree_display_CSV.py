@@ -6,7 +6,6 @@ from typing import List, Dict
 
 
 def sub_tree_display(candidates_lst, f, consider_homology):
-
     header_row = "sgRNA index,sgRNA,Score,Genes,Genes score,Target site,#mms,Position,strand,PAM\n"
 
     if consider_homology:
@@ -33,7 +32,7 @@ def sub_tree_display(candidates_lst, f, consider_homology):
             seen_sites = dict()
             first_target = 1
             for target in targets:
-                 # pos = make_tree_display.find_pos(target, gene_seq, seen_sites) # this might be needed if running with the crispr website
+                # pos = make_tree_display.find_pos(target, gene_seq, seen_sites) # this might be needed if running with the crispr website
 
                 if first_target == 1 and first_gene == 1:
 
@@ -47,7 +46,7 @@ def sub_tree_display(candidates_lst, f, consider_homology):
                     f.write("," + change_mismatch_to_lowercase(target[0], target[1].keys()))
                     f.write("," + str(len(target[1])))
                     # f.write("," + pos)
-                    #write position (added by Udi 03/11/2022)
+                    # write position (added by Udi 03/11/2022)
                     f.write("," + str(target[3]))
                     # write strand
                     f.write("," + target[4])
@@ -106,7 +105,8 @@ def change_mismatch_to_lowercase(target_str, mm_lst):
 
 
 def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes_dict: dict,
-                 omega: float, set_cover: bool = False, consider_homology: bool = False, output_name: str = "crispys_output"):
+                 omega: float, set_cover: bool = False, consider_homology: bool = False,
+                 output_name: str = "crispys_output"):
     """
     This function takes the results of crispys and write the crispys results in a CSV output to the output folder
     Args:
@@ -125,11 +125,10 @@ def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes
         res = set_cover_greedy.find_set_cover(subgroups_lst, targets_genes_dict, omega)
         subgroups_lst = [SubgroupRes.SubgroupRes(genes_list, res, "set_group")]
 
-    filepath = os.path.join(path,f"{output_name}.csv")
+    filepath = os.path.join(path, f"{output_name}.csv")
     f = open(filepath, 'w')
     f.write(
         "The designed sgRNAs for the genes in your input are listed in the table below. Every section of the table corresponds to a homologous genes subgroup as specified by the internal nodes of the constructed genes tree.<br>The name of the subgroup and the list of genes are given in the header of each section.\n")
-
     for subgroup_item in subgroups_lst:
         # create the main table
         sub_tree_display(subgroup_item.candidates_list, f, consider_homology)
@@ -137,19 +136,18 @@ def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes
 
 
 def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, number_of_groups: int,
-                            n_with_best_guide: int, n_sgrnas: int):
+                            n_with_best_guide: int, n_sgrnas: int, output_name: str = "CRISPys_output_multiplex"):
     """
     This function is used to write the output of multiplex
     Args:
         path: path to output folder
         crispys_res: the 'traditional' crispys output (list of subGroupRes)
         multiplex_dict: the output of crispys-chips. a dictionary of node_name:dictionary of best_sg_seq:BestSgGroup
-
+        output_name:
     Returns:
 
     """
-
-    filepath = path + "/CRISPys_output_multiplex.csv"
+    filepath = os.path.join(path, f"{output_name}_output_multiplex.csv")
     f = open(filepath, 'w')
     f.write(f"Run multiplex with {number_of_groups} 'Best' groups each one with {n_with_best_guide} "
             f"gRNA and {n_sgrnas} in each multiplex\n")
@@ -171,6 +169,7 @@ def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, 
                 sub_tree_display(subgroup.candidates_list, f, consider_homology=False)
         f.write("\n")
     f.close()
+
 
 if __name__ == "__main__":
     tree_display("/groups/itay_mayrose/galhyams/1516893877")
