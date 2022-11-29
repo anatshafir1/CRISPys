@@ -245,7 +245,7 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
     return subgroup, best_candidate, pos_lst
 
 
-def get_candidats_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgrnas: int):
+def get_best_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgrnas: int):
     """
     This function takes crispys output as SubgroupRes object and finds m_groups of n_sgrnas.
     It is used for multiplexing while the n_sgrnas is the amount of guides in a single plasmid (the multiplex) and
@@ -296,7 +296,7 @@ def get_candidats_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgr
             return None
     return current_best
 
-def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas: int = 2) -> Dict:
+def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas: int = 2) -> Dict:
     """
     This function takes CRISPys results (a list of SubgroupRes) and 'number of groups' that specify the number of sgRNA
     groups for each subgroup. the 'n with best guide' specify the number of multiplex groups for each 'best guide'
@@ -309,9 +309,9 @@ def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_
      list[dict1(best_guide1:list[SubgroupRes1, SubgroupRes2, SubgroupResn]), dict2(best_guide2), dictn()]
 
     Args:
-        subgroup_lst:
-        n_with_best_guide:
-        n_sgrnas:
+        subgroup_lst: list of subgroups (CRISPys output)
+        n_with_best_guide: the number of multiplex with the same 'best' guide
+        n_sgrnas: number of guide in multiplex
 
     Returns: a dictionary
 
@@ -330,8 +330,8 @@ def get_n_candidates(subgroup_lst: List, number_of_groups, n_with_best_guide, n_
         pos_lst = []
         n = number_of_groups
         while n > 0:
-            # get results for one group of genes
-            bestsgroup = get_candidats_groups(subgroup, n_with_best_guide, n_sgrnas)
+            # get results for a group of guides with the same 'best' guide
+            bestsgroup = get_best_groups( subgroup, n_with_best_guide, n_sgrnas )
             # if there are no more candidate it will return None
             if not bestsgroup:
                 break

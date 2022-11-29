@@ -18,7 +18,7 @@ from Candidate import Candidate
 from CRISPR_Net.CrisprNetLoad import load_crispr_net
 from MOFF.MoffLoad import load_moff
 from DeepHF.LoadDeepHF import load_deephf
-from crispys_chips import get_n_candidates
+from crispys_chips import chips_main
 
 # get the output_path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))
@@ -237,7 +237,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
                  pams: int = 0, singletons: int = 0, slim_output: bool = False, set_cover: bool = False,
-                 multiplex: bool = False, number_of_groups: int = 20, n_with_best_guide: int = 5, n_sgrnas: int = 2,
+                 chips: bool = False, number_of_groups: int = 20, n_with_best_guide: int = 5, n_sgrnas: int = 2,
                  desired_genes_fraction_threshold: float = -1.0) -> List[SubgroupRes]:
     """
     Algorithm main function
@@ -306,8 +306,8 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
 
     pickle.dump(res, open(os.path.join(output_path, f"{output_name}.p"), "wb"))
 
-    if multiplex:
-        multiplex_dict = get_n_candidates(res, number_of_groups, n_with_best_guide, n_sgrnas)
+    if chips:
+        multiplex_dict = chips_main(res, number_of_groups, n_with_best_guide, n_sgrnas)
         # write results to csv
         create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas)
         pickle.dump(multiplex_dict, open(f"{output_path}/multiplx_dict.p", "wb"))
@@ -396,10 +396,19 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--set_cover', type=bool, default=False,
                             help='optional choice to output the minimal amount of guides that will capture all genes.'
                                  'Default: False')
-    parser_obj.add_argument('--get_n_candidates', '-n_can', type=int, default=0,
-                            help='optional: output the best n candidate that will target the highest number of genes '
-                                 'in the family, if 0 output all '
+    parser_obj.add_argument('--chips', '-chips', type=int, default=0,
+                            help="optional: use 'chips' output that output the best n candidate that will target the "
+                                 "highest number of genes in the family, if 0 output all"
                                  'Default: 0')
+    parser_obj.add_argument('--number_of_groups', '-n_groups', type=int, default=0,
+                             help="If using 'chips', the number of groups of guides to output (each group is represent "
+                                  "'best' guide)" 'Default: 20')
+    parser_obj.add_argument('--n_with_best_guide','-n_in_best', type=int, default=0,
+                             help=""
+                                  'Default: 5')
+    parser_obj.add_argument('--n_sgrnas', '-n_sgrnas', type=int, default=0,
+                             help=""
+                                  'Default: 2')
     parser_obj.add_argument('--desired_genes_fraction_threshold', '-desired_genes_thr', type=int, default=-1,
                             help="If a list of genes of interest was entered: the minimal fraction of genes of "
                                  "interest. CRISPys will ignore internal nodes with lower or equal fraction of genes "
