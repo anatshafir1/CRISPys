@@ -143,9 +143,9 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
 
 
 if __name__ == '__main__':
-    run(main_folder_path="/groups/itay_mayrose/caldararu/crispys_arabidopsis/families/",
+    run(main_folder_path="/groups/itay_mayrose/caldararu/test_chips/",
         code_path="/groups/itay_mayrose/caldararu/tmp/crispys/Stage0.py", include_family_name_in_output=True,
-        genes_of_interest_file="/groups/itay_mayrose/caldararu/crispys_arabidopsis/genes_of_interest.txt",
-        desired_genes_fraction_threshold=0.0, algorithm="gene_homology", slim_output=1, off_scoring_function="moff",
-        omega=0.22, output_name="moff_0.22", internal_node_candidates=200, singletons=0, mem=16, ncpu=1,
-        max_target_polymorphic_sites=12, set_cover=0)
+        genes_of_interest_file="None",
+        desired_genes_fraction_threshold=-1.0, algorithm="gene_homology", slim_output=1, off_scoring_function="moff",
+        omega=0.1, output_name="test_chips_csv_0.1", internal_node_candidates=200, singletons=0, mem=16, ncpu=1,
+        max_target_polymorphic_sites=12, set_cover=0, chips=1, number_of_groups=20,n_with_best_guide=10)

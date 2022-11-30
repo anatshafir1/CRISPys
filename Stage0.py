@@ -317,18 +317,19 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     res = add_coord_pam(res, genes_target_with_position)
     pickle.dump(res, open(os.path.join(output_path, f"{output_name}.p"), "wb"))
 
-    if chips:
-        multiplex_dict = chips_main(res, number_of_groups, n_with_best_guide, n_sgrnas)
-        # write results to csv
-        create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas,
-                                output_name=output_name)
-        pickle.dump(multiplex_dict, open(f"{output_path}/{output_name}_multiplx_dict.p", "wb"))
     if alg == 'gene_homology':
         tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover=set_cover,
                      consider_homology=True, output_name=output_name)
     if alg == 'default':
         tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover=set_cover,
                      consider_homology=False, output_name=output_name)
+
+    if chips:
+        multiplex_dict = chips_main(res, number_of_groups, n_with_best_guide, n_sgrnas)
+        # write results to csv
+        create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas,
+                                output_name=output_name)
+        pickle.dump(multiplex_dict, open(f"{output_path}/{output_name}_multiplx_dict.p", "wb"))
 
     if slim_output:
         delete_file(os.path.join(output_path, 'mafft_output_aligned_fasta.fa'))
