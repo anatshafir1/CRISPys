@@ -12,7 +12,9 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
                            internal_node_candidates: int = 10,
                            max_target_polymorphic_sites: int = 12, pams: int = 0, singletons: int = 0,
                            slim_output: int = False,
-                           set_cover: int = False, desired_genes_fraction_threshold: float = -1.0) -> str:
+                           set_cover: int = False, desired_genes_fraction_threshold: float = -1.0,
+                           chips: int = 0, number_of_groups: int = 20, n_with_best_guide: int = 5,
+                           n_sgrnas: int = 2) -> str:
     """
     This function creates a string for the CRISPys command.
     Args:
@@ -38,6 +40,10 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
         set_cover: if True will output the minimal amount of guides that will capture all genes
         desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
         of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
+        chips: if 1, output n candidates that will cover the most number of genes in the family, default is False.
+        number_of_groups: how many groups of 'best guide' to choose
+        n_with_best_guide: for each group of 'best guide' how many multiplex to return
+        n_sgrnas: the number of guides in each multiplex
     Returns: The CRISPys command as a string
     """
     command = f"python {code_path} "
@@ -59,6 +65,10 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
     command += f"--slim_output {slim_output} "
     command += f"--set_cover {set_cover} "
     command += f"--desired_genes_fraction_threshold {desired_genes_fraction_threshold} "
+    command += f"--chips {chips} "
+    command += f"--number_of_groups {number_of_groups} "
+    command += f"--n_with_best_guide {n_with_best_guide} "
+    command += f"--n_sgrnas {n_sgrnas} "
     return command
 
 
@@ -68,7 +78,8 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         where_in_gene: int = 0.8, use_thr: int = 1, omega: int = 0.43, off_scoring_function: str = "cfd",
         on_scoring_function: str = "default", start_with_g: int = 0, internal_node_candidates: int = 10,
         max_target_polymorphic_sites: int = 12, pams: int = 0, singletons: int = 0, slim_output: int = 0,
-        set_cover: int = 0, desired_genes_fraction_threshold: float = -1.0):
+        set_cover: int = 0, desired_genes_fraction_threshold: float = -1.0, chips: int = 0, number_of_groups: int = 20,
+        n_with_best_guide: int = 5, n_sgrnas: int = 2):
     """
     A wrapper function to run CRISPys on the cluster for multiple folders.
     Args:
@@ -94,15 +105,18 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
         slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
         set_cover: if True will output the minimal amount of guides that will capture all genes
-        desired_genes_fraction_threshold:
+        desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
+        of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
+        chips: if 1, output n candidates that will cover the most number of genes in the family, default is False.
+        number_of_groups: how many groups of 'best guide' to choose
+        n_with_best_guide: for each group of 'best guide' how many multiplex to return
+        n_sgrnas: the number of guides in each multiplex
     Returns:
         Runs CRISPys-CRUNCH on each folder
     """
     families = os.listdir(main_folder_path)
     family_output_name = output_name
     for i, family in enumerate(families):
-        if i % 700 == 0 and i > 0:
-            time.sleep(153)
         fam_dir_path = os.path.join(main_folder_path, family)
         if os.path.isdir(fam_dir_path) and not family.startswith("."):
             if include_family_name_in_output:
@@ -120,7 +134,9 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
                                              internal_node_candidates=internal_node_candidates,
                                              max_target_polymorphic_sites=max_target_polymorphic_sites, pams=pams,
                                              singletons=singletons, slim_output=slim_output, set_cover=set_cover,
-                                             desired_genes_fraction_threshold=desired_genes_fraction_threshold)
+                                             desired_genes_fraction_threshold=desired_genes_fraction_threshold,
+                                             chips=chips, number_of_groups=number_of_groups,
+                                             n_with_best_guide=n_with_best_guide, n_sgrnas=n_sgrnas)
             with open(sh_file, "w") as f:
                 f.write(f"{header}\n{command}")
             os.system(f"qsub {sh_file}")
