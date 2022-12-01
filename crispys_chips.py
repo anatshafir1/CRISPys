@@ -200,6 +200,8 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
 
     # select best guide according to the initial 'genes_coef_dict'
     if not best_candidate:
+        if len(candidates_dict) == 1:
+            return None
         best_candidate = select_candidate(candidates_dict, genes_coef_dict)
         # calculate the guide position
         pos = get_can_positions(best_candidate)
@@ -266,23 +268,25 @@ def get_best_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgrnas: 
     # if no more candidates left stop the search
     if not subgroup_temp.candidates_list:
         return None
-    # get the first group of sgRNAs and the best guide in the group
+    # get the first group of sgRNAs, the best guide in the group and the positions of the candidate
     multiplx_candidates = choose_candidates(subgroup_temp, n_sgrnas)
     # check if a multiplex is found
     if not multiplx_candidates:
         return None
+    # save the result to a BestSgGroup object
     current_best = BestSgGroup()
-    # store the 'best' candidate
+    # store the subgroupres object with the candidates
     current_best.subgroups = [multiplx_candidates[0]]
+    # add the 'best' and the postion
     current_best.best_candidate, pos_lst = multiplx_candidates[1], multiplx_candidates[2]
-    # add the candidate to the all list
+    # store a list of all candidates
     current_best.all_candidates = copy.copy(current_best.subgroups[0].candidates_list)
     while m_groups > 1:
         # remove the found sg from the subgroup (recreate it without them)
         subgroup_temp.candidates_list = [can for can in subgroup_temp.candidates_list if can not in current_best.all_candidates]
         # check that the are candidates left in the subgroup
         if not subgroup_temp.candidates_list:
-            break
+            return current_best
         # choose the next group of sgRNA that will be joined with the 'best guide' found above
         try:
             # get the SubgroupRes, best_candidate and the updated positions list
@@ -293,7 +297,7 @@ def get_best_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgrnas: 
             m_groups -= 1
         except TypeError:
             # print(f"No more candidate in group {current_best.best_candidate.seq} in node {subgroup_temp.name}")
-            return None
+            return current_best
     return current_best
 
 def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas: int = 2) -> Dict:
@@ -331,7 +335,7 @@ def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas
         n = number_of_groups
         while n > 0:
             # get results for a group of guides with the same 'best' guide
-            bestsgroup = get_best_groups( subgroup, n_with_best_guide, n_sgrnas )
+            bestsgroup = get_best_groups(subgroup, n_with_best_guide, n_sgrnas)
             # if there are no more candidate it will return None
             if not bestsgroup:
                 break

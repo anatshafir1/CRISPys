@@ -318,11 +318,13 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     pickle.dump(res, open(os.path.join(output_path, f"{output_name}.p"), "wb"))
 
     if alg == 'gene_homology':
-        tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover=set_cover,
-                     consider_homology=True, output_name=output_name)
+        consider_homology = True
+        tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
+                     consider_homology, output_name=output_name)
     if alg == 'default':
-        tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover=set_cover,
-                     consider_homology=False, output_name=output_name)
+        consider_homology = False
+        tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
+                     consider_homology, output_name=output_name)
 
     if chips:
         multiplex_dict = chips_main(res, number_of_groups, n_with_best_guide, n_sgrnas)
@@ -345,7 +347,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
 
     stop = timeit.default_timer()
     if not slim_output:
-        with open("time.txt", 'w') as time_file:
+        with open(os.path.join(output_path, "time.txt"), 'w') as time_file:
             time_file.write(str(stop - start))
     print(f"Job ended successfully for {output_name}. Output files created")
     return res
@@ -397,10 +399,13 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                             help='the maximal number of possible polymorphic sites in a target. Default: 12')
     parser_obj.add_argument('--pams', type=int, default=0,
                             help='0 to search NGG pam or 1 to search for NGG and NAG. Default: 0')
-    parser_obj.add_argument('--singletons', choices=[0, 1], type=int, default=0,
-                            help='0 to return results with singletons (sgRNAs that target only 1 gene) 1 to exclude'
-                                 ' singletons. Default: 0')
+
+    parser_obj.add_argument('--singletons', choices=[0, 1], type=int, default=1,
+                            help='1 to return results with singletons (sgRNAs that target only 1 gene) 0 to exclude'
+                                 ' singletons. Default: 1')
+
     parser_obj.add_argument('--slim_output', choices=[0, 1], type=int, default=0,
+
                             help='optional choice to store only "res_in_lst" as the result of the algorithm run.'
                                  'Default: 0')
     parser_obj.add_argument('--set_cover', choices=[0, 1], type=int, default=0,
