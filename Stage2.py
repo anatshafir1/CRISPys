@@ -9,7 +9,7 @@ from TreeConstruction_changed import CladeNew
 
 def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, omega: float,
                           targets_genes_dict: Dict[str, List[str]], on_scoring_function,
-                          max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None, singletons: int = 0,
+                          max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None, singletons: int = 1,
                           off_scoring_function: Dict = None):
     """
     Given an initial input of genomic targets UPGMA tree root, the function traverses the tree in a top-town (depth first) order.
@@ -28,7 +28,7 @@ def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, om
     :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
 
     """
-    if node.is_terminal() and singletons == 1:  # check if the node is a leaf - one target, to exclude singletons
+    if node.is_terminal() and not singletons:  # check if the node is a leaf - one target, to exclude singletons
         return
     if len(node.polymorphic_sites) < max_target_polymorphic_sites:
         # make current_genes_targets_dict
@@ -41,7 +41,7 @@ def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, om
                         current_genes_targets_dict[gene_name] += [target]
                 else:
                     current_genes_targets_dict[gene_name] = [target]
-        if len(current_genes_targets_dict) == 1 and singletons == 1:  # check if the dictionary contains only one gene
+        if len(current_genes_targets_dict) == 1 and not singletons:  # check if the dictionary contains only one gene
             return
         # get candidates for the current node
         list_of_candidates = Stage3.return_candidates(current_genes_targets_dict, omega, off_scoring_function,
@@ -59,7 +59,7 @@ def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, om
 
 def stage_two_main(targets_list: List[str], targets_names: List[str], targets_genes_dict: Dict[str, List[str]], omega: float,
                    off_scoring_function, on_scoring_function, max_target_polymorphic_sites: int = 12,
-                   cfd_dict: Dict = None, singletons: int = 0) -> List[Candidate]:
+                   cfd_dict: Dict = None, singletons: int = 1) -> List[Candidate]:
     """
     the main function of stage 2 of the algorithm. the function creates a UPGMA tree from the potential targets in
     'targets_list' and the given scoring function. Then finds the best sgRNA for the potential targets in the tree.

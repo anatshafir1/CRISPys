@@ -16,7 +16,7 @@ from Stage2 import stage_two_main
 
 
 def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, off_scoring_function, on_scoring_function,
-                max_target_polymorphic_sites: int = 12, singletons: int = 0) -> List[SubgroupRes]:
+                max_target_polymorphic_sites: int = 12, singletons: int = 1) -> List[SubgroupRes]:
     """
     Called by the main function when choosing the default algorithm run. Given a dictionary of potential genomic targets
     this function returns a list of candidate sgRNAs (Candidate objects) that are the best suitable to target the input
@@ -51,7 +51,7 @@ def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, of
 def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: Dict, targets_genes_dict: Dict,
                       genes_of_interest_set: set, omega: float, output_path: str, off_scoring_function,
                       on_scoring_function,
-                      internal_node_candidates: int, max_target_polymorphic_sites: int = 12, singletons: int = 0,
+                      internal_node_candidates: int, max_target_polymorphic_sites: int = 12, singletons: int = 1,
                       genes_of_interest_fraction_threshold: int = 0, slim_output: bool = False) -> List[SubgroupRes]:
     """
     Called by the main function when choosing algorithm with gene homology taken in consideration. Creates a UPGMA tree
@@ -155,7 +155,7 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
                         genes_targets_dict: Dict[str, List[str]],
                         targets_genes_dict: Dict[str, List[str]], off_scoring_function, on_scoring_function,
                         internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                        genes_of_interest_fraction_threshold: int = 0, cfd_dict=None, singletons: int = 0):
+                        genes_of_interest_fraction_threshold: int = 0, cfd_dict=None, singletons: int = 1):
     """
     Given an initial input of genes UPGMA tree root the function traverses the tree in a top-town (depth first) order.
     For each node creates a dictionary of node's genes (leaves under the node) -> targets found in them, and then find
@@ -183,7 +183,7 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
     targets_names = list()
 
     if N_genes_in_node >= len(
-            node.node_leaves) > singletons:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22. check if the node is one gene
+            node.node_leaves) and not singletons:  # I added the 'N_genes_in_node' from globals.py. Udi 16/03/22. check if the node is one gene
         for leaf in node.node_leaves:  # leaf here is a gene. taking only the relevant genes
             current_genes_targets_dict[leaf] = genes_targets_dict[leaf]
             # filling the targets to genes dict

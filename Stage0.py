@@ -236,7 +236,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  where_in_gene: float = 1, use_thr: int = 1,
                  omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: bool = False, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                 pams: int = 0, singletons: int = 0, slim_output: bool = False, set_cover: bool = False,
+                 pams: int = 0, singletons: int = 1, slim_output: bool = False, set_cover: bool = False,
                  chips: bool = False, number_of_groups: int = 20, n_with_best_guide: int = 5, n_sgrnas: int = 2,
                  desired_genes_fraction_threshold: float = -1.0) -> List[SubgroupRes]:
     """
@@ -306,12 +306,6 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
 
     pickle.dump(res, open(os.path.join(output_path, f"{output_name}.p"), "wb"))
 
-    if chips:
-        multiplex_dict = chips_main(res, number_of_groups, n_with_best_guide, n_sgrnas)
-        # write results to csv
-        create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas)
-        pickle.dump(multiplex_dict, open(f"{output_path}/multiplx_dict.p", "wb"))
-
     if alg == 'gene_homology':
         consider_homology = True
         tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
@@ -320,6 +314,12 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
         consider_homology = False
         tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
                      consider_homology, output_name=output_name)
+
+    if chips:
+        multiplex_dict = chips_main(res, number_of_groups, n_with_best_guide, n_sgrnas)
+        # write results to csv
+        create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas, output_name)
+        pickle.dump(multiplex_dict, open(f"{output_path}/{output_name}_chips_dict.p", "wb"))
 
     if slim_output:
         os.system(f"rm {os.path.join(output_path, 'genes_fasta_for_mafft.fa')}")
@@ -336,7 +336,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
 
     stop = timeit.default_timer()
     if not slim_output:
-        with open("time.txt", 'w') as time_file:
+        with open(os.path.join(output_path, "time.txt"), 'w') as time_file:
             time_file.write(str(stop - start))
     return res
 
@@ -387,9 +387,9 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                             help='the maximal number of possible polymorphic sites in a target. Default: 12')
     parser_obj.add_argument('--pams', type=int, default=0,
                             help='0 to search NGG pam or 1 to search for NGG and NAG. Default: 0')
-    parser_obj.add_argument('--singletons', choices=[0, 1], type=int, default=0,
-                            help='0 to return results with singletons (sgRNAs that target only 1 gene) 1 to exclude'
-                                 ' singletons. Default: 0')
+    parser_obj.add_argument('--singletons', choices=[0, 1], type=int, default=1,
+                            help='1 to return results with singletons (sgRNAs that target only 1 gene) 0 to exclude'
+                                 ' singletons. Default: 1')
     parser_obj.add_argument('--slim_output', type=bool, default=False,
                             help='optional choice to store only "res_in_lst" as the result of the algorithm run.'
                                  'Default: False')

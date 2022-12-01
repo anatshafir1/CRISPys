@@ -125,7 +125,7 @@ def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes
         res = set_cover_greedy.find_set_cover(subgroups_lst, targets_genes_dict, omega)
         subgroups_lst = [SubgroupRes.SubgroupRes(genes_list, res, "set_group")]
 
-    filepath = os.path.join(path,f"{output_name}.csv")
+    filepath = os.path.join(path, f"{output_name}.csv")
     f = open(filepath, 'w')
     f.write(
         "The designed sgRNAs for the genes in your input are listed in the table below. Every section of the table corresponds to a homologous genes subgroup as specified by the internal nodes of the constructed genes tree.<br>The name of the subgroup and the list of genes are given in the header of each section.\n")
@@ -137,7 +137,7 @@ def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes
 
 
 def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, number_of_groups: int,
-                            n_with_best_guide: int, n_sgrnas: int):
+                            n_with_best_guide: int, n_sgrnas: int, output_name):
     """
     This function is used to write the output of multiplex
     Args:
@@ -149,7 +149,7 @@ def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, 
 
     """
 
-    filepath = path + "/CRISPys_output_multiplex.csv"
+    filepath = f"{path}/{output_name}_chips.csv"
     f = open(filepath, 'w')
     f.write(f"Run multiplex with {number_of_groups} 'Best' groups each one with {n_with_best_guide} "
             f"gRNA and {n_sgrnas} in each multiplex\n")
