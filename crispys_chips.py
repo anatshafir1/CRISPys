@@ -6,14 +6,14 @@ from typing import List, Dict
 
 """
 This module will takes CRISPys output (list of SubgroupRes) and will output group of n guides that will target the 
-maximum number of the gene in the the group of genes (internal node).
+maximum number of the genes in a group of genes (internal node).
 It will first select the 'best' guide, that is, the one that will target the most genes with maximum expectation score, 
 than, it will select another guide that will complement the target to capture more genes that are not capture with the 
 previous guide, this will continue until we get the number of guide we specify (usually the multiplex is of 2 guides).
 Next, this peocess will repeat but without selecting the 'additional' guides, meaning, it will keep the first ('best') 
-guide and remove from the list of all guides the guides that completed the multiplex and will find new ones to add to 
+guide and remove from the list of all guides that completed the multiplex in previus step, and will find new ones to add to the 'bset' guide. 
 the 'best' one, this argument is controled with the 'n_with_best_guide' parameter.
-each multiplex is stired in a SubgroupRes object and a group of them are stored in a BestSgGroup object.
+each multiplex (list of guides for one vector) is stored in a SubgroupRes object and a group of them are stored in a BestSgGroup object.
 A representation of the BestSgGroup:
  
                          
@@ -24,21 +24,21 @@ BestSgGroup object ->   |    .       |
                         |    .       |
                         | multiplx n |
                         --------------
-each BestSgGroup has 'best candidate' that is in each multiplex.
+each BestSgGroup has 'best candidate' sttribute that show the details of the guide that is common to all multiplex.
 
 for each CRISPys output of gRNAs that target group of genes we can have multiple BestSgGroup objects each one with its 
 own 'best' guide, so the next step is to remove the 'best guide' we selected from the CRISPys results and repeat the
-first part again to create the next group of multiplex this parameter is defined in 'number_of_groups'
+first part again to create the next group of multiplex, this parameter is defined in 'number_of_groups'
 so we get:
 
    BestSgGroup object 1    BestSgGroup object 2   .   .   .  BestSgGroup object n
-   --------------          --------------                    --------------
-   | multiplx 1 |          | multiplx 1 |                    | multiplx 1 |
-   | multiplx 2 |          | multiplx 2 |                    | multiplx 2 |
-   |    .       |          |    .       |      .    .   .    |    .       |
-   |    .       |          |    .       |                    |    .       |
-   | multiplx n |          | multiplx n |                    | multiplx n |
-   --------------          --------------                    --------------
+   --------------          --------------                     --------------
+   | multiplx 1 |          | multiplx 1 |                     | multiplx 1 |
+   | multiplx 2 |          | multiplx 2 |                     | multiplx 2 |
+   |    .       |          |    .       |        .    .   .   |    .       |
+   |    .       |          |    .       |                     |    .       |
+   | multiplx n |          | multiplx n |                     | multiplx n |
+   --------------          --------------                     --------------
 The described above is applied to each subgroup (represent internal node in the gene tree) of CRISPys results and
 the output object is a dictionary that each key is the internal node name and the value is a dictionary that each key is
 the sequence of the 'best' gRNA and the value is the BestSgGroup object of that 'best guide' 
