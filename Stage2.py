@@ -9,7 +9,8 @@ from TreeConstruction_changed import CladeNew
 
 def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, omega: float,
                           targets_genes_dict: Dict[str, List[str]], on_scoring_function,
-                          max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None, singletons: int = 1,
+                          max_target_polymorphic_sites: int = 12, cfd_dict: Dict = None,
+                          singletons_from_crispys: int = 1,
                           off_scoring_function: Dict = None):
     """
     Given an initial input of genomic targets UPGMA tree root, the function traverses the tree in a top-town (depth first) order.
@@ -25,39 +26,44 @@ def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, om
 	:param on_scoring_function: the on target scoring function
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
-    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
+    :param singletons_from_crispys: optional choice to include singletons given by CRISPys
 
     """
-    if node.is_terminal() and not singletons:  # check if the node is a leaf - one target, to exclude singletons
+    if node.is_terminal() and not singletons_from_crispys:  # check if the node is a leaf - one target, to exclude singletons_from_crispys
         return
     if len(node.polymorphic_sites) < max_target_polymorphic_sites:
         # make current_genes_targets_dict
         current_genes_targets_dict = dict()
         for target in node.node_leaves:
-            genes_leaf_from = targets_genes_dict[target]  # which gene is this target came from. usually it will be only 1 gene
+            genes_leaf_from = targets_genes_dict[
+                target]  # which gene is this target came from. usually it will be only 1 gene
             for gene_name in genes_leaf_from:
                 if gene_name in current_genes_targets_dict:
                     if target not in current_genes_targets_dict[gene_name]:
                         current_genes_targets_dict[gene_name] += [target]
                 else:
                     current_genes_targets_dict[gene_name] = [target]
-        if len(current_genes_targets_dict) == 1 and not singletons:  # check if the dictionary contains only one gene
+        if len(
+                current_genes_targets_dict) == 1 and not singletons_from_crispys:  # check if the dictionary contains only one gene
             return
         # get candidates for the current node
         list_of_candidates = Stage3.return_candidates(current_genes_targets_dict, omega, off_scoring_function,
-                                                      on_scoring_function, node, cfd_dict, singletons)
+                                                      on_scoring_function, node, cfd_dict, singletons_from_crispys)
         # current best perm is a tuple with the perm and metadata of this perm.
         if list_of_candidates:
             best_permutations += list_of_candidates
         return
     else:
         targets_tree_top_down(best_permutations, node.clades[0], omega, targets_genes_dict,
-                              on_scoring_function, max_target_polymorphic_sites, cfd_dict, singletons, off_scoring_function)
+                              on_scoring_function, max_target_polymorphic_sites, cfd_dict, singletons_from_crispys,
+                              off_scoring_function)
         targets_tree_top_down(best_permutations, node.clades[1], omega, targets_genes_dict,
-                              on_scoring_function, max_target_polymorphic_sites, cfd_dict, singletons, off_scoring_function)
+                              on_scoring_function, max_target_polymorphic_sites, cfd_dict, singletons_from_crispys,
+                              off_scoring_function)
 
 
-def stage_two_main(targets_list: List[str], targets_names: List[str], targets_genes_dict: Dict[str, List[str]], omega: float,
+def stage_two_main(targets_list: List[str], targets_names: List[str], targets_genes_dict: Dict[str, List[str]],
+                   omega: float,
                    off_scoring_function, on_scoring_function, max_target_polymorphic_sites: int = 12,
                    cfd_dict: Dict = None, singletons: int = 1) -> List[Candidate]:
     """
@@ -72,7 +78,7 @@ def stage_two_main(targets_list: List[str], targets_names: List[str], targets_ge
 	:param on_scoring_function: the on target scoring function
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
-    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
+    :param singletons: optional choice to include singletons_from_crispys (sgRNAs that target only 1 gene) in the results
     :return: list of Candidate objects representing the best sgRNAs to cleave the targets in the UPGMA tree
     """
     best_permutations = []
@@ -83,7 +89,8 @@ def stage_two_main(targets_list: List[str], targets_names: List[str], targets_ge
         candidate.fill_default_fields(genes)
         best_permutations.append(candidate)
     else:
-        upgma_tree = return_targets_upgma(targets_list, targets_names, off_scoring_function, on_scoring_function, cfd_dict)
+        upgma_tree = return_targets_upgma(targets_list, targets_names, off_scoring_function, on_scoring_function,
+                                          cfd_dict)
         Stage1.fill_nodes_leaves_list(upgma_tree)
         fill_polymorphic_sites(upgma_tree.root)
         targets_tree_top_down(best_permutations, upgma_tree.root, omega, targets_genes_dict,

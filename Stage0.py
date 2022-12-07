@@ -7,6 +7,7 @@ import argparse
 import os
 import sys
 from typing import List, Dict
+from pathlib import Path
 
 from make_tree_display_CSV import tree_display, create_output_multiplex
 from CasSites import fill_genes_targets_dict
@@ -19,6 +20,7 @@ from CRISPR_Net.CrisprNetLoad import load_crispr_net
 from MOFF.MoffLoad import load_moff
 from DeepHF.LoadDeepHF import load_deephf
 from crispys_chips import chips_main
+from singletons import singletons_main
 
 # get the output_path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))
@@ -229,6 +231,22 @@ def remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set):
     return new_res
 
 
+def add_family_name(fasta_file_path: str, results: List[SubgroupRes]):
+    """
+    This function updates the family name attribute to each SubgroupRes object in CRISPys results.
+    This function assumes that the name of the family is contained in the fasta, and that the name itself doesn't
+    contain underscores.
+    Args:
+        fasta_file_path: path to the fasta file containing the exons of a gene family
+        results: a list of CRISPys results as SubgroupRes objects
+    Returns: None
+
+    """
+    family_name = Path(fasta_file_path).stem.split("_")[0]
+    for subroup_res in results:
+        subroup_res.family_name = family_name
+
+
 def delete_file(file_path):
     """
     This function deletes a file if it exists.
@@ -248,11 +266,13 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  where_in_gene: float = 1, use_thr: int = 1,
                  omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: int = 0, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                 pams: int = 0, singletons: int = 0, slim_output: int = 0, set_cover: int = 0,
+                 pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0, set_cover: int = 0,
                  chips: int = 0, number_of_groups: int = 20, n_with_best_guide: int = 5, n_sgrnas: int = 2,
-                 desired_genes_fraction_threshold: float = -1.0) -> List[SubgroupRes]:
+                 desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
+                 singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50) -> List[SubgroupRes]:
     """
     Algorithm main function
+
 
     :param fasta_file: input text file output_path of gene names and their sequences (or their exons sequences) as lines
     :param output_path: the output_path to the directory in which the output files will be written
@@ -268,7 +288,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param pams: the pams by which potential sgRNA target sites will be searched
-    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
+    :param singletons_from_crispys: optional choice to include singletons given by CRISPys
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
     :param set_cover: if 1, will output the minimal amount of guides that will capture all genes
     :param chips: if 1, output n candidates that will cover the most number of genes in the family, default is 0.
@@ -277,21 +297,34 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param n_sgrnas: the number of guides in each multiplex
     :param desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
            of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
+    :param singletons: select 1 to create singletons (sgRNAs candidates that target a single gene).
+    :param number_of_singletons: the number of singletons that will be included for each gene.
+    :param singletons_on_target_function: The on-target scoring function used for evaluating singletons.
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
+
     """
     start = timeit.default_timer()
     # set the recursion limit to prevent recursion error
     sys.setrecursionlimit(10 ** 6)
     # choosing the scoring function:
+    genes_exons_dict = fill_genes_exons_dict(fasta_file)  # gene name -> list of exons
+
+
+    if len(genes_exons_dict) == 1 and not (singletons or singletons_from_crispys):
+        print("family contains a single gene")
+        return []
+
     off_scoring_function, pam_included = choose_scoring_function(off_scoring_function)
     on_scoring_function, pam_included = choose_scoring_function(on_scoring_function)
-    genes_exons_dict = fill_genes_exons_dict(fasta_file)  # gene name -> list of exons
+
     genes_of_interest_set = {}
     if genes_of_interest_file != "None":
         genes_of_interest_set = get_genes_of_interest_set(genes_of_interest_file, genes_exons_dict)
         if not genes_of_interest_set:
             print(f"Job ended successfully for {output_name}. This family contains no genes of interest")
             return []
+    else:
+        desired_genes_fraction_threshold = -1.0
     # find the potential sgRNA target sites for each gene:
     genes_targets_dict, genes_target_with_position = fill_genes_targets_dict(genes_exons_dict, pam_included,
                                                                              where_in_gene, start_with_g, pams)
@@ -299,14 +332,18 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     genes_names_list = list(genes_targets_dict.keys())
     genes_list = get_genes_list(genes_exons_dict)  # a list of all the input genes in the algorithm
     res = []
-    if alg == 'gene_homology' and len(genes_list) > 1:
+
+    if alg == 'gene_homology':
         res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict,
                                 genes_of_interest_set, omega, output_path, off_scoring_function, on_scoring_function,
-                                internal_node_candidates, max_target_polymorphic_sites, singletons,
+                                internal_node_candidates, max_target_polymorphic_sites, singletons_from_crispys,
                                 desired_genes_fraction_threshold, slim_output)
-    elif alg == 'default' or len(genes_list) == 1:  # alg == "default". automatically used on single-gene families.
+    elif alg == 'default':  # alg == "default". automatically used on single-gene families.
         res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
-                          max_target_polymorphic_sites, singletons)
+                          max_target_polymorphic_sites, singletons_from_crispys)
+        # if singletons:
+        #     singletons_main(genes_targets_dict, singletons_on_target_function, res, genes_of_interest_set,
+        #                     number_of_singletons)
     if genes_of_interest_set:
         res = remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set)
     if use_thr:
@@ -315,16 +352,14 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
         sort_expectation(res)
 
     res = add_coord_pam(res, genes_target_with_position)
+    add_family_name(fasta_file,res)
     pickle.dump(res, open(os.path.join(output_path, f"{output_name}.p"), "wb"))
-
     if alg == 'gene_homology':
-        consider_homology = True
         tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
-                     consider_homology, output_name=output_name)
+                     consider_homology=True, output_name=output_name)
     if alg == 'default':
-        consider_homology = False
         tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
-                     consider_homology, output_name=output_name)
+                     consider_homology=False, output_name=output_name)
 
     if chips:
         multiplex_dict = chips_main(res, number_of_groups, n_with_best_guide, n_sgrnas)
@@ -400,9 +435,10 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--pams', type=int, default=0,
                             help='0 to search NGG pam or 1 to search for NGG and NAG. Default: 0')
 
-    parser_obj.add_argument('--singletons', choices=[0, 1], type=int, default=1,
-                            help='1 to return results with singletons (sgRNAs that target only 1 gene) 0 to exclude'
-                                 ' singletons. Default: 1')
+    parser_obj.add_argument('--singletons_from_crispys', choices=[0, 1], type=int, default=1,
+                            help='1 to return results with singletons given by CRISPys (sgRNAs that target only 1 gene),'
+                                 ' 0 to exclude'
+                                 ' singletons given by CRISPys. Default: 1')
 
     parser_obj.add_argument('--slim_output', choices=[0, 1], type=int, default=0,
 
@@ -430,7 +466,14 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                                  "interest. CRISPys will ignore internal nodes with lower or equal fraction of genes "
                                  "of interest. "
                                  'Default: -1.0')
-
+    parser_obj.add_argument('--singletons', '-singletons', choices=[0, 1], type=int, default=0,
+                            help="optional: select 1 to create singletons (sgRNAs candidates that target a single gene)"
+                                 'Default: 0')
+    parser_obj.add_argument('--singletons_on_target_function', type=str, default='ucrispr',
+                            help='the on scoring functionthat ')
+    parser_obj.add_argument('--number_of_singletons', '-num_singletons', type=int, default=50,
+                            help="optional: the number of singleton candidates to include for each gene"
+                                 'Default: 50')
     arguments = parser_obj.parse_args()
     return arguments
 
@@ -456,7 +499,10 @@ if __name__ == "__main__":
                  number_of_groups=args.number_of_groups,
                  n_with_best_guide=args.n_with_best_guide,
                  n_sgrnas=args.n_sgrnas,
-                 singletons=args.singletons,
+                 singletons_from_crispys=args.singletons_from_crispys,
                  slim_output=args.slim_output,
                  set_cover=args.set_cover,
-                 desired_genes_fraction_threshold=args.desired_genes_fraction_threshold)
+                 desired_genes_fraction_threshold=args.desired_genes_fraction_threshold,
+                 singletons=args.singletons,
+                 singletons_on_target_function=args.singletons_on_target_function,
+                 number_of_singletons=args.number_of_singletons)
