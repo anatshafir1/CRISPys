@@ -10,7 +10,7 @@ from TreeConstruction_changed import CladeNew
 
 
 def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates: List[str], off_scoring_function,
-                    on_scoring_function, cfd_dict=None) -> Dict[str, List[Tuple[str, List[float]]]]:  # Omer caldararu 24/3
+                    on_scoring_function, cfd_dict=None) -> Dict[str, List[Tuple[str, List[float]]]]:
     """
 	generates a data structure that contains the candidates and their off-target scores.
 	(in the case of gold off, or any other function that can accept several sgRNA's in a single call)
@@ -24,7 +24,8 @@ def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates
 	"""
     scores_dict = {}
     if off_scoring_function == gold_off_func or off_scoring_function == crisprnet or off_scoring_function == moff:
-        return generate_scores_one_batch(genes_targets_dict, list_of_candidates, off_scoring_function, on_scoring_function)
+        return generate_scores_one_batch(genes_targets_dict, list_of_candidates, off_scoring_function,
+                                         on_scoring_function)
     if on_scoring_function == default_on_target:  # if no on-target scoring function was given
         for gene in genes_targets_dict:
             scores_dict[gene] = []
@@ -62,13 +63,12 @@ def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates
 def generate_scores_one_batch(genes_targets_dict: Dict[str, List[str]], list_of_candidates: List[str],
                               off_scoring_function, on_scoring_function) -> Dict[str, List[Tuple[str, List[float]]]]:
     """
-	generates a data structure that contains the candidates and their off-target scores,
-	using a single call of the scoring function.
-  
+    generates a data structure that contains the candidates and their off-target scores,
+    using a single call of the scoring function.
     :param genes_targets_dict: a dictionary : gene name -> targets within the gene
     :param list_of_candidates: a list of all possible candidates, given by all_perms()
-	:param off_scoring_function: the off target scoring function
-	:param on_scoring_function: the on target scoring function
+    :param off_scoring_function: the off target scoring function
+    :param on_scoring_function: the on target scoring function
     :return: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]},
     """
     scores_dict = {}
@@ -103,7 +103,7 @@ def generate_scores_one_batch(genes_targets_dict: Dict[str, List[str]], list_of_
 
 
 def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, off_scoring_function, on_scoring_function,
-                      node: CladeNew, cfd_dict: Dict = None, singletons: int = 1) -> List[Candidate]:
+                      node: CladeNew, cfd_dict: Dict = None, singletons_from_crispys: int = 1) -> List[Candidate]:
     """
 
     :param genes_targets_dict: a dictionary of gene -> list of potential targets found in the gene
@@ -112,7 +112,7 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, of
 	:param on_scoring_function: the on target scoring function
     :param node: current node in the targets UPGMA tree that the targets in genes_targets_dict belong to
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
-    :param singletons: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
+    :param singletons_from_crispys: optional choice to include singletons given by CRISPys
 
     :return:
     """
@@ -128,7 +128,8 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, of
     # going over all the permutations
     list_of_perms_seqs = all_perms(str(list_of_targets[0]), [], list_of_different_places)
     list_of_candidates = []  # a list of tuples: (candidate_str, fraction_of_cut, cut_expectation, genes_list)
-    scores_dict = generate_scores(genes_targets_dict, list_of_perms_seqs, off_scoring_function, on_scoring_function, cfd_dict)
+    scores_dict = generate_scores(genes_targets_dict, list_of_perms_seqs, off_scoring_function, on_scoring_function,
+                                  cfd_dict)
     for i in range(len(list_of_perms_seqs)):
         targets_dict = {}  # a list of tuples: (gene name, list of target of this gene that might be cut by the candidate_str)
         genes_covering = []  # a list of tuples: (gene name, probability to be cut).
@@ -141,15 +142,17 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, of
                     # there isn't attachment of the guide and target nad no cut event) don't consider the target
                     continue
                 candidate_cut_prob = 1 - candidates_target_scores[i]
-                sg_site_differences = two_seqs_differences(list_of_perms_seqs[i], target)  # the differences between the i-th candidate and the target
+                sg_site_differences = two_seqs_differences(list_of_perms_seqs[i],
+                                                           target)  # the differences between the i-th candidate and the target
                 list_of_targets.append([target[:20], sg_site_differences])
-                prob_gene_will_not_cut = prob_gene_will_not_cut * (1 - candidate_cut_prob)  # lowering the not cut prob in each sgRNA
+                prob_gene_will_not_cut = prob_gene_will_not_cut * (
+                        1 - candidate_cut_prob)  # lowering the not cut prob in each sgRNA
                 num_of_cuts_per_gene += candidate_cut_prob
             prob_gene_cut = 1 - prob_gene_will_not_cut
             if prob_gene_cut >= omega and len(list_of_targets) > 0:
                 targets_dict[gene] = list_of_targets
                 genes_covering.append((gene, prob_gene_cut))
-        if len(genes_covering) < 2 and not singletons:  # check if the potential candidate covers less than two genes
+        if len(genes_covering) < 2 and not singletons_from_crispys:  # check if the potential candidate covers less than two genes
             continue
         cut_expectation = 0  # the probability the permutated sequence will cut all the genes, that the probability each
         # of them will be cut is greater then omega
