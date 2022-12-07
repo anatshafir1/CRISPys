@@ -331,7 +331,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
         # write results to csv
         create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas,
                                 output_name=output_name)
-        pickle.dump(multiplex_dict, open(f"{output_path}/{output_name}_multiplx_dict.p", "wb"))
+        pickle.dump(multiplex_dict, open(f"{output_path}/{output_name}_chips_dict.p", "wb"))
 
     if slim_output:
         delete_file(os.path.join(output_path, 'mafft_output_aligned_fasta.fa'))
