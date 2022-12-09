@@ -201,7 +201,7 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
 
         best_permutations = []
         # If there are no targets in the internal node, return None
-        if not current_genes_targets_dict:
+        if not current_targets_genes_dict:
             return
         # If a desired genes file was defined, and the internal node does not satisfy the conditions, move to the next
         # internal node & don't enter Stage2.
