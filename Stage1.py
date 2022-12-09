@@ -186,7 +186,7 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
     targets_names = list()
 
     if N_genes_in_node >= len(
-            node.node_leaves) or (node.is_terminal() and singletons_from_crispys):
+            node.node_leaves) > 1 or (node.is_terminal() and singletons_from_crispys):
         for leaf in node.node_leaves:  # leaf here is a gene. taking only the relevant genes
             current_genes_targets_dict[leaf] = genes_targets_dict[leaf]
             # filling the targets to genes dict
@@ -200,6 +200,9 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
                     targets_names.append(target)
 
         best_permutations = []
+        # If there are no targets in the internal node, return None
+        if not current_genes_targets_dict:
+            return
         # If a desired genes file was defined, and the internal node does not satisfy the conditions, move to the next
         # internal node & don't enter Stage2.
         if not genes_of_interest_set or determine_if_relevant_node(node, genes_of_interest_set,

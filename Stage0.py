@@ -20,7 +20,7 @@ from CRISPR_Net.CrisprNetLoad import load_crispr_net
 from MOFF.MoffLoad import load_moff
 from DeepHF.LoadDeepHF import load_deephf
 from crispys_chips import chips_main
-from singletons import singletons_main
+# from singletons import singletons_main
 
 # get the output_path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))
