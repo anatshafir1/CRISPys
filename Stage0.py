@@ -126,18 +126,17 @@ def fill_genes_exons_dict(fasta_file: str) -> Dict[str, str]:
     genes_exons_dict = {}  # key: gene name. value: list of exons
     while i <= len(lines):
         if i == len(lines) or lines[i][0] == '>':
-            if len(gene_seq) > 0 and gene_name != "":  # add the gene
+            if len(gene_seq) > 0 and gene_name != "":
                 if gene_name not in genes_exons_dict:
                     genes_exons_dict[gene_name] = [gene_seq]
                 else:
                     genes_exons_dict[gene_name] = genes_exons_dict[gene_name] + [gene_seq]
                 gene_seq = ""
             if i != len(lines):
-                gene_name = lines[i][1:].strip()  # without the '>' and the '\n'
+                gene_name = lines[i][1:].strip().upper()  # without the '>' and the '\n'
         elif lines[i] != "\n":
             gene_seq += lines[i].strip()
         i += 1
-        genes_exons_dict = {gene_name.upper(): gene_seq for gene_name, gene_seq in genes_exons_dict.items()}
     return genes_exons_dict
 
 
@@ -352,7 +351,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
         sort_expectation(res)
 
     res = add_coord_pam(res, genes_target_with_position)
-    add_family_name(fasta_file,res)
+    add_family_name(fasta_file, res)
     pickle.dump(res, open(os.path.join(output_path, f"{output_name}.p"), "wb"))
     if alg == 'gene_homology':
         tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
