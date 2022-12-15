@@ -185,9 +185,10 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
 
 
 if __name__ == '__main__':
-    run(main_folder_path="/groups/itay_mayrose/caldararu/crispys_arabidopsis/families/",
-        code_path="/groups/itay_mayrose/caldararu/tmp/crispys/Stage0.py", include_family_name_in_output=True,
-        genes_of_interest_file="/groups/itay_mayrose/caldararu/crispys_arabidopsis/genes_of_interest.txt", queue="itaym",
-        desired_genes_fraction_threshold=-1.0, algorithm="gene_homology", slim_output=1, off_scoring_function="moff",
-        omega=0.09, output_name="ath_moff_0.09", internal_node_candidates=200, singletons_from_crispys=0, mem=16,
-        ncpu=1, max_target_polymorphic_sites=12, set_cover=0, chips=0, check_for_genes_of_interest=True)
+    run(main_folder_path="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/families/",
+        code_path="/groups/itay_mayrose/udiland/crispys_code/CRISPys/Stage0.py", include_family_name_in_output=True,
+        genes_of_interest_file="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/genes2target.txt", queue="itaym",
+        desired_genes_fraction_threshold=0, algorithm="gene_homology", slim_output=1, off_scoring_function="moff",
+        omega=0.09, output_name="ath_moff_0.09", internal_node_candidates=200, singletons_from_crispys=0, mem=32,
+        ncpu=1, max_target_polymorphic_sites=12, set_cover=0, chips=1, number_of_groups=20, n_with_best_guide=5,
+        n_sgrnas=2, check_for_genes_of_interest=True)
