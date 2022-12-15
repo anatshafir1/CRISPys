@@ -91,6 +91,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     if off_scoring_function == cfd_funct:
         script_path = dirname(abspath(__file__))
         cfd_dict = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))
+    # use the gene tree to get candidates for each internal node
     genes_tree_top_down(list_of_subgroups, genes_upgma_tree.root, genes_of_interest_set, omega, genes_targets_dict,
                         targets_genes_dict, off_scoring_function, on_scoring_function, internal_node_candidates,
                         max_target_polymorphic_sites, genes_of_interest_fraction_threshold, cfd_dict, singletons_from_crispys)
@@ -214,8 +215,9 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
         if best_permutations:
             best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)
             current_best_perm = best_permutations[:internal_node_candidates]  # the best sg at the current set cover
-            # res.append(SubgroupRes(get_genes_list(best_permutations), current_best_perm, node.name))
-            res.append(SubgroupRes(set(node.node_leaves), current_best_perm, node.name))
+            # Add to the list of result a SubgroupRes object that store: list of genes targeted, list of candidates,
+            # the name of the internal node and a list of genes in the node
+            res.append(SubgroupRes(get_genes_list(best_permutations), current_best_perm, node.name, node.node_leaves))
     if not node.clades:
         return  # if the function recursion reached a final node (a leaf) - steps out of the current function call
     if node.clades[0]:

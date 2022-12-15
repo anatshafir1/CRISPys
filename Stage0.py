@@ -21,6 +21,7 @@ from MOFF.MoffLoad import load_moff
 from DeepHF.LoadDeepHF import load_deephf
 from crispys_chips import chips_main
 # from singletons import singletons_main
+os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 
 # get the output_path of this script file
 PATH = os.path.dirname(os.path.realpath(__file__))
@@ -439,7 +440,7 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                                  ' 0 to exclude'
                                  ' singletons given by CRISPys. Default: 1')
 
-    parser_obj.add_argument('--slim_output', choices=[0, 1], type=int, default=0,
+    parser_obj.add_argument('--slim_output', '-slim', choices=[0, 1], type=int, default=0,
 
                             help='optional choice to store only "res_in_lst" as the result of the algorithm run.'
                                  'Default: 0')

@@ -5,22 +5,23 @@ import SubgroupRes
 from typing import List, Dict
 
 
-def sub_tree_display(candidates_lst, f, consider_homology):
+def sub_tree_display(candidates_lst, f, consider_homology, genes_names):
     header_row = "sgRNA index,sgRNA,Score,Genes,Genes score,Target site,#mms,Position,strand,PAM\n"
 
     if consider_homology:
         # make a set of the genes in the group to write before each table. added by Udi 13/04/22
-        genes = []
-        for candidate in candidates_lst:
-            genes += [g for g in candidate.genes_score_dict.keys()]
-        genes = set(genes)
-        f.write("Genes in group=," + str(genes) + "\n")
+        # genes = []
+        # for candidate in candidates_lst:
+        #     genes += [g for g in candidate.genes_score_dict.keys()]
+        # genes = set(genes)
+        f.write("Genes in group=," + str(genes_names) + "\n")
 
     f.write(header_row)
     sgRNA_index = 0
     for candidate in candidates_lst:
         sgRNA_index += 1
         num_of_targets = 0
+        # count how many target are in total (for all genes)
         for targets in candidate.targets_dict.values():
             num_of_targets += len(targets)
         first_gene = 1
@@ -33,7 +34,6 @@ def sub_tree_display(candidates_lst, f, consider_homology):
             first_target = 1
             for target in targets:
                 # pos = make_tree_display.find_pos(target, gene_seq, seen_sites) # this might be needed if running with the crispr website
-
                 if first_target == 1 and first_gene == 1:
 
                     f.write(str(sgRNA_index) + '.,' + candidate.seq + "," + str(candidate.cut_expectation)[:5])
@@ -131,12 +131,12 @@ def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes
         "The designed sgRNAs for the genes in your input are listed in the table below. Every section of the table corresponds to a homologous genes subgroup as specified by the internal nodes of the constructed genes tree.<br>The name of the subgroup and the list of genes are given in the header of each section.\n")
     for subgroup_item in subgroups_lst:
         # create the main table
-        sub_tree_display(subgroup_item.candidates_list, f, consider_homology)
+        sub_tree_display(subgroup_item.candidates_list, f, consider_homology, subgroup_item.genes_in_node)
     f.close()
 
 
 def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, number_of_groups: int,
-                            n_with_best_guide: int, n_sgrnas: int, output_name: str):
+                            n_with_best_guide: int, n_sgrnas: int, output_name: str, consider_homology=False):
 
     """
     This function is used to write the output of multiplex
@@ -169,7 +169,7 @@ def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, 
             f.write(f"Group of:,{bestseq.best_candidate.seq}\n")
             # go over each pair (or more) of multiplex and write it to the file
             for subgroup in bestseq.subgroups:
-                sub_tree_display(subgroup.candidates_list, f, consider_homology=False)
+                sub_tree_display(subgroup.candidates_list, f, consider_homology, subgroup.genes_in_node)
         f.write("\n")
     f.close()
 
