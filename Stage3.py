@@ -44,6 +44,7 @@ def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates
             for target in genes_targets_dict[gene]:
                 candidates_with_pam = [f"{c[:20]}{target[20]}" for c in list_of_candidates]
                 batch_candidates_list += candidates_with_pam
+        print(f"{genes_targets_dict}\n{batch_candidates_list}\n")
         on_scores = on_scoring_function(batch_candidates_list)
         i = 0
         for gene in genes_targets_dict:

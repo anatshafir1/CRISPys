@@ -53,10 +53,10 @@ class Candidate:
         :param gene_names: a list of gene names with a perfect match to the given sgRNA
         """
         self.genes_score_dict = dict()
-        self.cut_expectation = 1.0
+        self.cut_expectation = len(gene_names)
         for gene_name in gene_names:
             self.genes_score_dict[gene_name] = 1.0
-            self.targets_dict = {gene_name: [[self.seq, {}]]}
+            self.targets_dict[gene_name] = [[self.seq, {}]]
 
     def __str__(self):
         return self.seq + ", " + str(self.cut_expectation) + ", " + str(self.genes_score_dict) + ", " + str(

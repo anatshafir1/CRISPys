@@ -243,7 +243,7 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
     genes_lst = genes
     # make a tuple of candidates sequence and use it as a name for the subgroup
     name = tuple(cand.seq for cand in cand_list)
-    subgroup = SubgroupRes.SubgroupRes(list(set(genes_lst)), cand_list, name)
+    subgroup = SubgroupRes.SubgroupRes(list(set(genes_lst)), cand_list, name, )
     return subgroup, best_candidate, pos_lst
 
 
