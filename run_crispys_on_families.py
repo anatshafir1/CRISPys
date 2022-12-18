@@ -83,19 +83,20 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
 
 def contains_genes_of_interest(fam_fasta_path, set_of_genes_of_interest):
     """
-    This f
-    :param set_of_genes_of_interest:
-    :param fam_fasta_path:
-    :return:
+    This function checks if a family has at least one gene from a list of interest.
+    :param set_of_genes_of_interest: A set of genes of interest.
+    :param fam_fasta_path: Path to the fasta file of a gene family.
+    :return: True if at least one gene
     """
-    with open(fam_fasta_path,'r') as f:
+    with open(fam_fasta_path, 'r') as f:
         lines = f.readlines()
 
     fasta_gene_names_set = {gene.strip(">\n") for gene in lines if gene.startswith(">")}
-    intersection_set = {gene for gene in fasta_gene_names_set if gene in set_of_genes_of_interest}
+    intersection_set = fasta_gene_names_set.intersection(set_of_genes_of_interest)
     if intersection_set:
         return True
     return False
+
 
 def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "None", ncpu: int = 1, mem: int = 8,
         queue="itaym",
@@ -149,9 +150,9 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
     families = os.listdir(main_folder_path)
     family_output_name = output_name
     if check_for_genes_of_interest:
-        with open(genes_of_interest_file,'r') as f:
+        with open(genes_of_interest_file, 'r') as f:
             genes_of_interest_lines = f.readlines()
-        set_of_genes_of_interest={gene.strip() for gene in genes_of_interest_lines}
+        set_of_genes_of_interest = {gene.strip() for gene in genes_of_interest_lines}
 
     for i, family in enumerate(families):
         fam_dir_path = os.path.join(main_folder_path, family)
@@ -182,13 +183,15 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
             with open(sh_file, "w") as f:
                 f.write(f"{header}\n{command}")
             os.system(f"qsub {sh_file}")
+            print(f"Job submitted for {family}")
 
 
 if __name__ == '__main__':
-    run(main_folder_path="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/families/",
-        code_path="/groups/itay_mayrose/udiland/crispys_code/CRISPys/Stage0.py", include_family_name_in_output=True,
-        genes_of_interest_file="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/genes2target.txt", queue="itaym",
-        desired_genes_fraction_threshold=0, algorithm="gene_homology", slim_output=1, off_scoring_function="moff",
-        omega=0.09, output_name="ath_moff_0.09", internal_node_candidates=200, singletons_from_crispys=0, mem=32,
-        ncpu=1, max_target_polymorphic_sites=12, set_cover=0, chips=1, number_of_groups=20, n_with_best_guide=5,
-        n_sgrnas=2, check_for_genes_of_interest=True)
+    run(code_path="/groups/itay_mayrose/caldararu/tmp/crispys/Stage0.py",
+        main_folder_path="/groups/itay_mayrose/caldararu/crispys_arabidopsis/families/",
+        include_family_name_in_output=True,
+        genes_of_interest_file="/groups/itay_mayrose/caldararu/crispys_arabidopsis/genes_of_interest.txt",
+        queue="itay_75",
+        desired_genes_fraction_threshold=0.0, algorithm="gene_homology", slim_output=1, off_scoring_function="gold_off",
+        omega=0.9, output_name="ath_gold_off_0.9", internal_node_candidates=200, singletons_from_crispys=0, mem=32,
+        ncpu=1, max_target_polymorphic_sites=12, set_cover=0, chips=0, check_for_genes_of_interest=True)

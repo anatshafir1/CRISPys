@@ -88,9 +88,9 @@ def gold_off_func(sg_seq_list: List[str], target_seq_list: List[str], for_metric
                              n_process=globals.n_cores_for_gold_off, model_type="regression")
     list_of_scores = np.clip(list_of_scores, 0, 1)  # clipping is done when the score is above 1 or below 0
     if for_metric:
-        return list(list_of_scores)
+        return [float(score) for score in list_of_scores]
     else:
-        return [1 - score for score in list_of_scores]
+        return [1 - float(score) for score in list_of_scores]
 
 
 def crisprnet(candidate_lst: List[str], target_lst: List[str], for_metric: bool = False) -> List[float]:

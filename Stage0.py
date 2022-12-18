@@ -205,6 +205,7 @@ def add_coord_pam(res: List[SubgroupRes], genes_target_with_position: Dict) -> L
 def get_genes_of_interest_set(genes_of_interest_file, genes_exons_dict):
     """
     This function creates a genes of interest set from the genes_of_interest_file.
+    :param genes_exons_dict: a dictionary genes -> exons
     :param genes_of_interest_file: a text file containing the genes of interest, seperated by rows.
     :return: a set of all genes of interest that appear in the family.
     """
@@ -321,7 +322,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     if genes_of_interest_file != "None":
         genes_of_interest_set = get_genes_of_interest_set(genes_of_interest_file, genes_exons_dict)
         if not genes_of_interest_set:
-            print(f"Job ended successfully for {output_name}. This family contains no genes of interest")
+            print(f"Job ended  for {output_name}. This family contains no genes from the list of interest")
             return []
     else:
         desired_genes_fraction_threshold = -1.0

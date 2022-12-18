@@ -3,7 +3,6 @@ import os
 import time
 import globals
 import pandas as pd
-from Stage0 import CRISPys_main
 
 def createHeaderJob(path, job_name, queue, ncpu=1, mem=16):
     """
