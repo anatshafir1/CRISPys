@@ -211,7 +211,8 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
             best_permutations = stage_two_main(targets_list, targets_names, current_targets_genes_dict, omega,
                                                off_scoring_function, on_scoring_function, max_target_polymorphic_sites,
                                                cfd_dict, singletons_from_crispys)
-
+        else:
+            print(f"No genes of interest in internal node containing genes: {node.node_leaves}")
         if best_permutations:
             best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)
             current_best_perm = best_permutations[:internal_node_candidates]  # the best sg at the current set cover
@@ -257,7 +258,8 @@ def determine_if_relevant_node(node: CladeNew, input_genes_set, gene_fraction_th
     :return: True if #genes_of_interest/#genes_in internal node > gene_fraction_threshold. Otherwise, returns False.
     """
     total_genes_in_node = {gene for gene in node.node_leaves}
-    genes_from_set_in_node = {gene for gene in input_genes_set if gene in total_genes_in_node}
+    # Intersect between the genes of interest and the genes in the internal node.
+    genes_from_set_in_node = input_genes_set.intersection(total_genes_in_node)
     if len(genes_from_set_in_node) / len(total_genes_in_node) > gene_fraction_threshold:
         return True
     return False
