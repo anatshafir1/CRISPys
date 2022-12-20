@@ -7,7 +7,7 @@ import argparse
 
 
 def run_server(fasta_file: str, output_path: str, alg: str = "default", where_in_gene: float = 1, use_thr: int = 1,
-               omega: float = 1, scoring_function: str = "cfd_funct", start_with_g: int = 0,
+               omega: float = 1, off_scoring_function: str = "cfd_funct", start_with_g: int = 0,
                internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12, pams: int = 0,
                off_targets='Not_selected'):
 
@@ -22,7 +22,7 @@ def run_server(fasta_file: str, output_path: str, alg: str = "default", where_in
 
     # run the 'local' crispys
     CRISPys_main(fasta_file=fasta_file, output_path=output_path, alg=alg, where_in_gene=where_in_gene, use_thr=use_thr,
-                 omega=omega,  on_scoring_function=scoring_function, start_with_g=start_with_g,
+                 omega=omega,  off_scoring_function=off_scoring_function, start_with_g=start_with_g,
                  internal_node_candidates=internal_node_candidates, max_target_polymorphic_sites=max_target_polymorphic_sites,
                  pams=pams)
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
                where_in_gene=args_main.where_in_gene,
                use_thr=args_main.use_thr,
                omega=args_main.omega,
-               # on_scoring_function=args_main.on_scoring_function,
+               off_scoring_function=args_main.off_scoring_function,
                start_with_g=args_main.start_with_g,
                internal_node_candidates=args_main.internal_node_candidates,
                max_target_polymorphic_sites=args_main.max_target_polymorphic_sites,
