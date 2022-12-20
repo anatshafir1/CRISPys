@@ -6,10 +6,10 @@ from remove_rep import *
 import argparse
 
 
-def run_server(fasta_file: str, output_path: str, alg: str, where_in_gene: float, use_thr: int, omega: float, scoring_function: str,
-               start_with_g: bool, internal_node_candidates: int,
-               max_target_polymorphic_sites: int, pams: int, off_targets='Not_selected'):
-
+def run_server(fasta_file: str, output_path: str, alg: str = "default", where_in_gene: float = 1, use_thr: int = 1,
+               omega: float = 1, scoring_function: str = "cfd_funct", start_with_g: int = 0,
+               internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12, pams: int = 0,
+               off_targets='Not_selected'):
 
     """
     This function is a wrapper for crispys the is used to run the server version. i.e. to get output in html format and
@@ -41,6 +41,7 @@ def run_server(fasta_file: str, output_path: str, alg: str, where_in_gene: float
             candidate.off_targets = True
         pickle.dump(greedy_cover, open(output_path + '/greedy_cover.p', 'wb'))
         make_tree_display.tree_display(output_path, alg == 'gene_homology', 'greedy_set_cover', genomeAssembly=off_targets)
+        return
 
     # create html of all results
     make_tree_display.tree_display(output_path, alg == 'gene_homology', genomeAssembly=off_targets, use_thr=use_thr)
@@ -96,3 +97,7 @@ if __name__ == "__main__":
                # singletons_on_target_function=args_main.singletons_on_target_function,
                # number_of_singletons=args_main.number_of_singletons,
                off_targets=args_add.off_targets)
+
+    # run_server("/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/out1/HOM05D001900.fa",
+    #            "/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/out1",
+    #            alg='gene_homology', off_targets='Not_selected')
