@@ -64,6 +64,64 @@ class BestSgGroup:
         return f"{self.best_candidate} , {self.subgroups}"
 
 
+def mark_duplicates(list_of_candidates):
+    """
+    This function check if candidate is duplicated sgRNAs with identical sequences.
+    if the candidate is duplicate it uses the 'compare_duplicate_candidate' to compare the two candidate and
+    mark the one the needs to be filtered as can.dup = True
+    :param list_of_candidates: A list of CandidateWithOffTargets objects
+    :return:
+    """
+    sequence_to_candidate_dict = {}
+    for candidate in list_of_candidates:
+        candidate.dup = False
+        if candidate.seq not in sequence_to_candidate_dict:
+            sequence_to_candidate_dict[candidate.seq] = candidate
+            continue
+        compare_duplicate_candidate(sequence_to_candidate_dict[candidate.seq], candidate)
+
+
+def compare_duplicate_candidate(candidate_1, candidate_2):
+    """
+    This function mark the candidate that needs to be filtered between two duplicated sgRNA candidates.
+    It first check wich one has the highest cut_expectation score and if equal, than how many genes each is covering
+    The candidate to remove is marked with candidate.dup=True
+    :param candidate_1: a dupicated Candidate object.
+    :param candidate_2:a duplicated Candidate  object.
+    :return:
+    """
+    assert candidate_2.seq == candidate_1.seq
+    # Pick the candidate with the higher cut expectation.
+    if candidate_1.cut_expectation > candidate_2.cut_expectation:
+        candidate_2.dup = True
+    elif candidate_1.cut_expectation == candidate_2.cut_expectation:
+        # Pick the candidate from the smaller (descendant) subgroup.
+        if len(candidate_1.genes_score_dict) <= len(candidate_2.genes_score_dict):
+            candidate_1.dup = True
+
+
+def filter_dup_from_subgroup(subgroup_lst):
+    """
+    The main function to remove duplicates candidates, it create a list of all candidates and feed it to 'mark_duplicates'
+    The candidate that remain after filtering is the one that either have higher cut expectation score or if the score
+    is the same will leave the one targeting more genes.
+    Args:
+        subgroup_lst: a list of subgroupRes (output of crispys)
+
+    Returns:
+        filter out candidates that have duplicate
+    """
+    # go over each subgroup and delete duplicates
+    list_of_all_candidates = [can for sub in subgroup_lst for can in sub.candidates_list]
+    mark_duplicates(list_of_all_candidates)
+    # go over the groups and remove duplicates
+    for sub in subgroup_lst:
+        for i, can in enumerate(sub.candidates_list):
+            if can.dup:
+                del sub.candidates_list[i]
+        if not sub.candidates_list:
+            subgroup_lst.remove(sub)
+
 
 def subgroup2dict(subgroup: SubgroupRes.SubgroupRes) -> Dict:
     """
@@ -320,6 +378,9 @@ def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas
     Returns: a dictionary
 
     """
+    # Remove duplicates
+    filter_dup_from_subgroup(subgroup_lst)
+
     # initiate result dictionary
     output_dict = {}
     # go over each group of results (for each internal node in gene tree)
