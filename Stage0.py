@@ -402,7 +402,7 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                                                                                  'file')
     parser_obj.add_argument('output_path', type=str, metavar='<output_path>',
                             help='THe output_path to the directory in which the output files will be written.')
-    parser_obj.add_argument('output_name', type=str, default='crispys_output',
+    parser_obj.add_argument('--output_name', type=str, default='crispys_output',
                             help="The name that would be given to the crispys output.")
     parser_obj.add_argument('--genes_of_interest_file', type=str, metavar='<gene_list_path>', default='None',
                             help="path to a csv file consisting of a 'gene' column with genes of interest, "
