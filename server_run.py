@@ -7,8 +7,10 @@ import argparse
 
 
 def run_server(fasta_file: str, output_path: str, alg: str, where_in_gene: float, use_thr: int, omega: float, scoring_function: str,
-               min_length: int, max_length: int, start_with_g: bool, internal_node_candidates: int,
+               start_with_g: bool, internal_node_candidates: int,
                max_target_polymorphic_sites: int, pams: int, off_targets='Not_selected'):
+
+
     """
     This function is a wrapper for crispys the is used to run the server version. i.e. to get output in html format and
     to be able to search for off targets using crista.
@@ -19,8 +21,10 @@ def run_server(fasta_file: str, output_path: str, alg: str, where_in_gene: float
     """
 
     # run the 'local' crispys
-    CRISPys_main(fasta_file, output_path, alg, where_in_gene, use_thr, omega, scoring_function, min_length, max_length,
-                 start_with_g, internal_node_candidates, max_target_polymorphic_sites, pams)
+    CRISPys_main(fasta_file=fasta_file, output_path=output_path, alg=alg, where_in_gene=where_in_gene, use_thr=use_thr,
+                 omega=omega,  on_scoring_function=scoring_function, start_with_g=start_with_g,
+                 internal_node_candidates=internal_node_candidates, max_target_polymorphic_sites=max_target_polymorphic_sites,
+                 pams=pams)
 
     # read the results of crispys
     with open(output_path + "/res_in_lst.p", "rb") as cri_res:
@@ -68,16 +72,27 @@ if __name__ == "__main__":
     args_main = Stage0.parse_arguments(parser)
     args_add = parse_arguments(parser)
     run_server(fasta_file=args_main.fasta_file,
-               output_path=args_main.path,
+               output_path=args_main.output_path,
+               # output_name=args_main.output_name,
+               # genes_of_interest_file=args_main.genes_of_interest_file,
                alg=args_main.alg,
                where_in_gene=args_main.where_in_gene,
-               use_thr=args_main.t,
-               omega=args_main.v,
-               scoring_function=args_main.s,
-               min_length=args_main.l,
-               max_length=args_main.m,
-               start_with_g=args_main.g,
-               internal_node_candidates=args_main.i,
-               max_target_polymorphic_sites=args_main.ps,
-               pams=args_main.PAMs,
+               use_thr=args_main.use_thr,
+               omega=args_main.omega,
+               # on_scoring_function=args_main.on_scoring_function,
+               start_with_g=args_main.start_with_g,
+               internal_node_candidates=args_main.internal_node_candidates,
+               max_target_polymorphic_sites=args_main.max_target_polymorphic_sites,
+               pams=args_main.pams,
+               # chips=args_main.chips,
+               # number_of_groups=args_main.number_of_groups,
+               # n_with_best_guide=args_main.n_with_best_guide,
+               # n_sgrnas=args_main.n_sgrnas,
+               # singletons_from_crispys=args_main.singletons_from_crispys,
+               # slim_output=args_main.slim_output,
+               # set_cover=args_main.set_cover,
+               # desired_genes_fraction_threshold=args_main.desired_genes_fraction_threshold,
+               # singletons=args_main.singletons,
+               # singletons_on_target_function=args_main.singletons_on_target_function,
+               # number_of_singletons=args_main.number_of_singletons,
                off_targets=args_add.off_targets)
