@@ -54,7 +54,7 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
     command = f"python {code_path} "
     command += f"{fam_fasta_path} "
     command += f"{fam_dir_path} "
-    command += f"--{output_name} "
+    command += f"--output_name {output_name} "
     command += f"--genes_of_interest_file {genes_of_interest_file} "
     command += f"--alg {algorithm} "
     command += f"--where_in_gene {where_in_gene} "
