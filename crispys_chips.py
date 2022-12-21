@@ -95,8 +95,8 @@ def compare_duplicate_candidate(candidate_1, candidate_2):
     if candidate_1.cut_expectation > candidate_2.cut_expectation:
         candidate_2.dup = True
     elif candidate_1.cut_expectation == candidate_2.cut_expectation:
-        # Pick the candidate from the smaller (descendant) subgroup.
-        if len(candidate_1.genes_score_dict) <= len(candidate_2.genes_score_dict):
+        # Pick the candidate from the largest subgroup. ??? (is that right TODO: check this assumption
+        if len(candidate_1.genes_in_node) <= len(candidate_2.genes_in_node):
             candidate_1.dup = True
 
 
@@ -111,6 +111,8 @@ def filter_dup_from_subgroup(subgroup_lst):
     Returns:
         filter out candidates that have duplicate
     """
+    # add the names of gene in node to each candidate
+    add_node_gens_to_candidate(subgroup_lst)
     # go over each subgroup and delete duplicates
     list_of_all_candidates = [can for sub in subgroup_lst for can in sub.candidates_list]
     mark_duplicates(list_of_all_candidates)
@@ -121,6 +123,19 @@ def filter_dup_from_subgroup(subgroup_lst):
                 del sub.candidates_list[i]
         if not sub.candidates_list:
             subgroup_lst.remove(sub)
+
+def add_node_gens_to_candidate(subgroup_res_list):
+    """
+    Add the 'genes_in_node' attribute to candidate in order to know how many genes in the candidate internal node
+    Args:
+        subgroup_res_list: list of subgroups
+
+    Returns:
+
+    """
+    for sub in subgroup_res_list:
+        for can in sub.candidates_list:
+            can.genes_in_node = sub.genes_in_node
 
 
 def subgroup2dict(subgroup: SubgroupRes.SubgroupRes) -> Dict:
@@ -378,8 +393,8 @@ def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas
     Returns: a dictionary
 
     """
-    # Remove duplicates
-    filter_dup_from_subgroup(subgroup_lst)
+    # Remove duplicates (skip this step fo now)
+    # filter_dup_from_subgroup(subgroup_lst)
 
     # initiate result dictionary
     output_dict = {}
