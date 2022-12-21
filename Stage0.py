@@ -475,7 +475,7 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--number_of_singletons', '-num_singletons', type=int, default=50,
                             help="optional: the number of singleton candidates to include for each gene"
                                  'Default: 50')
-    arguments = parser_obj.parse_known_args()
+    arguments = parser_obj.parse_args()
     return arguments
 
 
