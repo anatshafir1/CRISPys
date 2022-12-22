@@ -19,7 +19,7 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
     """
     This function creates a string for the CRISPys command.
     Args:
-        code_path: path to CRISPys code (Stage0)
+        code_path: path to CRISPys code folder
         fam_dir_path: path to family directory
         fam_fasta_path: path to family fasta
         fam_fasta_path: input text file output_path of gene names and their sequences (or their exons sequences) as lines
@@ -51,10 +51,13 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
 
     Returns: The CRISPys command as a string
     """
-    command = f"python {code_path} "
+    command = ''
+    if singletons_on_target_function == "ucrispr" or on_scoring_function == "ucrispr":
+        command += f"export DATAPATH={code_path}/uCRISPR/RNAstructure/data_tables/\n"
+    command += f"python {os.path.join(code_path,'Stage0.py')} "
     command += f"{fam_fasta_path} "
     command += f"{fam_dir_path} "
-    command += f"{output_name} "
+    command += f"--output_name {output_name} "
     command += f"--genes_of_interest_file {genes_of_interest_file} "
     command += f"--alg {algorithm} "
     command += f"--where_in_gene {where_in_gene} "
