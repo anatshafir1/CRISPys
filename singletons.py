@@ -25,7 +25,7 @@ def create_singletons_subgroup(gene, singletons_on_target_function, genes_target
         candidates_list.append(singleton_candidate)
     candidates_list = sorted(candidates_list, key=lambda candidate: candidate.on_target_score, reverse=True)[
                       :number_of_singletons]
-    singleton_subgroup = SubgroupRes(genes_lst=[gene], candidate_lst=candidates_list, name=gene, genes_in_node=gene)
+    singleton_subgroup = SubgroupRes(genes_lst=[gene], candidate_lst=candidates_list, name=gene, genes_in_node=[gene])
     return singleton_subgroup
 
 
