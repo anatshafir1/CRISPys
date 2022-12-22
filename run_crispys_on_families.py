@@ -54,7 +54,7 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
     command = f"python {code_path} "
     command += f"{fam_fasta_path} "
     command += f"{fam_dir_path} "
-    command += f"--output_name {output_name} "
+    command += f"{output_name} "
     command += f"--genes_of_interest_file {genes_of_interest_file} "
     command += f"--alg {algorithm} "
     command += f"--where_in_gene {where_in_gene} "
@@ -88,6 +88,8 @@ def contains_genes_of_interest(fam_fasta_path, set_of_genes_of_interest):
     :param fam_fasta_path: Path to the fasta file of a gene family.
     :return: True if at least one gene
     """
+    if not set_of_genes_of_interest:
+        return True
     with open(fam_fasta_path, 'r') as f:
         lines = f.readlines()
 
@@ -115,7 +117,7 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         ncpu: The number of cores to use in each job
         mem: amount of memory for each job
         queue: Name of queue
-        code_path: The path to the CRISPys code (Stage0)
+        code_path: The path to the CRISPys code
         main_folder_path: The path to the main folder. the main folder contains a list of directories for each family.
         CRISPys args:
         output_name: the name that would be given to the crispys output.
@@ -149,7 +151,8 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
     """
     families = os.listdir(main_folder_path)
     family_output_name = output_name
-    if check_for_genes_of_interest:
+    set_of_genes_of_interest = set()
+    if check_for_genes_of_interest and genes_of_interest_file != "None":
         with open(genes_of_interest_file, 'r') as f:
             genes_of_interest_lines = f.readlines()
         set_of_genes_of_interest = {gene.strip() for gene in genes_of_interest_lines}

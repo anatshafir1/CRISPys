@@ -52,7 +52,7 @@ def get_targets_sites_from_exons_lst(exons_lst: List, pam_included, where_in_gen
     :param where_in_gene: ignore targets sites downstream to the fractional part of the gene
     :param start_with_g: True if the guide sequence should start with G
     :param pams: the pams by which the searching function ("get_sites") finds potential sgRNA target sites
-    :return: 2 lists, a list of all the potential sgRNA target sites for the gene and a list of all the potential sgRNA target sites for the gene with the position strans and pam
+    :return: 2 lists, a list of all the potential sgRNA target sites for the gene and a list of all the potential sgRNA target sites for the gene with the position strand and pam
     """
     original_range_in_gene = [0, where_in_gene]
     if original_range_in_gene[1] <= original_range_in_gene[0]:

@@ -218,7 +218,7 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
             current_best_perm = best_permutations[:internal_node_candidates]  # the best sg at the current set cover
             # Add to the list of result a SubgroupRes object that store: list of genes targeted, list of candidates,
             # the name of the internal node and a list of genes in the node
-            res.append(SubgroupRes(get_genes_list(best_permutations), current_best_perm, node.name, node.node_leaves))
+            res.append(SubgroupRes(genes_lst=get_genes_list(best_permutations), candidate_lst=current_best_perm, name=node.name, genes_in_node= node.node_leaves))
     if not node.clades:
         return  # if the function recursion reached a final node (a leaf) - steps out of the current function call
     if node.clades[0]:
