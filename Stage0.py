@@ -269,7 +269,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  start_with_g: int = 0, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
                  pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0, set_cover: int = 0,
                  chips: int = 0, number_of_groups: int = 20, n_with_best_guide: int = 5, n_sgrnas: int = 2,
-                 desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
+                 desired_genes_fraction_threshold: float = -1.0, singletons: int = 0, restriction_site: str = "None",
                  singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50) -> List[SubgroupRes]:
     """
     Algorithm main function
@@ -301,6 +301,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param singletons: select 1 to create singletons (sgRNAs candidates that target a single gene).
     :param number_of_singletons: the number of singletons that will be included for each gene.
     :param singletons_on_target_function: The on-target scoring function used for evaluating singletons.
+    :param restriction_site: if run with chips, discard candidates with this DNA motif (if "None", ignore)
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
 
     """
@@ -363,7 +364,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                      consider_homology=False, output_name=output_name)
 
     if chips:
-        multiplex_dict = chips_main(res, number_of_groups, n_with_best_guide, n_sgrnas)
+        multiplex_dict = chips_main(res, number_of_groups, n_with_best_guide, n_sgrnas, restriction_site)
         # write results to csv
         create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas,
                                 output_name=output_name)
@@ -475,6 +476,8 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--number_of_singletons', '-num_singletons', type=int, default=50,
                             help="optional: the number of singleton candidates to include for each gene"
                                  'Default: 50')
+    parser_obj.add_argument('--restriction_site', '-restriction', default='None',
+                            help='if chips, discard candidates with a specific DNA motif')
     arguments = parser_obj.parse_args()
     return arguments
 
@@ -506,4 +509,5 @@ if __name__ == "__main__":
                  desired_genes_fraction_threshold=args.desired_genes_fraction_threshold,
                  singletons=args.singletons,
                  singletons_on_target_function=args.singletons_on_target_function,
-                 number_of_singletons=args.number_of_singletons)
+                 number_of_singletons=args.number_of_singletons,
+                 restriction_site=args.restriction_site)
