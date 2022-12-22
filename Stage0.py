@@ -20,7 +20,8 @@ from CRISPR_Net.CrisprNetLoad import load_crispr_net
 from MOFF.MoffLoad import load_moff
 from DeepHF.LoadDeepHF import load_deephf
 from crispys_chips import chips_main
-# from singletons import singletons_main
+from singletons import singletons_main
+
 os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 
 # get the output_path of this script file
@@ -311,14 +312,8 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     # choosing the scoring function:
     genes_exons_dict = fill_genes_exons_dict(fasta_file)  # gene name -> list of exons
 
-
-    if len(genes_exons_dict) == 1 and not (singletons or singletons_from_crispys):
-        print("family contains a single gene")
-        return []
-
     off_scoring_function, pam_included = choose_scoring_function(off_scoring_function)
     on_scoring_function, pam_included = choose_scoring_function(on_scoring_function)
-
     genes_of_interest_set = {}
     if genes_of_interest_file != "None":
         genes_of_interest_set = get_genes_of_interest_set(genes_of_interest_file, genes_exons_dict)
@@ -334,8 +329,16 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     genes_names_list = list(genes_targets_dict.keys())
     genes_list = get_genes_list(genes_exons_dict)  # a list of all the input genes in the algorithm
     res = []
+    if len(genes_exons_dict) == 1:
+        if singletons_from_crispys:
+            alg = "default"
+            res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
+                              max_target_polymorphic_sites, singletons_from_crispys)
+        elif not singletons:
+            print("family contains a single gene")
+            return []
 
-    if alg == 'gene_homology':
+    elif alg == 'gene_homology':
         res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict,
                                 genes_of_interest_set, omega, output_path, off_scoring_function, on_scoring_function,
                                 internal_node_candidates, max_target_polymorphic_sites, singletons_from_crispys,
@@ -346,13 +349,16 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
         # if singletons:
         #     singletons_main(genes_targets_dict, singletons_on_target_function, res, genes_of_interest_set,
         #                     number_of_singletons)
+    if singletons:
+        singletons_on_scoring_function, pam_included = choose_scoring_function(singletons_on_target_function)
+        singletons_main(genes_targets_dict, singletons_on_scoring_function, res, number_of_singletons,
+                        genes_of_interest_set)
     if genes_of_interest_set:
         res = remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set)
     if use_thr:
         sort_threshold(res, omega)
     else:
         sort_expectation(res)
-
     res = add_coord_pam(res, genes_target_with_position)
     add_family_name(fasta_file, res)
     pickle.dump(res, open(os.path.join(output_path, f"{output_name}.p"), "wb"))
