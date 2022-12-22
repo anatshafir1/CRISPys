@@ -346,9 +346,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     elif alg == 'default':  # alg == "default". automatically used on single-gene families.
         res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
                           max_target_polymorphic_sites, singletons_from_crispys)
-        # if singletons:
-        #     singletons_main(genes_targets_dict, singletons_on_target_function, res, genes_of_interest_set,
-        #                     number_of_singletons)
+
     if singletons:
         singletons_on_scoring_function, pam_included = choose_scoring_function(singletons_on_target_function)
         singletons_main(genes_targets_dict, singletons_on_scoring_function, res, number_of_singletons,

@@ -47,7 +47,7 @@ def singletons_main(genes_targets_dict: Dict, singletons_on_target_function, res
     """
     if not genes_of_interest_set:
         genes_of_interest_set = {gene for gene in genes_targets_dict}
-        for gene in genes_of_interest_set:
-            singleton_subgroup = create_singletons_subgroup(gene, singletons_on_target_function, genes_targets_dict,
-                                                            number_of_singletons)
-            results.append(singleton_subgroup)
+    for gene in genes_of_interest_set:
+        singleton_subgroup = create_singletons_subgroup(gene, singletons_on_target_function, genes_targets_dict,
+                                                        number_of_singletons)
+        results.append(singleton_subgroup)
