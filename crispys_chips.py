@@ -3,6 +3,7 @@ import Candidate
 import SubgroupRes
 import copy
 from typing import List, Dict
+from Bio.Seq import reverse_complement
 
 """
 This module will takes CRISPys output (list of SubgroupRes) and will output group of n guides that will target the 
@@ -136,6 +137,23 @@ def add_node_gens_to_candidate(subgroup_res_list):
     for sub in subgroup_res_list:
         for can in sub.candidates_list:
             can.genes_in_node = sub.genes_in_node
+
+
+def remove_candidates_with_restriction_site(subgroup_lst: List, restriction_site: str = "None"):
+    """
+    This function returns a list of candidates which don't contain a given restriction site.
+
+    Returns:
+
+    """
+    if restriction_site == "None":
+        return subgroup_lst
+    for subgroup in subgroup_lst:
+        for i, cand in enumerate(subgroup.candidates_list):
+            if (restriction_site in cand.seq) or (restriction_site in reverse_complement(cand.seq)):
+                del(subgroup.candidates_list[i])
+
+
 
 
 def subgroup2dict(subgroup: SubgroupRes.SubgroupRes) -> Dict:
@@ -373,7 +391,8 @@ def get_best_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgrnas: 
             return current_best
     return current_best
 
-def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas: int = 2) -> Dict:
+def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas: int = 2,
+               restriction_site: str = "None") -> Dict:
     """
     This function takes CRISPys results (a list of SubgroupRes) and 'number of groups' that specify the number of sgRNA
     groups for each subgroup. the 'n with best guide' specify the number of multiplex groups for each 'best guide'
@@ -395,7 +414,8 @@ def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas
     """
     # Remove duplicates (skip this step fo now)
     # filter_dup_from_subgroup(subgroup_lst)
-
+    # remove candidates with restriction site
+    remove_candidates_with_restriction_site(subgroup_lst, restriction_site)
     # initiate result dictionary
     output_dict = {}
     # go over each group of results (for each internal node in gene tree)
