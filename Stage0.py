@@ -9,7 +9,7 @@ import sys
 from typing import List, Dict
 from pathlib import Path
 from functools import partial
-
+import globals
 from make_tree_display_CSV import tree_display, create_output_multiplex
 from CasSites import fill_genes_targets_dict
 from Stage1 import default_alg, gene_homology_alg
@@ -96,6 +96,7 @@ def choose_scoring_function(input_scoring_function: str, family_path: str):
         return gold_off_func, pam_included
     elif input_scoring_function == "ucrispr" or input_scoring_function == "uCRISPR":
         pam_included = True
+        os.environ['DATAPATH'] = f"{globals.CODE_PATH}/uCRISPR/RNAstructure/data_tables/"
         return partial(ucrispr, family_path=family_path), pam_included
     elif input_scoring_function == "crispr_net" or input_scoring_function == "crisprnet":
         pam_included = True
