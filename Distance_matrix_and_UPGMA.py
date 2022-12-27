@@ -1,6 +1,6 @@
 """Scoring functions and tree calculations"""
 import subprocess
-from os.path import dirname, abspath
+from os.path import dirname, abspath, join
 from os import rename
 import math
 from typing import List, Dict
@@ -70,7 +70,8 @@ def ccTop(sgseq: str, target_seq: str, for_metric: bool = False) -> float:
         return 1 - curScore / max_score
 
 
-def gold_off_func(sg_seq_list: List[str], target_seq_list: List[str], for_metric: bool = False) -> List[float]:  # Omer Caldararu 28/3
+def gold_off_func(sg_seq_list: List[str], target_seq_list: List[str], for_metric: bool = False) -> List[
+    float]:  # Omer  28/3
     """
     Scoring function based on gold-off regressor. This function uses a model.xgb file.
 
@@ -151,7 +152,7 @@ def deephf(target_lst: List[str], for_metric: bool = False) -> List[float]:
         return [1 - score for score in scores]
 
 
-def ucrispr(sg_seq_list: List[str], for_metric: bool = False) -> List[float]:
+def ucrispr(sg_seq_list: List[str], family_path: str, for_metric: bool = False, ) -> List[float]:
     """
     This function will run the uCRISPR algorithm for a list of targets and will return a list of the on-target scores
     IMPORTANT: before running you need to give the path to data tables that are part of uCRISPR
@@ -163,18 +164,20 @@ def ucrispr(sg_seq_list: List[str], for_metric: bool = False) -> List[float]:
     :return: a list of ucrispr on-target scores
     """
     # make a file with guides for inputs to ucrispr
-    with open(f"{globals.CODE_PATH}/targets.txt", "w") as f:
+    targets_input_path = join(family_path, "targets.txt")
+    with open(targets_input_path, "w") as f:
         for sg in sg_seq_list:
             f.write(f"{sg}\n")
 
     # run ucrispr in terminal
-    p = subprocess.run([f"{globals.CODE_PATH}/uCRISPR/uCRISPR", "-on", f"{globals.CODE_PATH}/targets.txt"],
+    p = subprocess.run([f"{globals.CODE_PATH}/uCRISPR/uCRISPR", "-on",
+                        targets_input_path],
                        stdout=subprocess.PIPE)
 
     # pares the results
     res_lst = p.stdout.decode('utf-8').split("\n")
     # delete input file
-    subprocess.run(["rm", f"{globals.CODE_PATH}/targets.txt"])
+    subprocess.run(["rm", targets_input_path])
     # return a list of the results
     return [float(i.split(" ")[1]) for i in res_lst[1:len(res_lst) - 1]]
 

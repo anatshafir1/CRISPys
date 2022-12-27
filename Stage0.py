@@ -8,6 +8,7 @@ import os
 import sys
 from typing import List, Dict
 from pathlib import Path
+from functools import partial
 
 from make_tree_display_CSV import tree_display, create_output_multiplex
 from CasSites import fill_genes_targets_dict
@@ -73,11 +74,12 @@ def sort_threshold(subgroups: List[SubgroupRes], omega: float):
         sort_subgroup(subgroups[i].candidates_list, omega)
 
 
-def choose_scoring_function(input_scoring_function: str):
+def choose_scoring_function(input_scoring_function: str, family_path: str):
     """
     This function translates the chosen input for the scoring function and returns its pointer in the algorithm files
     and whether the function takes PAMs into its calculation.
 
+    :param family_path: The output path from crispys
     :param input_scoring_function: chosen scoring function by the user
     :return: scoring function pointer to use in the algorithm
     :rtype: function, boolean
@@ -94,7 +96,7 @@ def choose_scoring_function(input_scoring_function: str):
         return gold_off_func, pam_included
     elif input_scoring_function == "ucrispr" or input_scoring_function == "uCRISPR":
         pam_included = True
-        return ucrispr, pam_included
+        return partial(ucrispr, family_path=family_path), pam_included
     elif input_scoring_function == "crispr_net" or input_scoring_function == "crisprnet":
         pam_included = True
         return load_crispr_net(), pam_included
@@ -227,7 +229,8 @@ def remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set):
     for subgroup in res:
         new_candidates_list = [candidate for candidate in subgroup.candidates_list if
                                set(candidate.genes_score_dict).intersection(genes_of_interest_set)]
-        new_subgroup = SubgroupRes(name=subgroup.name, genes_lst=subgroup.genes_lst, candidate_lst=new_candidates_list)
+        new_subgroup = SubgroupRes(name=subgroup.name, genes_lst=subgroup.genes_lst, candidate_lst=new_candidates_list,
+                                   genes_in_node=subgroup.genes_in_node)
         if new_subgroup.candidates_list:
             new_res.append(new_subgroup)
     return new_res
@@ -312,8 +315,8 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     # choosing the scoring function:
     genes_exons_dict = fill_genes_exons_dict(fasta_file)  # gene name -> list of exons
 
-    off_scoring_function, pam_included = choose_scoring_function(off_scoring_function)
-    on_scoring_function, pam_included = choose_scoring_function(on_scoring_function)
+    off_scoring_function, pam_included = choose_scoring_function(off_scoring_function, output_path)
+    on_scoring_function, pam_included = choose_scoring_function(on_scoring_function, output_path)
     genes_of_interest_set = {}
     if genes_of_interest_file != "None":
         genes_of_interest_set = get_genes_of_interest_set(genes_of_interest_file, genes_exons_dict)
@@ -348,7 +351,8 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                           max_target_polymorphic_sites, singletons_from_crispys)
 
     if singletons:
-        singletons_on_scoring_function, pam_included = choose_scoring_function(singletons_on_target_function)
+        singletons_on_scoring_function, pam_included = choose_scoring_function(singletons_on_target_function,
+                                                                               output_path)
         singletons_main(genes_targets_dict, singletons_on_scoring_function, res, number_of_singletons,
                         genes_of_interest_set)
     if genes_of_interest_set:
