@@ -52,9 +52,10 @@ def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, of
 def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: Dict, targets_genes_dict: Dict,
                       genes_of_interest_set: set, omega: float, output_path: str, off_scoring_function,
                       on_scoring_function,
-                      internal_node_candidates: int, max_target_polymorphic_sites: int = 12, singletons_from_crispys: int = 1,
-                      genes_of_interest_fraction_threshold: float = -1.0, slim_output: bool = False) -> List[SubgroupRes]:
-
+                      internal_node_candidates: int, max_target_polymorphic_sites: int = 12,
+                      singletons_from_crispys: int = 1,
+                      genes_of_interest_fraction_threshold: float = -1.0, slim_output: bool = False) -> List[
+    SubgroupRes]:
     """
     Called by the main function when choosing algorithm with gene homology taken in consideration. Creates a UPGMA tree
     from the input genes by their homology. Writes the tree to a newick format file and a preorder format file. Then
@@ -94,7 +95,8 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     # use the gene tree to get candidates for each internal node
     genes_tree_top_down(list_of_subgroups, genes_upgma_tree.root, genes_of_interest_set, omega, genes_targets_dict,
                         targets_genes_dict, off_scoring_function, on_scoring_function, internal_node_candidates,
-                        max_target_polymorphic_sites, genes_of_interest_fraction_threshold, cfd_dict, singletons_from_crispys)
+                        max_target_polymorphic_sites, genes_of_interest_fraction_threshold, cfd_dict,
+                        singletons_from_crispys)
     return list_of_subgroups
 
 
@@ -158,8 +160,8 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
                         genes_targets_dict: Dict[str, List[str]],
                         targets_genes_dict: Dict[str, List[str]], off_scoring_function, on_scoring_function,
                         internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                        genes_of_interest_fraction_threshold: float = -1.0, cfd_dict=None, singletons_from_crispys: int = 1):
-
+                        genes_of_interest_fraction_threshold: float = -1.0, cfd_dict=None,
+                        singletons_from_crispys: int = 1):
     """
     Given an initial input of genes UPGMA tree root the function traverses the tree in a top-town (depth first) order.
     For each node creates a dictionary of node's genes (leaves under the node) -> targets found in them, and then find
@@ -218,7 +220,9 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
             current_best_perm = best_permutations[:internal_node_candidates]  # the best sg at the current set cover
             # Add to the list of result a SubgroupRes object that store: list of genes targeted, list of candidates,
             # the name of the internal node and a list of genes in the node
-            res.append(SubgroupRes(genes_lst=get_genes_list(best_permutations), candidate_lst=current_best_perm, name=node.name, genes_in_node= node.node_leaves))
+            ############## Add the call here!###############
+            res.append(SubgroupRes(genes_lst=get_genes_list(best_permutations), candidate_lst=current_best_perm,
+                                   name=node.name, genes_in_node=node.node_leaves))
     if not node.clades:
         return  # if the function recursion reached a final node (a leaf) - steps out of the current function call
     if node.clades[0]:
