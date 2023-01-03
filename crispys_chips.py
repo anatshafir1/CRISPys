@@ -4,7 +4,8 @@ import SubgroupRes
 import copy
 from typing import List, Dict
 from Bio.Seq import reverse_complement
-
+import random
+random.seed(42)
 """
 This module will takes CRISPys output (list of SubgroupRes) and will output group of n guides that will target the 
 maximum number of the genes in a group of genes (internal node).
@@ -125,6 +126,7 @@ def filter_dup_from_subgroup(subgroup_lst):
         if not sub.candidates_list:
             subgroup_lst.remove(sub)
 
+
 def add_node_gens_to_candidate(subgroup_res_list):
     """
     Add the 'genes_in_node' attribute to candidate in order to know how many genes in the candidate internal node
@@ -153,7 +155,53 @@ def remove_candidates_with_restriction_site(subgroup_lst: List, restriction_site
             if (restriction_site in cand.seq) or (restriction_site in reverse_complement(cand.seq)):
                 del(subgroup.candidates_list[i])
 
+def add_singletons_to_subgroup(subgroup_list: list, number_of_singltones: int = 5) -> list:
+    """
+    This function takes the output of crispys that contain subgroupRes object with singletons (targeting one gene)
+    and add the candidates of a singletons results to the object holding candidate for multiple genes (internal node in the gene tree)
+    which one of the is the gene targeted by the singleton candidates.
+    notice that the function add singltones by looking at the genes targeted in the internal node and not all the gene in the internal node,
+    if you want to add singletons targeting all genes in the internal node change 'subgroup.genes_lst' to 'subgroup.genes_in_node'
+    Args:
+        subgroup_list: list of subgroupRes objects (output of crispys)
+        number_of_singltones: the number of singletons from each gene to add to the subgroups of internal node
 
+    Returns:
+            A list of subgroupRes objects each one contain candidates for internal node in the gene tree (with singletons)
+    """
+    singletons_dict = {}
+    subgroup_list_no_singles = []
+    # create new list with only subgroups targetiong multiple genes and store the singletons in a dictionary of genes_name:candidates_list
+    for subgroup in subgroup_list:
+        if len(subgroup.genes_lst) == 1:
+            singletons_dict[subgroup.genes_lst[0]] = subgroup.candidates_list
+        else:
+            subgroup_list_no_singles.append(subgroup)
+    # sort singletons by on target score
+    singletons_dict = {k: sorted(v, key=lambda x: x.on_target_score, reverse=True) for k, v in singletons_dict.items()}
+
+    # go over the list of subgroups with no singletons and add the singleton candidate if it is not exists
+    # the number of sinbgletones to add for each gene is define in the 'number_of_singltones' variable
+    for subgroup in subgroup_list_no_singles:
+        singletons2add = []
+        # make a list of candidates sequences from the nun-singletons subgroup
+        subgroup_cand_seqs = [can.seq for can in subgroup.candidates_list]
+        # go over the singletons dictionary and check if the singleton target a gene of the subgroup
+        for single_gene in singletons_dict.keys():
+            if single_gene in subgroup.genes_in_node:
+                # for 'number_of_singltones' times go over each candidate in the list and if it is not in the subgroup,
+                # add it to the list of singltones
+                i = 0
+                for single_candidate in singletons_dict[single_gene][0: number_of_singltones]:
+                        if i == number_of_singltones:
+                            break
+                        if single_candidate.seq not in subgroup_cand_seqs:
+                            singletons2add.append(single_candidate)
+                            i += 1
+        # shfulle the singletons list and add it to subgroup candidate list
+        random.shuffle(singletons2add)
+        subgroup.candidates_list.extend(singletons2add)
+    return subgroup_list_no_singles
 
 
 def subgroup2dict(subgroup: SubgroupRes.SubgroupRes) -> Dict:
@@ -250,38 +298,77 @@ def recalc_coef_dict(candidate: Candidate, coef_dict: Dict, delta: int = 0.9):
             continue
 
 
-def get_can_positions(candidate: Candidate) -> set:
+def check_overlap_positions(candidate: Candidate, can_pos_dict=None):
     """
-    This function return a set tuples with the position and strnad of each target in a candidate
+    This function check if candidates overlap, it used in two stages: 1) check for overlap candidates inside multiplex
+    and 2) check if 'best candidate' overlap with previous 'best' that been chosen
     Args:
         candidate: A candidate object
-
-    Returns: A set of tuples with the position and strand of each target, for example {(313, '+'), (192, '+')}
+        can_pos_dict: positions dictionary of gene:positions (to compare with)
+        check_bestgroup_overlap: a flag to know if comapring 'best' candidates
+    Returns:
 
     """
-    pos_set = set()
-    for targets in candidate.targets_dict.values():
-        for target in targets:
-            pos_set.add((target[3], target[4]))
-    return pos_set
+    # if no position dictionary supplied create and return such dictionary
+    if not can_pos_dict:
+        can_pos_dict = {candidate.seq : dict()}
+        for gene, target in candidate.targets_dict.items():
+            # take only the positions in the best match of the gene (the first item in the list)
+            pos_set = {(target[0][3], target[0][4])}
+            can_pos_dict[candidate.seq][gene] = pos_set
+        return can_pos_dict
+
+    if can_pos_dict:
+        for can in can_pos_dict.keys():
+            overlaps = []
+            for gene in candidate.targets_dict:
+                # get candidate positions
+                target = candidate.targets_dict[gene]
+                can_pos_set = {(target[0][3], target[0][4])}
+                try:
+                    if can_pos_dict[can][gene] == can_pos_set:
+                        overlaps.append(True)
+                    else:
+                        overlaps.append(False)
+                # if the gene is not in the positional dictionary they are not fully overlap
+                except KeyError:
+                    overlaps.append(False)
+
+            if all(overlaps):
+                return True
+        # add the new target to dictionary
+        can_pos_dict[candidate.seq] = dict()
+        for gene in candidate.targets_dict.keys():
+            target = candidate.targets_dict[gene][0]
+            pos_set = {(target[3], target[4])}
+            can_pos_dict[candidate.seq][gene] = pos_set
+
+        return False
+
 
 
 def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best_candidate: Candidate = None,
-                      pos_lst:List=None):
+                      pos_dict: Dict = None):
     """
     This function takes SubgroupRes object and returns n guides that will target
      as many genes as possible. this is the the function that produce the multiplex with n_sgrnas guides targeting the
      most genes in the subgroup
+     when it is run for the first time on subgroup it is run without the a 'best_candidate' argument and it retruns
+     the first multiplex with the 'Best sgRNA' as subgroup object (an object used in CRISPys to store results of
+     internal node, used here for multiplex).
+     When it is run subsequently with the 'Best_candidate' argument it finds the rest of the gRNA for the multiplex and
+     retruns the multiplex (as subgroup object)
     Args:
         subgroup: a subgroup obhect conatining a list of candidates
         n_sgrnas: number of guide to output
+        best_candidate: a 'best' candidate that was already chosen
 
     Returns: subgroup object containing a list of candidates, Candidate object containing the 'best candidate'
 
     """
 
     # get gene names for the family/node
-    genes_names = subgroup.genes_lst
+    genes_names = subgroup.genes_in_node
     # make a dictionary of seq:candidate from crispys results
     candidates_dict = subgroup2dict(subgroup)
     # create initial coefficient dictionary of gene:coef (with coef = 1)
@@ -295,8 +382,7 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
             return None
         best_candidate = select_candidate(candidates_dict, genes_coef_dict)
         # calculate the guide position
-        pos = get_can_positions(best_candidate)
-        pos_lst = [pos]
+        pos_dict = check_overlap_positions(best_candidate)
     # store the selected 'best' guide in a dictionary
     selected_candidates[best_candidate.seq] = best_candidate
     # re-calculate the coefficients dictionary according to the 'best' guide you found
@@ -311,16 +397,11 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
         # select
         candidate = select_candidate(candidates_dict, genes_coef_dict)
         # calculate the guide position
-        pos = get_can_positions(candidate)
-        skip_candidate = False
-        # check if a guide with the same position is already selected, if so, ignore the new one and find another
-        for p in pos_lst:
-            if pos == p:
-                skip_candidate = True
+        skip_candidate = check_overlap_positions(candidate, pos_dict)
+
         if skip_candidate:
             del (candidates_dict[candidate.seq])
             continue
-        pos_lst.append(pos)
         # store the selected guide in a dictionary
         selected_candidates[candidate.seq] = candidate
         # re-calculate the coefficients dictionary according to the guide you found
@@ -334,11 +415,11 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
     genes_lst = genes
     # make a tuple of candidates sequence and use it as a name for the subgroup
     name = tuple(cand.seq for cand in cand_list)
-    subgroup = SubgroupRes.SubgroupRes(list(set(genes_lst)), cand_list, name, )
-    return subgroup, best_candidate, pos_lst
+    subgroup = SubgroupRes.SubgroupRes(list(set(genes_lst)), cand_list, name, subgroup.genes_in_node)
+    return subgroup, best_candidate, pos_dict
 
 
-def get_best_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgrnas: int):
+def get_best_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgrnas: int = 2):
     """
     This function takes crispys output as SubgroupRes object and finds m_groups of n_sgrnas.
     It is used for multiplexing while the n_sgrnas is the amount of guides in a single plasmid (the multiplex) and
@@ -360,36 +441,40 @@ def get_best_groups(subgroup: SubgroupRes.SubgroupRes, m_groups: int, n_sgrnas: 
     if not subgroup_temp.candidates_list:
         return None
     # get the first group of sgRNAs, the best guide in the group and the positions of the candidate
-    multiplx_candidates = choose_candidates(subgroup_temp, n_sgrnas)
+    first_multiplex = choose_candidates(subgroup_temp, n_sgrnas)
     # check if a multiplex is found
-    if not multiplx_candidates:
+    if not first_multiplex:
         return None
-    # save the result to a BestSgGroup object
+    # save the result to a BestSgGroup object, this object is design to hold all multiplex of the same 'best' sgRNA
     current_best = BestSgGroup()
     # store the subgroupres object with the candidates
-    current_best.subgroups = [multiplx_candidates[0]]
+    current_best.subgroups = [first_multiplex[0]]
     # add the 'best' and the postion
-    current_best.best_candidate, pos_lst = multiplx_candidates[1], multiplx_candidates[2]
+    current_best.best_candidate, pos_dict = first_multiplex[1], first_multiplex[2]
     # store a list of all candidates
     current_best.all_candidates = copy.copy(current_best.subgroups[0].candidates_list)
     while m_groups > 1:
         # remove the found sg from the subgroup (recreate it without them)
-        subgroup_temp.candidates_list = [can for can in subgroup_temp.candidates_list if can not in current_best.all_candidates]
+        subgroup_temp.candidates_list = [can for can in subgroup_temp.candidates_list if
+                                         can not in current_best.all_candidates]
         # check that the are candidates left in the subgroup
         if not subgroup_temp.candidates_list:
             return current_best
         # choose the next group of sgRNA that will be joined with the 'best guide' found above
         try:
             # get the SubgroupRes, best_candidate and the updated positions list
-            multiplx_group, best_candidate, pos_lst = choose_candidates(subgroup_temp, n_sgrnas, current_best.best_candidate, pos_lst)
+            multiplx_group, best_candidate, pos_dict = choose_candidates(subgroup_temp, n_sgrnas,
+                                                                         current_best.best_candidate, pos_dict)
             # add the SubgrouRes object containing the list of guides to the results
             current_best.subgroups.append(multiplx_group)
-            current_best.all_candidates += [can for can in multiplx_group.candidates_list if can not in current_best.all_candidates]
+            current_best.all_candidates += [can for can in multiplx_group.candidates_list if
+                                            can not in current_best.all_candidates]
             m_groups -= 1
         except TypeError:
             # print(f"No more candidate in group {current_best.best_candidate.seq} in node {subgroup_temp.name}")
             return current_best
     return current_best
+
 
 def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas: int = 2,
                restriction_site: str = "None") -> Dict:
@@ -416,18 +501,20 @@ def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas
     # filter_dup_from_subgroup(subgroup_lst)
     # remove candidates with restriction site
     remove_candidates_with_restriction_site(subgroup_lst, restriction_site)
+    # insert singleton subgroup to subgroups without singleton and create a list of subgroups without sinlgetons
+    new_subgroups_lst = add_singletons_to_subgroup(subgroup_lst)
     # initiate result dictionary
     output_dict = {}
     # go over each group of results (for each internal node in gene tree)
-    for subgroup in subgroup_lst:
+    for subgroup in new_subgroups_lst:
         subgroup_dict = subgroup2dict(subgroup)
         # check if no candidate in node result
         if len(subgroup_dict) == 0:
             print(f"No CRISPys results for node {subgroup.name}")
             continue
-
+        # initiate results dictionary
         bestsgroup_dict = {}
-        pos_lst = []
+        # choose multiplex groups
         n = number_of_groups
         while n > 0:
             # get results for a group of guides with the same 'best' guide
@@ -440,19 +527,15 @@ def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas
 
             # check if 'best' we have got has the same position as other in the group and if so remove it from the
             # results dictionary and the group list
-            best_pos = get_can_positions(bestsgroup.best_candidate)
-            skip_candidate = False
-            if pos_lst:
-                for pos in pos_lst:
-                    if pos == best_pos:
-                        skip_candidate = True
-            # if the
-            if skip_candidate:
-                subgroup.candidates_list.remove(subgroup_dict[bestsgroup.best_candidate.seq])
-                del bestsgroup_dict[bestsgroup.best_candidate.seq]
-                continue
+            # if it is the first best group, create the positional dictionary, otherwise compare with previous positions
+            if len(bestsgroup_dict) == 1:
+                pos_dict = check_overlap_positions(bestsgroup.best_candidate)
             else:
-                pos_lst.append(best_pos)
+                skip_candidate = check_overlap_positions(bestsgroup.best_candidate, pos_dict)
+                if skip_candidate:
+                    subgroup.candidates_list.remove(subgroup_dict[bestsgroup.best_candidate.seq])
+                    del bestsgroup_dict[bestsgroup.best_candidate.seq]
+                    continue
 
             # remove the 'best candidate' from the list of candidates
             subgroup.candidates_list.remove(subgroup_dict[bestsgroup.best_candidate.seq])
@@ -462,13 +545,12 @@ def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas
         output_dict[subgroup.name] = bestsgroup_dict
     return output_dict
 
-
 # 8 genes
 # with open("/groups/itay_mayrose/udiland/crispys_test/test_files_git/for_debug/out/res_in_lst.p", 'rb') as f:
 #     res = pickle.load(f)
-    # for sub in res1:
-    #     if sub.name == "Inner4":
-    #         res = [sub]
+# for sub in res1:
+#     if sub.name == "Inner4":
+#         res = [sub]
 
 #
 # 2 genes
