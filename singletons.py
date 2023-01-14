@@ -42,14 +42,18 @@ def singletons_main(genes_targets_dict: Dict, singletons_on_target_function, res
         number_of_singletons: The number of singleton candidates created per gene
         genes_of_interest_set: A set of genes of interest. if a list was not defined, this function will find singletons_from_crispys
         for each gene in the family.
-    Returns: add sub
+    Returns: returns a list of subgroup results containing singletons
 
     """
+
     # remove duplicate singletons, added by Udi 12/01/23
     genes_targets_dict = {gene: list(set(targets)) for gene, targets in genes_targets_dict.items()}
+    
+    singleton_results = []
     if not genes_of_interest_set:
         genes_of_interest_set = {gene for gene in genes_targets_dict}
     for gene in genes_of_interest_set:
         singleton_subgroup = create_singletons_subgroup(gene, singletons_on_target_function, genes_targets_dict,
                                                         number_of_singletons)
-        results.append(singleton_subgroup)
+        singleton_results.append(singleton_subgroup)
+    return singleton_results

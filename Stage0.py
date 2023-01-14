@@ -275,7 +275,8 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0, set_cover: int = 0,
                  chips: int = 0, number_of_groups: int = 20, n_with_best_guide: int = 5, n_sgrnas: int = 2,
                  desired_genes_fraction_threshold: float = -1.0, singletons: int = 0, restriction_site: str = "None",
-                 singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50) -> List[SubgroupRes]:
+                 singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
+                 max_gap_distance: int = 3) -> List[SubgroupRes]:
     """
     Algorithm main function
 
@@ -307,6 +308,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param number_of_singletons: the number of singletons that will be included for each gene.
     :param singletons_on_target_function: The on-target scoring function used for evaluating singletons.
     :param restriction_site: if run with chips, discard candidates with this DNA motif (if "None", ignore)
+    :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
 
     """
@@ -346,7 +348,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
         res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict,
                                 genes_of_interest_set, omega, output_path, off_scoring_function, on_scoring_function,
                                 internal_node_candidates, max_target_polymorphic_sites, singletons_from_crispys,
-                                desired_genes_fraction_threshold, slim_output)
+                                desired_genes_fraction_threshold, slim_output, max_gap_distance=max_gap_distance)
     elif alg == 'default':  # alg == "default". automatically used on single-gene families.
         res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
                           max_target_polymorphic_sites, singletons_from_crispys, genes_names_list)
@@ -354,8 +356,10 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     if singletons:
         singletons_on_scoring_function, pam_included = choose_scoring_function(singletons_on_target_function,
                                                                                output_path)
-        singletons_main(genes_targets_dict, singletons_on_scoring_function, res, number_of_singletons,
+        singleton_results = singletons_main(genes_targets_dict, singletons_on_scoring_function, res, number_of_singletons,
                         genes_of_interest_set)
+        # Add singleton subgroups to the list of results
+        res += singleton_results
     if genes_of_interest_set:
         res = remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set)
     if use_thr:
@@ -368,7 +372,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     if alg == 'gene_homology':
         tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
                      consider_homology=True, output_name=output_name)
-    if alg == 'default':
+    elif alg == 'default':
         tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
                      consider_homology=False, output_name=output_name)
 
@@ -448,8 +452,7 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
 
     parser_obj.add_argument('--singletons_from_crispys', choices=[0, 1], type=int, default=1,
                             help='1 to return results with singletons given by CRISPys (sgRNAs that target only 1 gene),'
-                                 ' 0 to exclude'
-                                 ' singletons given by CRISPys. Default: 1')
+                                 ' 0 to exclude them. Default: 1')
 
     parser_obj.add_argument('--slim_output', '-slim', choices=[0, 1], type=int, default=0,
 
@@ -472,13 +475,13 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                             help="If using 'chips', the number of guides in each multiplex" 'Default: 2')
 
     parser_obj.add_argument('--desired_genes_fraction_threshold', '-desired_genes_thr', type=float, default=-1.0,
-
                             help="If a list of genes of interest was entered: the minimal fraction of genes of "
                                  "interest. CRISPys will ignore internal nodes with lower or equal fraction of genes "
                                  "of interest. "
                                  'Default: -1.0')
     parser_obj.add_argument('--singletons', '-singletons', choices=[0, 1], type=int, default=0,
-                            help="optional: select 1 to create singletons (sgRNAs candidates that target a single gene)"
+                            help="optional: select 1 to create singletons (sgRNAs candidates that target "
+                                 "a single gene) "
                                  'Default: 0')
     parser_obj.add_argument('--singletons_on_target_function', type=str, default='ucrispr',
                             help='the on scoring functionthat ')
@@ -487,6 +490,11 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                                  'Default: 50')
     parser_obj.add_argument('--restriction_site', '-restriction', default='None',
                             help='if chips, discard candidates with a specific DNA motif')
+    parser_obj.add_argument('--max_gap_distance', '-max_gap_distance', type=int, default=3,
+                            help='The maximal distance that is allowed between the genes targeted by the sgRNA.'
+                                 'Here, the distance is defined as the number of internal nodes between the genes'
+                                 '(which is the distance between the genes - 1).'
+                                 ' if set to 0, CRISPys will not filter out any sgRNAs that target distant genes')
     arguments = parser_obj.parse_args()
     return arguments
 
@@ -519,4 +527,5 @@ if __name__ == "__main__":
                  singletons=args.singletons,
                  singletons_on_target_function=args.singletons_on_target_function,
                  number_of_singletons=args.number_of_singletons,
-                 restriction_site=args.restriction_site)
+                 restriction_site=args.restriction_site,
+                 max_gap_distance=args.max_gap_distance)

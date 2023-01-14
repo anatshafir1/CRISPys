@@ -13,6 +13,7 @@ from SubgroupRes import SubgroupRes
 from TreeConstruction_changed import CladeNew
 from globals import *
 from Stage2 import stage_two_main
+from remove_candidates_with_distant_genes import remove_candidates_with_distant_genes
 
 
 def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, off_scoring_function, on_scoring_function,
@@ -28,7 +29,7 @@ def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, of
     :param off_scoring_function: the off target scoring function
 	:param on_scoring_function: the on target scoring function
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
-    :param singletons_from_crispys: optional choice to include singletons given by CRISPys
+    :param singletons_from_crispys: optional choice to include singletons_from_crispys given by CRISPys
     (sgRNAs that target only 1 gene) in the results.
     :return: list of Candidate objects which are the best suitable to target the input genes
     """
@@ -52,9 +53,11 @@ def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, of
 def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: Dict, targets_genes_dict: Dict,
                       genes_of_interest_set: set, omega: float, output_path: str, off_scoring_function,
                       on_scoring_function,
-                      internal_node_candidates: int, max_target_polymorphic_sites: int = 12, singletons_from_crispys: int = 1,
-                      genes_of_interest_fraction_threshold: float = -1.0, slim_output: bool = False) -> List[SubgroupRes]:
-
+                      internal_node_candidates: int, max_target_polymorphic_sites: int = 12,
+                      singletons_from_crispys: int = 1,
+                      genes_of_interest_fraction_threshold: float = -1.0, slim_output: bool = False,
+                      max_gap_distance: int = 3) -> List[
+    SubgroupRes]:
     """
     Called by the main function when choosing algorithm with gene homology taken in consideration. Creates a UPGMA tree
     from the input genes by their homology. Writes the tree to a newick format file and a preorder format file. Then
@@ -73,10 +76,11 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
 	:param on_scoring_function: the on target scoring function
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
-    :param singletons_from_crispys: optional choice to include singletons given by CRISPys
+    :param singletons_from_crispys: optional choice to include singletons_from_crispys given by CRISPys
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
     :param genes_of_interest_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
            of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
+    :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
     :return:
     """
     # make a tree and distance matrix of the genes
@@ -94,7 +98,8 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     # use the gene tree to get candidates for each internal node
     genes_tree_top_down(list_of_subgroups, genes_upgma_tree.root, genes_of_interest_set, omega, genes_targets_dict,
                         targets_genes_dict, off_scoring_function, on_scoring_function, internal_node_candidates,
-                        max_target_polymorphic_sites, genes_of_interest_fraction_threshold, cfd_dict, singletons_from_crispys)
+                        max_target_polymorphic_sites, genes_of_interest_fraction_threshold, cfd_dict,
+                        singletons_from_crispys, max_gap_distance=max_gap_distance)
     return list_of_subgroups
 
 
@@ -158,13 +163,14 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
                         genes_targets_dict: Dict[str, List[str]],
                         targets_genes_dict: Dict[str, List[str]], off_scoring_function, on_scoring_function,
                         internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                        genes_of_interest_fraction_threshold: float = -1.0, cfd_dict=None, singletons_from_crispys: int = 1):
-
+                        genes_of_interest_fraction_threshold: float = -1.0, cfd_dict=None,
+                        singletons_from_crispys: int = 1, max_gap_distance: int = 3):
     """
     Given an initial input of genes UPGMA tree root the function traverses the tree in a top-town (depth first) order.
     For each node creates a dictionary of node's genes (leaves under the node) -> targets found in them, and then find
     the best candidate sgRNA for the targets. The candidates for each genes subgroup are stored as a SubgroupRes object.
 
+    :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
     :param genes_of_interest_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
            of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
     :param genes_of_interest_set: A set of genes of interest.
@@ -178,7 +184,7 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
-    :param singletons_from_crispys: optional choice to include singletons (sgRNAs that target only 1 gene) in the results
+    :param singletons_from_crispys: optional choice to include singletons_from_crispys (sgRNAs that target only 1 gene) in the results
     """
     # making the genes_targets dict for this subtree and the targets_genes_dict to send to the intermediate algorithm
     current_targets_genes_dict = dict()
@@ -213,24 +219,27 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
                                                cfd_dict, singletons_from_crispys)
         else:
             print(f"No genes of interest in internal node containing genes: {node.node_leaves}")
+
+        if len(node.node_leaves) >= max_gap_distance and max_gap_distance != 0:  # remove sgRNAs that target distant genes.
+            best_permutations = remove_candidates_with_distant_genes(node=node, list_of_candidates=best_permutations,
+                                                                     max_gap_distance=max_gap_distance)
         if best_permutations:
             best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)
             current_best_perm = best_permutations[:internal_node_candidates]  # the best sg at the current set cover
-            # Add to the list of result a SubgroupRes object that store: list of genes targeted, list of candidates,
-            # the name of the internal node and a list of genes in the node
-            res.append(SubgroupRes(genes_lst=get_genes_list(best_permutations), candidate_lst=current_best_perm, name=node.name, genes_in_node= node.node_leaves))
+            res.append(SubgroupRes(genes_lst=get_genes_list(best_permutations), candidate_lst=current_best_perm,
+                                   name=node.name, genes_in_node=node.node_leaves))
     if not node.clades:
         return  # if the function recursion reached a final node (a leaf) - steps out of the current function call
     if node.clades[0]:
         genes_tree_top_down(res, node.clades[0], genes_of_interest_set, omega, genes_targets_dict, targets_genes_dict,
                             off_scoring_function, on_scoring_function, internal_node_candidates,
                             max_target_polymorphic_sites, genes_of_interest_fraction_threshold,
-                            cfd_dict, singletons_from_crispys)
+                            cfd_dict, singletons_from_crispys, max_gap_distance=max_gap_distance)
     if node.clades[1]:
         genes_tree_top_down(res, node.clades[1], genes_of_interest_set, omega, genes_targets_dict, targets_genes_dict,
                             off_scoring_function, on_scoring_function, internal_node_candidates,
                             max_target_polymorphic_sites, genes_of_interest_fraction_threshold,
-                            cfd_dict, singletons_from_crispys)
+                            cfd_dict, singletons_from_crispys, max_gap_distance=max_gap_distance)
 
 
 def get_genes_list(candidates_lst: List) -> List[str]:
