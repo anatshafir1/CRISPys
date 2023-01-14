@@ -17,7 +17,7 @@ from remove_candidates_with_distant_genes import remove_candidates_with_distant_
 
 
 def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, off_scoring_function, on_scoring_function,
-                max_target_polymorphic_sites: int = 12, singletons_from_crispys: int = 1) -> List[SubgroupRes]:
+                max_target_polymorphic_sites: int = 12, singletons_from_crispys: int = 1, genes_list: list = []) -> List[SubgroupRes]:
     """
     Called by the main function when choosing the default algorithm run. Given a dictionary of potential genomic targets
     this function returns a list of candidate sgRNAs (Candidate objects) that are the best suitable to target the input
@@ -43,7 +43,7 @@ def default_alg(input_targets_genes_dict: Dict[str, List[str]], omega: float, of
                                        off_scoring_function, on_scoring_function, max_target_polymorphic_sites,
                                        cfd_dict, singletons_from_crispys)
     best_permutations.sort(key=lambda item: item.cut_expectation, reverse=True)
-    res = [SubgroupRes(get_genes_list(best_permutations), best_permutations, "total")]
+    res = [SubgroupRes(get_genes_list(best_permutations), best_permutations, "total", genes_list)]
     return res
 
 

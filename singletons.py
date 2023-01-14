@@ -45,6 +45,10 @@ def singletons_main(genes_targets_dict: Dict, singletons_on_target_function, res
     Returns: returns a list of subgroup results containing singletons
 
     """
+
+    # remove duplicate singletons, added by Udi 12/01/23
+    genes_targets_dict = {gene: list(set(targets)) for gene, targets in genes_targets_dict.items()}
+    
     singleton_results = []
     if not genes_of_interest_set:
         genes_of_interest_set = {gene for gene in genes_targets_dict}

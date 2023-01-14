@@ -165,13 +165,17 @@ def add_positions_and_strand(targets_lst, exons_lst, strand):
     it returns list of tuples with (target, pam_seq, pos, strand)
     """
     target_pos_lst = []
-
+    targets = []
     seq = "".join(exons_lst)
     if strand == '-':
         seq = give_complementary(seq)
     for target in targets_lst:
-        pos = seq.find(target)
-        target_pos_lst.append((target[0:20], target[20:23], pos, strand))
+        # check if target was processed, if not collect all positions of of targets in the sequence
+        if target[0:20] not in targets:
+            positions = [m.start() for m in regex.finditer(target, seq)]
+            for pos in positions:
+                target_pos_lst.append((target[0:20], target[20:23], pos, strand))
+            targets.append(target[0:20])
     return target_pos_lst
 
 

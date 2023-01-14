@@ -339,7 +339,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
         if singletons_from_crispys:
             alg = "default"
             res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
-                              max_target_polymorphic_sites, singletons_from_crispys)
+                              max_target_polymorphic_sites, singletons_from_crispys, genes_names_list)
         elif not singletons:
             print("family contains a single gene")
             return []
@@ -351,7 +351,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                                 desired_genes_fraction_threshold, slim_output, max_gap_distance=max_gap_distance)
     elif alg == 'default':  # alg == "default". automatically used on single-gene families.
         res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
-                          max_target_polymorphic_sites, singletons_from_crispys)
+                          max_target_polymorphic_sites, singletons_from_crispys, genes_names_list)
 
     if singletons:
         singletons_on_scoring_function, pam_included = choose_scoring_function(singletons_on_target_function,

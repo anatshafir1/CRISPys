@@ -173,7 +173,7 @@ def add_singletons_to_subgroup(subgroup_list: list, number_of_singltones: int = 
     subgroup_list_no_singles = []
     # create new list with only subgroups targetiong multiple genes and store the singletons in a dictionary of genes_name:candidates_list
     for subgroup in subgroup_list:
-        if len(subgroup.genes_lst) == 1:
+        if len(subgroup.genes_in_node) == 1:
             singletons_dict[subgroup.genes_lst[0]] = subgroup.candidates_list
         else:
             subgroup_list_no_singles.append(subgroup)
@@ -346,6 +346,25 @@ def check_overlap_positions(candidate: Candidate, can_pos_dict=None):
         return False
 
 
+def check_duplicates(selected_cand_dict: dict, guide_seq_dict: dict = dict()):
+    if not guide_seq_dict:
+        seqs = tuple(sorted([seq for seq in selected_cand_dict.keys()]))
+        n_genes_targeted = sum([len(guide.targets_dict.keys()) for guide in selected_cand_dict.values()])
+        guide_seq_dict[seqs] = n_genes_targeted
+        return False
+    # get the sequences of the multiplex and check if they are in the dictionary of previously selected multiplex
+    multiplx_seqs = {tuple(sorted([seq for seq in selected_cand_dict.keys()]))}
+    existing_seqs = {tuple([seqs for seqs in guide_seq_dict.keys()])}
+    if multiplx_seqs.intersection(existing_seqs):
+        # check which multiplx target the more genes
+        sum_genes_targeted_new = sum([len(guide.targets_dict.keys()) for guide in selected_cand_dict.values()])
+        sum_genes_targeted_multi_exist = guide_seq_dict[tuple(multiplx_seqs)[0]]
+        if sum_genes_targeted_multi_exist > sum_genes_targeted_new:
+            return True
+        else:
+            return False
+    guide_seq_dict[tuple(multiplx_seqs)[0]] = sum([len(guide.targets_dict.keys()) for guide in selected_cand_dict.values()])
+    return False
 
 def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best_candidate: Candidate = None,
                       pos_dict: Dict = None):
@@ -362,6 +381,7 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
         subgroup: a subgroup obhect conatining a list of candidates
         n_sgrnas: number of guide to output
         best_candidate: a 'best' candidate that was already chosen
+        pos_dict:
 
     Returns: subgroup object containing a list of candidates, Candidate object containing the 'best candidate'
 
@@ -402,10 +422,19 @@ def choose_candidates(subgroup: SubgroupRes.SubgroupRes, n_sgrnas: int = 2, best
         if skip_candidate:
             del (candidates_dict[candidate.seq])
             continue
+
         # store the selected guide in a dictionary
         selected_candidates[candidate.seq] = candidate
         # re-calculate the coefficients dictionary according to the guide you found
         recalc_coef_dict(candidate, genes_coef_dict)
+
+        # catch the end of the iteration to check if the multiplex is duplicate
+        if (i == (n_sgrnas - 1)):
+            if check_duplicates(selected_candidates):
+                del (candidates_dict[candidate.seq])
+                del (selected_candidates[candidate.seq])
+                continue
+
         i += 1
     # make output to a subgroup list
     cand_list = [can for can in selected_candidates.values()]
@@ -502,9 +531,11 @@ def chips_main(subgroup_lst: List, number_of_groups, n_with_best_guide, n_sgrnas
     # remove candidates with restriction site
     remove_candidates_with_restriction_site(subgroup_lst, restriction_site)
     # insert singleton subgroup to subgroups without singleton and create a list of subgroups without sinlgetons
-    new_subgroups_lst = add_singletons_to_subgroup(subgroup_lst)
+    new_subgroups_lst = add_singletons_to_subgroup(subgroup_lst, number_of_singltones=5)
     # initiate result dictionary
     output_dict = {}
+    # initiate a dictionary that will be used to check if multiplex exist
+
     # go over each group of results (for each internal node in gene tree)
     for subgroup in new_subgroups_lst:
         subgroup_dict = subgroup2dict(subgroup)
