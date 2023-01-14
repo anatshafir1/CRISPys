@@ -45,6 +45,8 @@ def singletons_main(genes_targets_dict: Dict, singletons_on_target_function, res
     Returns: add sub
 
     """
+    # remove duplicate singletons, added by Udi 12/01/23
+    genes_targets_dict = {gene: list(set(targets)) for gene, targets in genes_targets_dict.items()}
     if not genes_of_interest_set:
         genes_of_interest_set = {gene for gene in genes_targets_dict}
     for gene in genes_of_interest_set:

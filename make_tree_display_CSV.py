@@ -156,13 +156,15 @@ def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, 
             f"gRNA and {n_sgrnas} in each multiplex\n")
     # go over each internal node
     for node in multiplex_dict:
-        f.write(f"Node:,{node},")
+        f.write(f"Node:,{node}\n")
         # get node genes
         for subgroup in crispys_res:
             if subgroup.name == node:
-                genes_lst = subgroup.genes_lst
+                # genes_targeted = {[cand.genes_score_dict.keys() for cand in subgroup.candidates_list]}
+                genes_in_node = subgroup.genes_in_node
                 # write the node name
-                f.write(f"genes in node:,{str(genes_lst).strip('[]')}\n")
+                f.write(f"genes in node:,{str(genes_in_node).strip('[]')}\n")
+                # f.write(f"genes targeted:,{str(genes_targeted).strip('{}')}\n")
         # go over each 'best guide' group
         for bestseq in multiplex_dict[node].values():
             # write the sequence of best guide
