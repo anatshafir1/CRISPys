@@ -1,22 +1,22 @@
-from time import perf_counter
 
 def create_gene2distance_dict(node):
     """
     This function creates a dictionary that stores the distances between each pair of genes.
-    Note that the distance between genes is defined as the number of internal nodes between the genes.
+    Note that the distance between genes is defined here as the number of internal nodes between the genes.
     :param node: A tree node
     :return: A dictionary (genei,genej) -> the distance between genei and gene j
     """
-    gene_pair2distance_dict = {}
-    gene2node_dict = {}  # Create a dictionary that stores the node
+    gene_pair2distance_dict = {} # Create a dictionary of gene pair -> the distance
+    gene2node_dict = {}  # Create a dictionary that stores each leaf node for every gene
     for i, gene_i in enumerate(node.node_leaves):
         for gene_j in node.node_leaves[i + 1:]:
             if gene_i == gene_j or tuple(sorted([gene_i, gene_j])) in gene_pair2distance_dict:
                 continue  # Continue if the genes are identical or if the distance was already calculated.
-
-            dist_i = find_distance_from_lca(gene_i, gene_j, node,
-                                            gene2node_dict)  # Find the distance of each gene from the least common ancestor
+            # Find the distance of each gene from the least common ancestor (LCA)
+            dist_i = find_distance_from_lca(gene_i, gene_j, node, gene2node_dict)
             dist_j = find_distance_from_lca(gene_j, gene_i, node, gene2node_dict)
+            # the number of internal nodes between the the two genes would be the
+            # distance of each gene from their LCA minus one.
             gene_pair2distance_dict[tuple(sorted([gene_i, gene_j]))] = dist_i + dist_j - 1
     return gene_pair2distance_dict
 
@@ -70,7 +70,7 @@ def get_gene_clusters(genes_targeted: set, node, list_of_clusters):
     if genes_targeted == node_leaves_set:
         list_of_clusters.append(node_leaves_set)
         return
-    # If not, it means that the clusters are deeper in the tree.
+    # If not, it means that the clusters are deeper within the tree.
     intersection_left = genes_targeted.intersection(set(node.clades[0].node_leaves))
     intersection_right = genes_targeted.intersection(set(node.clades[1].node_leaves))
     # If at least one gene appears in both the targeted genes set and the left/right clade, recursively call the function,

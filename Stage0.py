@@ -228,12 +228,10 @@ def remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set):
     """
     new_res = []
     for subgroup in res:
-        new_candidates_list = [candidate for candidate in subgroup.candidates_list if
-                               set(candidate.genes_score_dict).intersection(genes_of_interest_set)]
-        new_subgroup = SubgroupRes(name=subgroup.name, genes_lst=subgroup.genes_lst, candidate_lst=new_candidates_list,
-                                   genes_in_node=subgroup.genes_in_node)
-        if new_subgroup.candidates_list:
-            new_res.append(new_subgroup)
+        subgroup.candidates_list = [candidate for candidate in subgroup.candidates_list if
+                                    set(candidate.genes_score_dict).intersection(genes_of_interest_set)]
+        if subgroup.candidates_list:
+            new_res.append(subgroup)
     return new_res
 
 
@@ -356,8 +354,9 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     if singletons:
         singletons_on_scoring_function, pam_included = choose_scoring_function(singletons_on_target_function,
                                                                                output_path)
-        singleton_results = singletons_main(genes_targets_dict, singletons_on_scoring_function, res, number_of_singletons,
-                        genes_of_interest_set)
+        singleton_results = singletons_main(genes_targets_dict, singletons_on_scoring_function, res,
+                                            number_of_singletons,
+                                            genes_of_interest_set)
         # Add singleton subgroups to the list of results
         res += singleton_results
     if genes_of_interest_set:

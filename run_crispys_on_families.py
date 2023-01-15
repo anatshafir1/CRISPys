@@ -101,8 +101,8 @@ def contains_genes_of_interest(fam_fasta_path, set_of_genes_of_interest):
     with open(fam_fasta_path, 'r') as f:
         lines = f.readlines()
 
-    fasta_gene_names_set = {gene.strip(">\n") for gene in lines if gene.startswith(">")}
-    intersection_set = fasta_gene_names_set.intersection(set_of_genes_of_interest)
+    fasta_gene_names_set = {gene.strip(">\n") for gene in lines if gene.startswith(">")}  # Extract genes from the fasta
+    intersection_set = fasta_gene_names_set.intersection(set_of_genes_of_interest)  # check if there is an intersection
     if intersection_set:
         return True
     return False
