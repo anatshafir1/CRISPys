@@ -20,7 +20,6 @@ from Candidate import Candidate
 from CRISPR_Net.CrisprNetLoad import load_crispr_net
 from MOFF.MoffLoad import load_moff
 from DeepHF.LoadDeepHF import load_deephf
-from crispys_chips import chips_main
 from singletons import singletons_main
 
 os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
@@ -271,8 +270,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: int = 0, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
                  pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0, set_cover: int = 0,
-                 chips: int = 0, number_of_groups: int = 20, n_with_best_guide: int = 5, n_sgrnas: int = 2,
-                 desired_genes_fraction_threshold: float = -1.0, singletons: int = 0, restriction_site: str = "None",
+                 desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
                  singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
                  max_gap_distance: int = 3) -> List[SubgroupRes]:
     """
@@ -296,10 +294,6 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param singletons_from_crispys: optional choice to include singletons given by CRISPys
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
     :param set_cover: if 1, will output the minimal amount of guides that will capture all genes
-    :param chips: if 1, output n candidates that will cover the most number of genes in the family, default is 0.
-    :param number_of_groups: how many groups of 'best guide' to choose
-    :param n_with_best_guide: for each group of 'best guide' how many multiplex to return
-    :param n_sgrnas: the number of guides in each multiplex
     :param desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
            of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
     :param singletons: select 1 to create singletons (sgRNAs candidates that target a single gene).
@@ -374,13 +368,6 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     elif alg == 'default':
         tree_display(output_path, res, genes_list, targets_genes_dict, omega, set_cover,
                      consider_homology=False, output_name=output_name)
-
-    if chips:
-        multiplex_dict = chips_main(res, number_of_groups, n_with_best_guide, n_sgrnas, restriction_site)
-        # write results to csv
-        create_output_multiplex(output_path, res, multiplex_dict, number_of_groups, n_with_best_guide, n_sgrnas,
-                                output_name=output_name)
-        pickle.dump(multiplex_dict, open(f"{output_path}/{output_name}_chips_dict.p", "wb"))
 
     if slim_output:
         delete_file(os.path.join(output_path, 'mafft_output_aligned_fasta.fa'))
@@ -460,19 +447,6 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--set_cover', choices=[0, 1], type=int, default=0,
                             help='optional choice to output the minimal amount of guides that will capture all genes.'
                                  'Default: 0')
-    parser_obj.add_argument('--chips', '-chips', choices=[0, 1], type=int, default=0,
-                            help="optional: use 'chips' output that output the best n candidate that will target the "
-                                 "highest number of genes in the family, if 0 output all"
-                                 'Default: 0')
-    parser_obj.add_argument('--number_of_groups', '-n_groups', type=int, default=0,
-                            help="If using 'chips', for each group of 'best guide' how many multiplex to return"
-                                 "by a 'best' guide)" 'Default: 20')
-    parser_obj.add_argument('--n_with_best_guide', '-n_in_best', type=int, default=0,
-                            help="If using 'chips', the number of multiplex results created per 'best' guide"
-                                 'Default: 5')
-    parser_obj.add_argument('--n_sgrnas', '-n_sgrnas', type=int, default=0,
-                            help="If using 'chips', the number of guides in each multiplex" 'Default: 2')
-
     parser_obj.add_argument('--desired_genes_fraction_threshold', '-desired_genes_thr', type=float, default=-1.0,
                             help="If a list of genes of interest was entered: the minimal fraction of genes of "
                                  "interest. CRISPys will ignore internal nodes with lower or equal fraction of genes "
@@ -487,8 +461,6 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--number_of_singletons', '-num_singletons', type=int, default=50,
                             help="optional: the number of singleton candidates to include for each gene"
                                  'Default: 50')
-    parser_obj.add_argument('--restriction_site', '-restriction', default='None',
-                            help='if chips, discard candidates with a specific DNA motif')
     parser_obj.add_argument('--max_gap_distance', '-max_gap_distance', type=int, default=3,
                             help='The maximal distance that is allowed between the genes targeted by the sgRNA.'
                                  'Here, the distance is defined as the number of internal nodes between the genes'
@@ -515,10 +487,6 @@ if __name__ == "__main__":
                  internal_node_candidates=args.internal_node_candidates,
                  max_target_polymorphic_sites=args.max_target_polymorphic_sites,
                  pams=args.pams,
-                 chips=args.chips,
-                 number_of_groups=args.number_of_groups,
-                 n_with_best_guide=args.n_with_best_guide,
-                 n_sgrnas=args.n_sgrnas,
                  singletons_from_crispys=args.singletons_from_crispys,
                  slim_output=args.slim_output,
                  set_cover=args.set_cover,
@@ -526,5 +494,4 @@ if __name__ == "__main__":
                  singletons=args.singletons,
                  singletons_on_target_function=args.singletons_on_target_function,
                  number_of_singletons=args.number_of_singletons,
-                 restriction_site=args.restriction_site,
                  max_gap_distance=args.max_gap_distance)
