@@ -262,7 +262,7 @@ def determine_if_relevant_node(node: CladeNew, input_genes_set, gene_fraction_th
     This function determines if a node is considered relevant based on the fraction of genes from the set of genes
     of interest.
     :param node: The internal node, a CladeNew object.
-    :param input_genes_set: A set of genes of interest.
+    :param gene_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
     :param gene_fraction_threshold: The minimal fraction of genes to
     :return: True if #genes_of_interest/#genes_in internal node > gene_fraction_threshold. Otherwise, returns False.
     """
