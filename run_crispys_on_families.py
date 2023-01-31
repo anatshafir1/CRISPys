@@ -40,6 +40,8 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
         set_cover: if True will output the minimal amount of guides that will capture all genes
         desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
         of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
+        singletons: select 1 to create singletons (sgRNAs candidates that target a single gene).
+        number_of_singletons: the number of singletons that will be included for each gene.
         singletons_on_target_function: The on-target scoring function used for evaluating singletons.
         max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
 
@@ -135,7 +137,6 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         number_of_singletons: the number of singletons that will be included for each gene.
         singletons_on_target_function: The on-target scoring function used for evaluating singletons.
         max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
-        restriction_site: if run with chips, discard candidates with this DNA motif (if "None", ignore)
         check_for_genes_of_interest: optional: checks if the fasta file contains any genes of interest before submitting
         the job for that particular family
     Returns:
@@ -150,7 +151,6 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         with open(genes_of_interest_file, 'r') as f:
             genes_of_interest_lines = f.readlines()
         set_of_genes_of_interest = {gene.strip() for gene in genes_of_interest_lines}
-
     for i, family in enumerate(families):
         fam_dir_path = os.path.join(main_folder_path, family)
         if os.path.isdir(fam_dir_path) and not family.startswith("."):
@@ -188,8 +188,8 @@ if __name__ == '__main__':
         main_folder_path="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/families/",
         include_family_name_in_output=True,
         genes_of_interest_file="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/genes2target.txt",
-        queue="itaym", desired_genes_fraction_threshold=0.0, algorithm="gene_homology", where_in_gene=0.8, slim_output=1, 
-        off_scoring_function="moff", omega=0.15, output_name="moff_0.15", 
-        internal_node_candidates=200, singletons_from_crispys=0, mem=32, ncpu=1, max_target_polymorphic_sites=12, 
+        queue="itaym", desired_genes_fraction_threshold=0.0, algorithm="gene_homology", where_in_gene=0.8, slim_output=1,
+        off_scoring_function="moff", omega=0.15, output_name="moff_0.15",
+        internal_node_candidates=200, singletons_from_crispys=0, mem=32, ncpu=1, max_target_polymorphic_sites=12,
         set_cover=0, singletons=1,
         check_for_genes_of_interest=True, max_gap_distance=3)

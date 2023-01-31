@@ -299,7 +299,6 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param singletons: select 1 to create singletons (sgRNAs candidates that target a single gene).
     :param number_of_singletons: the number of singletons that will be included for each gene.
     :param singletons_on_target_function: The on-target scoring function used for evaluating singletons.
-    :param restriction_site: if run with chips, discard candidates with this DNA motif (if "None", ignore)
     :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
 
