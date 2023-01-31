@@ -12,11 +12,9 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
                            internal_node_candidates: int = 10,
                            max_target_polymorphic_sites: int = 12, pams: int = 0, singletons_from_crispys: int = 0,
                            slim_output: int = 0,
-                           set_cover: int = 0, desired_genes_fraction_threshold: float = -1.0,
-                           chips: int = 0, number_of_groups: int = 20, n_with_best_guide: int = 5,
-                           n_sgrnas: int = 2, singletons: int = 0,
+                           set_cover: int = 0, desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
                            singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
-                           max_gap_distance: int = 3, restriction_site: str = "None") -> str:
+                           max_gap_distance: int = 3) -> str:
     """
     This function creates a string for the CRISPys command.
     Args:
@@ -42,15 +40,10 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
         set_cover: if True will output the minimal amount of guides that will capture all genes
         desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
         of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
-        chips: if 1, output n candidates that will cover the most number of genes in the family, default is False.
-        number_of_groups: how many groups of 'best guide' to choose
-        n_with_best_guide: for each group of 'best guide' how many multiplex to return
-        n_sgrnas: the number of guides in each multiplex
         singletons: select 1 to create singletons (sgRNAs candidates that target a single gene).
         number_of_singletons: the number of singletons that will be included for each gene.
         singletons_on_target_function: The on-target scoring function used for evaluating singletons.
         max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
-        restriction_site: if run with chips, discard candidates with this DNA motif (if "None", ignore)
 
     Returns: The CRISPys command as a string
     """
@@ -76,14 +69,9 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
     command += f"--slim_output {slim_output} "
     command += f"--set_cover {set_cover} "
     command += f"--desired_genes_fraction_threshold {desired_genes_fraction_threshold} "
-    command += f"--chips {chips} "
-    command += f"--number_of_groups {number_of_groups} "
-    command += f"--n_with_best_guide {n_with_best_guide} "
-    command += f"--n_sgrnas {n_sgrnas} "
     command += f"--singletons {singletons} "
     command += f"--singletons_on_target_function {singletons_on_target_function} "
     command += f"--number_of_singletons {number_of_singletons} "
-    command += f"--restriction_site {restriction_site} "
     command += f"--max_gap_distance {max_gap_distance} "
 
     return command
@@ -114,10 +102,9 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         where_in_gene: int = 0.8, use_thr: int = 1, omega: int = 0.43, off_scoring_function: str = "cfd",
         on_scoring_function: str = "default", start_with_g: int = 0, internal_node_candidates: int = 10,
         max_target_polymorphic_sites: int = 12, pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0,
-        set_cover: int = 0, desired_genes_fraction_threshold: float = -1.0, chips: int = 0, number_of_groups: int = 20,
-        n_with_best_guide: int = 5, n_sgrnas: int = 2, singletons: int = 0,
+        set_cover: int = 0, desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
         singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50, max_gap_distance: int = 3,
-        check_for_genes_of_interest: bool = False, restriction_site: str = "None"):
+        check_for_genes_of_interest: bool = False):
     """
     A wrapper function to run CRISPys on the cluster for multiple folders.
     Args:
@@ -145,15 +132,10 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         set_cover: if True will output the minimal amount of guides that will capture all genes
         desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
         of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
-        chips: if 1, output n candidates that will cover the most number of genes in the family, default is False.
-        number_of_groups: how many groups of 'best guide' to choose
-        n_with_best_guide: for each group of 'best guide' how many multiplex to return
-        n_sgrnas: the number of guides in each multiplex
         singletons: select 1 to create singletons (sgRNAs candidates that target a single gene).
         number_of_singletons: the number of singletons that will be included for each gene.
         singletons_on_target_function: The on-target scoring function used for evaluating singletons.
         max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
-        restriction_site: if run with chips, discard candidates with this DNA motif (if "None", ignore)
         check_for_genes_of_interest: optional: checks if the fasta file contains any genes of interest before submitting
         the job for that particular family
     Returns:
@@ -162,11 +144,14 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
     families = os.listdir(main_folder_path)
     family_output_name = output_name
     set_of_genes_of_interest = set()
-    if check_for_genes_of_interest and genes_of_interest_file != "None":
+    if add_singletons and singletons:
+        with open("/groups/itay_mayrose/caldararu/crispys_arabidopsis/genes_of_interest_for_singletons.txt", 'r') as f:
+            genes_of_interest_lines = f.readlines()
+            set_of_genes_of_interest = {gene.strip() for gene in genes_of_interest_lines}
+    elif check_for_genes_of_interest and genes_of_interest_file != "None":
         with open(genes_of_interest_file, 'r') as f:
             genes_of_interest_lines = f.readlines()
         set_of_genes_of_interest = {gene.strip() for gene in genes_of_interest_lines}
-
     for i, family in enumerate(families):
         fam_dir_path = os.path.join(main_folder_path, family)
         if os.path.isdir(fam_dir_path) and not family.startswith("."):
@@ -189,12 +174,9 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
                                              singletons_from_crispys=singletons_from_crispys, slim_output=slim_output,
                                              set_cover=set_cover,
                                              desired_genes_fraction_threshold=desired_genes_fraction_threshold,
-                                             chips=chips, number_of_groups=number_of_groups,
-                                             n_with_best_guide=n_with_best_guide, n_sgrnas=n_sgrnas,
                                              singletons=singletons, number_of_singletons=number_of_singletons,
                                              singletons_on_target_function=singletons_on_target_function,
-                                             max_gap_distance=max_gap_distance,
-                                             restriction_site=restriction_site)
+                                             max_gap_distance=max_gap_distance)
             with open(sh_file, "w") as f:
                 f.write(f"{header}\n{command}")
             os.system(f"qsub {sh_file}")

@@ -45,7 +45,7 @@ class Candidate:
         self.num_of_genes_above_thr = 0
         self.cleave_all_above_thr = 1.0
         self.off_targets = False
-        self.on_target_score = None
+        self.on_target_score = 0.0
 
     def fill_default_fields(self, gene_names):
         """
