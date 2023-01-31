@@ -1,7 +1,6 @@
 import os
 import time
 from test_crispys import createHeaderJob
-from globals import add_singletons
 
 
 def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: str,
@@ -45,6 +44,7 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
         number_of_singletons: the number of singletons that will be included for each gene.
         singletons_on_target_function: The on-target scoring function used for evaluating singletons.
         max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
+
 
     Returns: The CRISPys command as a string
     """
@@ -100,7 +100,7 @@ def contains_genes_of_interest(fam_fasta_path, set_of_genes_of_interest):
 def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "None", ncpu: int = 1, mem: int = 8,
         queue="itaym",
         output_name: str = "CRISPys", include_family_name_in_output: int = 1, algorithm: str = "default",
-        where_in_gene: int = 0.8, use_thr: int = 1, omega: int = 0.43, off_scoring_function: str = "cfd",
+        where_in_gene: float = 0.8, use_thr: int = 1, omega: float = 0.43, off_scoring_function: str = "cfd",
         on_scoring_function: str = "default", start_with_g: int = 0, internal_node_candidates: int = 10,
         max_target_polymorphic_sites: int = 12, pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0,
         set_cover: int = 0, desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
@@ -119,7 +119,7 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         output_name: the name that would be given to the crispys output.
         genes_of_interest_file: path to a txt file consisting of a "gene" column with genes of interest.
         algorithm: the type of the algorithm run - with gene homology or without
-        where_in_gene: ignore targets sites downstream to the fractional part of the gene
+        where_in_gene (float): ignore targets sites downstream to the fractional part of the gene
         use_thr:
         omega: threshold of targeting propensity of a gene by a considered sgRNA (see article p. 4)
         off_scoring_function: off target scoring function
@@ -142,10 +142,16 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
     Returns:
         :param
     """
+    # write the families name to log file
+    log = open(os.path.join(main_folder_path, 'crispys_log.txt'), 'w')
     families = os.listdir(main_folder_path)
     family_output_name = output_name
     set_of_genes_of_interest = set()
-    if check_for_genes_of_interest and genes_of_interest_file != "None":
+    if add_singletons and singletons:
+        with open("/groups/itay_mayrose/caldararu/crispys_arabidopsis/genes_of_interest_for_singletons.txt", 'r') as f:
+            genes_of_interest_lines = f.readlines()
+            set_of_genes_of_interest = {gene.strip() for gene in genes_of_interest_lines}
+    elif check_for_genes_of_interest and genes_of_interest_file != "None":
         with open(genes_of_interest_file, 'r') as f:
             genes_of_interest_lines = f.readlines()
         set_of_genes_of_interest = {gene.strip() for gene in genes_of_interest_lines}
@@ -157,6 +163,7 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
             fam_fasta_path = os.path.join(fam_dir_path, f"{family}.fa")
             if check_for_genes_of_interest and not contains_genes_of_interest(fam_fasta_path, set_of_genes_of_interest):
                 continue
+            log.write(f"Run CRISPys on family: {family}\n")
             header = createHeaderJob(fam_dir_path, job_name=family_output_name, ncpu=ncpu, mem=mem, queue=queue)
             sh_file = os.path.join(fam_dir_path, f"crispys_{family_output_name}.sh")
             command = create_crispys_command(code_path=code_path, fam_fasta_path=fam_fasta_path,
@@ -178,16 +185,15 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
                 f.write(f"{header}\n{command}")
             os.system(f"qsub {sh_file}")
             print(f"Job submitted for {family}")
-
+    log.close()
 
 if __name__ == '__main__':
-    run(code_path="/groups/itay_mayrose/caldararu/tmp/crispys/",
-        main_folder_path="/groups/itay_mayrose/caldararu/crispys_arabidopsis/families",
+    run(code_path="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
+        main_folder_path="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/families/",
         include_family_name_in_output=True,
-        genes_of_interest_file="/groups/itay_mayrose/caldararu/crispys_arabidopsis/genes_of_interest.txt",
-        queue="itaym",
-        desired_genes_fraction_threshold=0.0, algorithm="gene_homology", slim_output=1, off_scoring_function="moff",
-        omega=0.15, output_name="moff_015", internal_node_candidates=200, singletons_from_crispys=0, mem=32,
-        ncpu=1, max_target_polymorphic_sites=12, set_cover=0, check_for_genes_of_interest=True,
-        singletons=1, singletons_on_target_function="ucrispr", where_in_gene=0.67, number_of_singletons=100,
-        max_gap_distance=3)
+        genes_of_interest_file="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/genes2target.txt",
+        queue="itaym", desired_genes_fraction_threshold=0.0, algorithm="gene_homology", where_in_gene=0.8, slim_output=1,
+        off_scoring_function="moff", omega=0.15, output_name="moff_0.15",
+        internal_node_candidates=200, singletons_from_crispys=0, mem=32, ncpu=1, max_target_polymorphic_sites=12,
+        set_cover=0, singletons=1,
+        check_for_genes_of_interest=True, max_gap_distance=3)
