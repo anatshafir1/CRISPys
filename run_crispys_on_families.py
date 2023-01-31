@@ -1,6 +1,7 @@
 import os
 import time
 from test_crispys import createHeaderJob
+from globals import add_singletons
 
 
 def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: str,
@@ -144,11 +145,7 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
     families = os.listdir(main_folder_path)
     family_output_name = output_name
     set_of_genes_of_interest = set()
-    if add_singletons and singletons:
-        with open("/groups/itay_mayrose/caldararu/crispys_arabidopsis/genes_of_interest_for_singletons.txt", 'r') as f:
-            genes_of_interest_lines = f.readlines()
-            set_of_genes_of_interest = {gene.strip() for gene in genes_of_interest_lines}
-    elif check_for_genes_of_interest and genes_of_interest_file != "None":
+    if check_for_genes_of_interest and genes_of_interest_file != "None":
         with open(genes_of_interest_file, 'r') as f:
             genes_of_interest_lines = f.readlines()
         set_of_genes_of_interest = {gene.strip() for gene in genes_of_interest_lines}
@@ -184,12 +181,13 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
 
 
 if __name__ == '__main__':
-    run(code_path="/groups/itay_mayrose/udiland/crispys_code/CRISPys/Stage0.py",
-        main_folder_path="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/families/",
+    run(code_path="/groups/itay_mayrose/caldararu/tmp/crispys/",
+        main_folder_path="/groups/itay_mayrose/caldararu/crispys_arabidopsis/families",
         include_family_name_in_output=True,
-        genes_of_interest_file="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/genes2target.txt",
-        queue="itay_75",
+        genes_of_interest_file="/groups/itay_mayrose/caldararu/crispys_arabidopsis/genes_of_interest.txt",
+        queue="itaym",
         desired_genes_fraction_threshold=0.0, algorithm="gene_homology", slim_output=1, off_scoring_function="moff",
-        omega=0.09, output_name="moff_0.09", internal_node_candidates=200, singletons_from_crispys=0, mem=32,
-        ncpu=1, max_target_polymorphic_sites=12, set_cover=0, chips=1, number_of_groups=20, n_with_best_guide=5,
-        n_sgrnas=2, check_for_genes_of_interest=True)
+        omega=0.15, output_name="moff_015", internal_node_candidates=200, singletons_from_crispys=0, mem=32,
+        ncpu=1, max_target_polymorphic_sites=12, set_cover=0, check_for_genes_of_interest=True,
+        singletons=1, singletons_on_target_function="ucrispr", where_in_gene=0.67, number_of_singletons=100,
+        max_gap_distance=3)
