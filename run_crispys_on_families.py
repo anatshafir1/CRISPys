@@ -147,11 +147,7 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
     families = os.listdir(main_folder_path)
     family_output_name = output_name
     set_of_genes_of_interest = set()
-    if add_singletons and singletons:
-        with open("/groups/itay_mayrose/caldararu/crispys_arabidopsis/genes_of_interest_for_singletons.txt", 'r') as f:
-            genes_of_interest_lines = f.readlines()
-            set_of_genes_of_interest = {gene.strip() for gene in genes_of_interest_lines}
-    elif check_for_genes_of_interest and genes_of_interest_file != "None":
+    if check_for_genes_of_interest and genes_of_interest_file != "None":
         with open(genes_of_interest_file, 'r') as f:
             genes_of_interest_lines = f.readlines()
         set_of_genes_of_interest = {gene.strip() for gene in genes_of_interest_lines}
