@@ -131,48 +131,8 @@ def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes
         "The designed sgRNAs for the genes in your input are listed in the table below. Every section of the table corresponds to a homologous genes subgroup as specified by the internal nodes of the constructed genes tree.<br>The name of the subgroup and the list of genes are given in the header of each section.\n")
     for subgroup_item in subgroups_lst:
         # create the main table
-        sub_tree_display(subgroup_item.candidates_list, f, consider_homology, subgroup_item.genes_in_node)
-    f.close()
-
-
-def create_output_multiplex(path: str, crispys_res: List, multiplex_dict: Dict, number_of_groups: int,
-                            n_with_best_guide: int, n_sgrnas: int, output_name: str, consider_homology=False):
-
-    """
-    This function is used to write the output of multiplex
-    Args:
-        path: path to output folder
-        crispys_res: the 'traditional' crispys output (list of subGroupRes)
-        multiplex_dict: the output of crispys-chips. a dictionary of node_name:dictionary of best_sg_seq:BestSgGroup
-        output_name:
-    Returns:
-
-    """
-
-    filepath = f"{path}/{output_name}_chips.csv"
-
-    f = open(filepath, 'w')
-    f.write(f"Run multiplex with {number_of_groups} 'Best' groups each one with {n_with_best_guide} "
-            f"gRNA and {n_sgrnas} in each multiplex\n")
-    # go over each internal node
-    for node in multiplex_dict:
-        f.write(f"Node:,{node}\n")
-        # get node genes
-        for subgroup in crispys_res:
-            if subgroup.name == node:
-                # genes_targeted = {[cand.genes_score_dict.keys() for cand in subgroup.candidates_list]}
-                genes_in_node = subgroup.genes_in_node
-                # write the node name
-                f.write(f"genes in node:,{str(genes_in_node).strip('[]')}\n")
-                # f.write(f"genes targeted:,{str(genes_targeted).strip('{}')}\n")
-        # go over each 'best guide' group
-        for bestseq in multiplex_dict[node].values():
-            # write the sequence of best guide
-            f.write(f"Group of:,{bestseq.best_candidate.seq}\n")
-            # go over each pair (or more) of multiplex and write it to the file
-            for subgroup in bestseq.subgroups:
-                sub_tree_display(subgroup.candidates_list, f, consider_homology, subgroup.genes_in_node)
-        f.write("\n")
+        if subgroup_item.candidates_list:
+            sub_tree_display(subgroup_item.candidates_list, f, consider_homology, subgroup_item.genes_in_node)
     f.close()
 
 

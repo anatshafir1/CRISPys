@@ -10,7 +10,7 @@ from typing import List, Dict
 from pathlib import Path
 from functools import partial
 import globals
-from make_tree_display_CSV import tree_display, create_output_multiplex
+from make_tree_display_CSV import tree_display
 from CasSites import fill_genes_targets_dict
 from Stage1 import default_alg, gene_homology_alg
 from Distance_matrix_and_UPGMA import MITScore, ccTop, gold_off_func, ucrispr, default_on_target
@@ -230,6 +230,9 @@ def remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set):
         subgroup.candidates_list = [candidate for candidate in subgroup.candidates_list if
                                     set(candidate.genes_score_dict).intersection(genes_of_interest_set)]
         if subgroup.candidates_list:
+            new_res.append(subgroup)
+        else:
+            subgroup.candidates_list = []
             new_res.append(subgroup)
     return new_res
 
