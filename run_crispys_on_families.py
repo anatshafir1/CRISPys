@@ -184,7 +184,7 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
     log.close()
 
 if __name__ == '__main__':
-    run(code_path="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
+    run(code_path="/groups/itay_mayrose/udiland/remote_deb/crispys_git/CRISPys",
         main_folder_path="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/families/",
         include_family_name_in_output=True,
         genes_of_interest_file="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/genes2target.txt",
