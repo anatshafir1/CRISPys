@@ -14,7 +14,7 @@ from mafft_and_phylip import create_protdist
 from CRISPR_Net import Encoder_sgRNA_off
 from DeepHF.scripts import prediction_util
 from MOFF.MOFF_prediction import MOFF_score
-from Metric import pos_in_metric_general
+from Metric import pos_in_metric_general, cfd_funct
 from TreeConstruction_changed import TreeNew, DistanceTreeConstructor
 from gold_off import predict
 
@@ -274,6 +274,35 @@ def return_protdist_upgma(seq_list: List[str], names_list: List[str], output_pat
     return tree
 
 
+def make_distance_matrix_from_average(targets_seqs_list: List[str], names_list: List[str],
+                                      off_scoring_function) -> _DistanceMatrix:
+    """
+    This function creates a pseudo-distance matrix based on the average of the scores between target pairs:
+    DistanceMatrix[i][j] = (score(targets[i],targets[j]) + score(targets[j],targets[i]))/2
+    if score(A,B) is 0.2 and score(B,A) is 0.4, then the distance between A and B is 0.3
+    :param targets_seqs_list: a list of target sequences
+    :param names_list: a deep copy of targets_list
+    :param off_scoring_function: the off target scoring function
+    :return: a _DistanceMatrix object
+    """
+    targets_list_1 = []
+    targets_list_2 = []
+    for target_pair in itertools.product(targets_seqs_list, repeat=2):  # prepare the input for the scoring function
+        targets_list_1.append(target_pair[0])
+        targets_list_2.append(target_pair[1])
+    list_of_scores = off_scoring_function(targets_list_1, targets_list_2, for_metric=True)
+    n = len(targets_seqs_list)
+    chunks_list = [list_of_scores[i:i + n] for i in range(0, len(list_of_scores), n)]  # divide the scores into chunks
+    distance_matrix = []
+    for i in range(n):
+        matrix_row = []
+        for j in range(i + 1):
+            distance = (chunks_list[i][j] + chunks_list[j][i]) / 2  # calculate the average
+            matrix_row.append(distance)
+        distance_matrix.append(matrix_row)
+    return _DistanceMatrix(names_list, distance_matrix)
+
+
 def return_targets_upgma(targets_seqs_list: List[str], names_list: List[str], off_scoring_function, on_scoring_function,
                          cfd_dict: Dict) -> TreeNew:
     """the function creates a UPGMA tree object from the potential targets in 'targets_seqs_list' using the given
@@ -290,10 +319,13 @@ def return_targets_upgma(targets_seqs_list: List[str], names_list: List[str], of
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
     :return: potential targets' tree hierarchically clustered by UPGMA.
     """
-    # create a list of vectors for the targets, which is then used to create the distance matrix
-    vectors_list = pos_in_metric_general(targets_seqs_list, off_scoring_function, on_scoring_function, cfd_dict)
-    # create the distance matrix
-    distance_matrix = make_distance_matrix(names_list, vectors_list)
-    # apply UPGMA, return a target tree
+    if off_scoring_function == cfd_funct:
+        # create a list of vectors for the targets, which is then used to create the distance matrix
+        vectors_list = pos_in_metric_general(targets_seqs_list, off_scoring_function, on_scoring_function, cfd_dict)
+        # create the distance matrix
+        distance_matrix = make_distance_matrix(names_list, vectors_list)
+        # apply UPGMA, return a target tree
+    else:
+        distance_matrix = make_distance_matrix_from_average(targets_seqs_list, names_list, off_scoring_function)
     targets_tree = make_upgma(distance_matrix)
     return targets_tree
