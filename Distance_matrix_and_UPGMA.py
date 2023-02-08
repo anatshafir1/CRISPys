@@ -4,7 +4,7 @@ from os.path import dirname, abspath, join
 from os import rename
 import math
 from typing import List, Dict
-
+import itertools
 import numpy as np
 import re
 from Bio.Phylo.TreeConstruction import _DistanceMatrix
@@ -48,9 +48,9 @@ def MITScore(seq1: str, seq2: str, for_metric: bool = False) -> float:
         d_avg = (last_mm - first_mm) / distance
         original_score = first_arg / ((4 * (19 - d_avg) / 19 + 1) * distance ** 2)
     if for_metric:
-        return original_score
-    else:
         return 1 - original_score
+    else:
+        return original_score
 
 
 def ccTop(sgseq: str, target_seq: str, for_metric: bool = False) -> float:
@@ -58,6 +58,8 @@ def ccTop(sgseq: str, target_seq: str, for_metric: bool = False) -> float:
 
     :param sgseq:
     :param target_seq:
+    :param for_metric: True for the score for distance calculations, False for the reciprocal of the score
+    (ccTOP, The efficiency score is the reciprocal of curScore/max_score)
     :return:
     """
     assert len(sgseq) == len(target_seq)
@@ -65,7 +67,7 @@ def ccTop(sgseq: str, target_seq: str, for_metric: bool = False) -> float:
     mm = [i + 1 if sgseq[i] != target_seq[i] else 0 for i in range(len(sgseq))]
     curScore = sum(list(map(lambda x: pow(1.2, x) if x != 0 else 0, mm)))
     if for_metric:
-        return curScore / max_score  # a value between 0 and 1
+        return curScore / max_score
     else:
         return 1 - curScore / max_score
 
@@ -77,6 +79,7 @@ def gold_off_func(sg_seq_list: List[str], target_seq_list: List[str], for_metric
 
     :param sg_seq_list: a list of sgRNA sequence or sequences
     :param target_seq_list: a list of target sequences
+    :param for_metric: True for the reciprocal of the score for distance calculations, False for the score itself
     :return: A list of scores where list[i] = score between the ith sgRNA and the ith target
     """
     if len(sg_seq_list[0]) == 20:
@@ -89,9 +92,9 @@ def gold_off_func(sg_seq_list: List[str], target_seq_list: List[str], for_metric
                              n_process=globals.n_cores_for_gold_off, model_type="regression")
     list_of_scores = np.clip(list_of_scores, 0, 1)  # clipping is done when the score is above 1 or below 0
     if for_metric:
-        return [float(score) for score in list_of_scores]
-    else:
         return [1 - float(score) for score in list_of_scores]
+    else:
+        return [float(score) for score in list_of_scores]
 
 
 def crisprnet(candidate_lst: List[str], target_lst: List[str], for_metric: bool = False) -> List[float]:
@@ -100,7 +103,8 @@ def crisprnet(candidate_lst: List[str], target_lst: List[str], for_metric: bool 
 
     :param candidate_lst: list of candidates
     :param target_lst: list of targets
-    :return: list of crispr_net scores
+    :param for_metric: True for the reciprocal of the score for distance calculations, False for the score itself
+    :return: list of crispr_net scores (or their reciprocals if for_metric is false)
     """
     input_codes = []
     for seqs in zip(candidate_lst, target_lst):
@@ -112,9 +116,9 @@ def crisprnet(candidate_lst: List[str], target_lst: List[str], for_metric: bool 
     input_codes = input_codes.reshape((len(input_codes), 1, 24, 7))
     y_pred = globals.crisprnet_loaded_model.predict(input_codes).flatten()
     if for_metric:
-        return list(y_pred)
-    else:
         return [1 - float(y) for y in y_pred]
+    else:
+        return list(y_pred)
 
 
 def moff(candidate_lst: List[str], target_lst: List[str], for_metric: bool = False) -> List[float]:
@@ -124,13 +128,14 @@ def moff(candidate_lst: List[str], target_lst: List[str], for_metric: bool = Fal
 
     :param candidate_lst: list of candidates
     :param target_lst: list of targets
-    :return: list of  1 - MOFF score
+    :param for_metric: True for the reciprocal of the score for distance calculations, False for the score itself
+    :return: list of scores (or 1-scores for metric calculation)
     """
     scores = MOFF_score(globals.moff_mtx1, globals.moff_mtx2, candidate_lst, target_lst)
     if for_metric:
-        return list(scores)
-    else:
         return [1 - score for score in scores]
+    else:
+        return list(scores)
 
 
 # ###################################### on target functions ###################################### #
@@ -138,8 +143,8 @@ def moff(candidate_lst: List[str], target_lst: List[str], for_metric: bool = Fal
 def deephf(target_lst: List[str], for_metric: bool = False) -> List[float]:
     """
     This function use the model of deephf that was improved by Yaron Orenstein`s lab
-
     :param target_lst: list of targets with PAM
+    :param for_metric: True for the reciprocal of the score for distance calculations, False for the score itself
     :return: list of on-target scores
     """
     # take 21 nt from targets
@@ -147,37 +152,37 @@ def deephf(target_lst: List[str], for_metric: bool = False) -> List[float]:
     # get deephf scores
     scores = prediction_util.get_predictions(globals.deephf_loaded_model, globals.deephf_config, targets)
     if for_metric:
-        return list(scores)
-    else:
         return [1 - score for score in scores]
+    else:
+        return list(scores)
 
 
-def ucrispr(sg_seq_list: List[str], family_path: str, for_metric: bool = False, ) -> List[float]:
+def ucrispr(sg_seq_list: List[str], output_path: str) -> List[float]:
     """
     This function will run the uCRISPR algorithm for a list of targets and will return a list of the on-target scores
     IMPORTANT: before running you need to give the path to data tables that are part of uCRISPR
-    enter this to the .sh file
+    enter this to the .sh file or to the bashrc file
     'export DATAPATH=<path to folder>/uCRISPR/RNAstructure/data_tables/'
     Also make sure the uCRISPR file inside the uCRISPR folder has exe permission
 
     :param sg_seq_list: list of sgrnas (with PAM)
+    :param output_path: the output file
     :return: a list of ucrispr on-target scores
     """
     # make a file with guides for inputs to ucrispr
-    targets_input_path = join(family_path, "targets.txt")
-    with open(targets_input_path, "w") as f:
+    with open(f"{output_path}/targets.txt", "w") as f:
         for sg in sg_seq_list:
             f.write(f"{sg}\n")
-
     # run ucrispr in terminal
-    p = subprocess.run([f"{globals.CODE_PATH}/uCRISPR/uCRISPR", "-on",
-                        targets_input_path],
+    p = subprocess.run([f"{globals.CODE_PATH}/uCRISPR/uCRISPR", "-on", f"{output_path}/targets.txt", f"{output_path}/"],
                        stdout=subprocess.PIPE)
-
-    # pares the results
+    # parse the results
     res_lst = p.stdout.decode('utf-8').split("\n")
+    with open(f"{output_path}/ucrisper_out.txt", "w") as u_out:
+        for whatever in res_lst:
+            u_out.write(f"{whatever}\n")
     # delete input file
-    subprocess.run(["rm", targets_input_path])
+    subprocess.run(["rm", f"{output_path}/targets.txt"])
     # return a list of the results
     return [float(i.split(" ")[1]) for i in res_lst[1:len(res_lst) - 1]]
 
@@ -186,8 +191,8 @@ def default_on_target(target_lst: List[str], for_metric: bool = False) -> List[i
     """
     This function is used in the case when no on-target scoring function is chosen. Returns a list of ones in the length
     of the given target list.
-
     :param target_lst: list of targets with PAM
+    :param for_metric: True for the reciprocal of the score for distance calculations, False for the score itself
     :return: list of ones in the length of the given target list.
     """
     result = [1 for _ in target_lst]

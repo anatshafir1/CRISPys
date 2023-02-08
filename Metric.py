@@ -173,6 +173,6 @@ def pos_in_metric_cfd(target_seq: str, cfd_dict: Dict) -> List[float]:
 
 def cfd_funct(sgRNA: str, target: str, cfd_dict: Dict) -> float:
     """An implementation of the CFD function"""
-    return 1 - reduce(lambda x, y: x * y,
+    return reduce(lambda x, y: x * y,
                       map(lambda i: cfd_dict[('r' + sgRNA[i] + ':d' + target[i], i + 1)] if sgRNA[i] != target[i] else 1,
                           [j for j in range(0, 20)]))

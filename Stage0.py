@@ -96,7 +96,7 @@ def choose_scoring_function(input_scoring_function: str, family_path: str):
     elif input_scoring_function == "ucrispr" or input_scoring_function == "uCRISPR":
         pam_included = True
         os.environ['DATAPATH'] = f"{globals.CODE_PATH}/uCRISPR/RNAstructure/data_tables/"
-        return partial(ucrispr, family_path=family_path), pam_included
+        return partial(ucrispr, output_path=family_path), pam_included
     elif input_scoring_function == "crispr_net" or input_scoring_function == "crisprnet":
         pam_included = True
         return load_crispr_net(), pam_included
