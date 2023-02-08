@@ -32,7 +32,7 @@ def targets_tree_top_down(best_permutations: List[Candidate], node: CladeNew, om
     # check of the target is a leaf in the targets tree (one target)
     if len(node.node_leaves) == 1:
         # check if the target has only one gene and also, if we dont want singletons  -> skip this stage,
-        # otherwisre -> get candidates
+        # otherwise -> get candidates
         if len(targets_genes_dict[node.node_leaves[0]]) == 1 and not singletons_from_crispys:  # check if the node is a leaf - one target, to exclude singletons_from_crispys
             return
     if len(node.polymorphic_sites) < max_target_polymorphic_sites:

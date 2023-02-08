@@ -23,7 +23,7 @@ def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates
 	:return: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]}
 	"""
     scores_dict = {}
-    if off_scoring_function == gold_off_func or off_scoring_function == crisprnet or off_scoring_function == moff:
+    if off_scoring_function in (gold_off_func, crisprnet, moff):
         return generate_scores_one_batch(genes_targets_dict, list_of_candidates, off_scoring_function,
                                          on_scoring_function)
     if on_scoring_function == default_on_target:  # if no on-target scoring function was given
@@ -79,7 +79,7 @@ def generate_scores_one_batch(genes_targets_dict: Dict[str, List[str]], list_of_
             batch_targets_list.extend([target] * len(list_of_candidates))
             candidates_with_pam = [f"{c[:20]}{target[20:]}" for c in list_of_candidates]
             batch_candidates_list += candidates_with_pam
-    off_scores = off_scoring_function(batch_candidates_list, batch_targets_list)
+    off_scores = off_scoring_function(batch_candidates_list, batch_targets_list, for_metric=False)
     if on_scoring_function == default_on_target:  # if no on-target scoring function was given
         i = 0
         for gene in genes_targets_dict:
@@ -138,10 +138,10 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, of
             list_of_targets = []  # for later knowing where the candidate_str might cut in each gene (when writing the output)
             num_of_cuts_per_gene = 0  # in use only in the single gene version
             for target, candidates_target_scores in scores_dict[gene]:
-                if candidates_target_scores[i] == 1:  # in case the distance is 1 (it means that the score is 0 and
+                candidate_cut_prob = candidates_target_scores[i]
+                if candidate_cut_prob == 0:  # in case the score is 0 and
                     # there isn't attachment of the guide and target nad no cut event) don't consider the target
                     continue
-                candidate_cut_prob = 1 - candidates_target_scores[i]
                 sg_site_differences = two_seqs_differences(list_of_perms_seqs[i],
                                                            target)  # the differences between the i-th candidate and the target
                 list_of_targets.append([target[:20], sg_site_differences])
