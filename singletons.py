@@ -30,7 +30,7 @@ def create_singletons_subgroup(gene, singletons_on_target_function, genes_target
 
 
 def singletons_main(genes_targets_dict: Dict, singletons_on_target_function, results: List[SubgroupRes],
-                    number_of_singletons: int, genes_of_interest_set: Set):
+                    number_of_singletons: int, genes_of_interest_set: Set, chips_singletons: int = 0):
     """
     This is the main function for adding single-gene sgRNAs - singletons_from_crispys.
     For each gene from the set of genes of interest, it appends a new SubgroupRes object containing
@@ -42,6 +42,7 @@ def singletons_main(genes_targets_dict: Dict, singletons_on_target_function, res
         number_of_singletons: The number of singleton candidates created per gene
         genes_of_interest_set: A set of genes of interest. if a list was not defined, this function will find singletons_from_crispys
         for each gene in the family.
+        chips_singletons: if the run is for chips (chips = 1) use all singletons
     Returns: returns a list of subgroup results containing singletons
 
     """
@@ -50,7 +51,7 @@ def singletons_main(genes_targets_dict: Dict, singletons_on_target_function, res
     genes_targets_dict = {gene: list(set(targets)) for gene, targets in genes_targets_dict.items()}
     
     singleton_results = []
-    if not genes_of_interest_set:
+    if not genes_of_interest_set or chips_singletons:
         genes_of_interest_set = {gene for gene in genes_targets_dict}
     for gene in genes_of_interest_set:
         singleton_subgroup = create_singletons_subgroup(gene, singletons_on_target_function, genes_targets_dict,

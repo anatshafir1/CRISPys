@@ -227,8 +227,9 @@ def remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set):
     """
     new_res = []
     for subgroup in res:
-        subgroup.candidates_list = [candidate for candidate in subgroup.candidates_list if
-                                    set(candidate.genes_score_dict).intersection(genes_of_interest_set)]
+        if len(subgroup.genes_in_node) > 1: # filter only for subgroups of internal node and not for singletons
+            subgroup.candidates_list = [candidate for candidate in subgroup.candidates_list if
+                                        set(candidate.genes_score_dict).intersection(genes_of_interest_set)]
         if subgroup.candidates_list:
             new_res.append(subgroup)
         else:
@@ -275,7 +276,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0, set_cover: int = 0,
                  desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
                  singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
-                 max_gap_distance: int = 3) -> List[SubgroupRes]:
+                 max_gap_distance: int = 3, chips_singletons: int = 0) -> List[SubgroupRes]:
     """
     Algorithm main function
 
@@ -303,6 +304,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param number_of_singletons: the number of singletons that will be included for each gene.
     :param singletons_on_target_function: The on-target scoring function used for evaluating singletons.
     :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
+    :param chips_singletons: if running crispys for chips, return all singletons and not only for 'genes of interest'
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
 
     """
@@ -352,7 +354,8 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                                                                                output_path)
         singleton_results = singletons_main(genes_targets_dict, singletons_on_scoring_function, res,
                                             number_of_singletons,
-                                            genes_of_interest_set)
+                                            genes_of_interest_set,
+                                            chips_singletons)
         # Add singleton subgroups to the list of results
         res += singleton_results
     if genes_of_interest_set:
@@ -468,6 +471,11 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                                  'Here, the distance is defined as the number of internal nodes between the genes'
                                  '(which is the distance between the genes - 1).'
                                  ' if set to 0, CRISPys will not filter out any sgRNAs that target distant genes')
+    parser_obj.add_argument('--chips_singletons', '-chips', type=int, default=0,
+                             help="when ther output is intended to use in chips we want all singletons and not only "
+                                  "for 'genes of intereset', this argument when equal 1 will output singletons for"
+                                  " all genes")
+
     arguments = parser_obj.parse_args()
     return arguments
 
@@ -496,4 +504,5 @@ if __name__ == "__main__":
                  singletons=args.singletons,
                  singletons_on_target_function=args.singletons_on_target_function,
                  number_of_singletons=args.number_of_singletons,
-                 max_gap_distance=args.max_gap_distance)
+                 max_gap_distance=args.max_gap_distance,
+                 chips_singletons=args.chips_singletons)
