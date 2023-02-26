@@ -56,8 +56,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
                       internal_node_candidates: int, max_target_polymorphic_sites: int = 12,
                       singletons_from_crispys: int = 1,
                       genes_of_interest_fraction_threshold: float = -1.0, slim_output: bool = False,
-                      max_gap_distance: int = 3) -> List[
-    SubgroupRes]:
+                      max_gap_distance: int = 3, export_tree: int = 0) -> List[SubgroupRes]:
     """
     Called by the main function when choosing algorithm with gene homology taken in consideration. Creates a UPGMA tree
     from the input genes by their homology. Writes the tree to a newick format file and a preorder format file. Then
@@ -81,6 +80,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     :param genes_of_interest_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
            of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
     :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
+    :param export_tree: if 1 the gene tree will be writen to pickle file, default=0
     :return:
     """
     # make a tree and distance matrix of the genes
@@ -95,6 +95,10 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     if off_scoring_function == cfd_funct:
         script_path = dirname(abspath(__file__))
         cfd_dict = pickle.load(open(script_path + "/cfd_dict.p", 'rb'))
+    # write the gene tree (will be used in chips to filter multiplex)
+    if export_tree:
+        with open(f"{output_path}/genes_tree.p", "wb") as f:
+            pickle.dump(genes_upgma_tree, f)
     # use the gene tree to get candidates for each internal node
     genes_tree_top_down(list_of_subgroups, genes_upgma_tree.root, genes_of_interest_set, omega, genes_targets_dict,
                         targets_genes_dict, off_scoring_function, on_scoring_function, internal_node_candidates,
