@@ -227,8 +227,7 @@ def remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set):
     """
     new_res = []
     for subgroup in res:
-        if len(subgroup.genes_in_node) > 1: # filter only for subgroups of internal node and not for singletons
-            subgroup.candidates_list = [candidate for candidate in subgroup.candidates_list if
+        subgroup.candidates_list = [candidate for candidate in subgroup.candidates_list if
                                         set(candidate.genes_score_dict).intersection(genes_of_interest_set)]
         if subgroup.candidates_list:
             new_res.append(subgroup)
