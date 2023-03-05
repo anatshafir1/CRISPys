@@ -227,8 +227,7 @@ def remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set):
     """
     new_res = []
     for subgroup in res:
-        if len(subgroup.genes_in_node) > 1: # filter only for subgroups of internal node and not for singletons
-            subgroup.candidates_list = [candidate for candidate in subgroup.candidates_list if
+        subgroup.candidates_list = [candidate for candidate in subgroup.candidates_list if
                                         set(candidate.genes_score_dict).intersection(genes_of_interest_set)]
         if subgroup.candidates_list:
             new_res.append(subgroup)
@@ -276,7 +275,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0, set_cover: int = 0,
                  desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
                  singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
-                 max_gap_distance: int = 3, chips_singletons: int = 0) -> List[SubgroupRes]:
+                 max_gap_distance: int = 3, chips_singletons: int = 0, export_tree: int = 0) -> List[SubgroupRes]:
     """
     Algorithm main function
 
@@ -305,6 +304,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param singletons_on_target_function: The on-target scoring function used for evaluating singletons.
     :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
     :param chips_singletons: if running crispys for chips, return all singletons and not only for 'genes of interest'
+    :param export_tree: if 1 the genes tree created with 'gene homology' will be writen to 'genes_tree.p' pickle file
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
 
     """
@@ -344,7 +344,8 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
         res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict,
                                 genes_of_interest_set, omega, output_path, off_scoring_function, on_scoring_function,
                                 internal_node_candidates, max_target_polymorphic_sites, singletons_from_crispys,
-                                desired_genes_fraction_threshold, slim_output, max_gap_distance=max_gap_distance)
+                                desired_genes_fraction_threshold, slim_output, max_gap_distance,
+                                export_tree)
     elif alg == 'default':  # alg == "default". automatically used on single-gene families.
         res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
                           max_target_polymorphic_sites, singletons_from_crispys, genes_names_list)
@@ -475,6 +476,9 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                              help="when ther output is intended to use in chips we want all singletons and not only "
                                   "for 'genes of intereset', this argument when equal 1 will output singletons for"
                                   " all genes")
+    parser_obj.add_argument('--export_tree', '-tree', type=int, default=0,
+                             help="when set to 1 the gene tree created with the 'gene_homology' option will be writen "
+                                  "out ot file, it will be used in chips to filter multiplex")
 
     arguments = parser_obj.parse_args()
     return arguments
@@ -505,4 +509,5 @@ if __name__ == "__main__":
                  singletons_on_target_function=args.singletons_on_target_function,
                  number_of_singletons=args.number_of_singletons,
                  max_gap_distance=args.max_gap_distance,
-                 chips_singletons=args.chips_singletons)
+                 chips_singletons=args.chips_singletons,
+                 export_tree=args.export_tree)
