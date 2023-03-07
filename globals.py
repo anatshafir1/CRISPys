@@ -17,6 +17,30 @@ seed = 1234
 # This variable used in Distance_matrix_and_UPGMA.pos_in_metric_general
 vector_size_cutoff = 1000
 
+# This variable determines the distance metric that would be used for constructing the distance matrix for the
+# target tree. There are four metrics available:
+"""
+1. all_targets: for a list of n targets, this method transforms each target into a vector of length n, where the jth
+entry of the vector i is equal to scoring_function(targets[j],targets[i]).
+For example, the vector of the 1st target would look like this:
+[scoring_function(targets[0],targets[0]),scoring_function(targets[1],targets[0]),...,scoring_function(targets[n],targets[0])]
+
+2. full_perturbation: for a list of n targets, this method transforms each target into a vector of length of vector_size_cutoff,
+entry of the vector i is equal to scoring_function(metric_sequences[j],targets[i]).
+metric_sequences is a list of sequences produced by repeatedly sampling a target from the list of targets, and inserting
+up to three random mutations.
+For example, the vector of the 1st target would look like this:
+[scoring_function(metric_sequences[0],targets[0]),scoring_function(metric_sequences[1],targets[0]),...,scoring_function(metric_sequences[n],targets[0])]
+
+3. mixed_perturbation: similar to full_perturbation. Here, if the total number of targets is above vector_size_cutoff,
+a number equal to vector_size_cutoff of targets would be picked for the list of metric sequences. Otherwise, the
+list of targets will be taken, and the list is completed to vector_size_cutoff by adding perturbed targets as described
+in the full_perturbation metric.
+
+4. average_score_linkage: this metric computes the distance between targets A and B by taking the average 
+   between scoring_function(A,B) and scoring_function(B,A)
+"""
+target_distance_metric = "average_score_linkage"
 # this variable will determine the number of cores used for the multi_processing used by gold_off.predict
 # important: currently, gold off only supports 10 n_cores.
 n_cores_for_gold_off = 1

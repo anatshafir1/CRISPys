@@ -17,7 +17,7 @@ from MOFF.MOFF_prediction import MOFF_score
 from Metric import pos_in_metric_general, cfd_funct
 from TreeConstruction_changed import TreeNew, DistanceTreeConstructor
 from gold_off import predict
-
+from globals import target_distance_metric
 
 # ###################################### off target functions ###################################### #
 
@@ -132,6 +132,7 @@ def moff(candidate_lst: List[str], target_lst: List[str], for_metric: bool = Fal
     :return: list of scores (or 1-scores for metric calculation)
     """
     scores = MOFF_score(globals.moff_mtx1, globals.moff_mtx2, candidate_lst, target_lst)
+    scores = np.clip(scores, 0, 1)  # clipping is done when the score is above 1 or below 0
     if for_metric:
         return [1 - score for score in scores]
     else:
@@ -157,7 +158,7 @@ def deephf(target_lst: List[str], for_metric: bool = False) -> List[float]:
         return list(scores)
 
 
-def ucrispr(sg_seq_list: List[str], output_path: str) -> List[float]:
+def ucrispr(sg_seq_list: List[str], targets_seq_list: List[str], output_path: str, for_metric = False) -> List[float]:
     """
     This function will run the uCRISPR algorithm for a list of targets and will return a list of the on-target scores
     IMPORTANT: before running you need to give the path to data tables that are part of uCRISPR
@@ -166,26 +167,32 @@ def ucrispr(sg_seq_list: List[str], output_path: str) -> List[float]:
     Also make sure the uCRISPR file inside the uCRISPR folder has exe permission
 
     :param sg_seq_list: list of sgrnas (with PAM)
+    :param targets_seq_list: a list of targets (with PAM)
     :param output_path: the output file
     :return: a list of ucrispr on-target scores
     """
     # make a file with guides for inputs to ucrispr
     with open(f"{output_path}/targets.txt", "w") as f:
-        for sg in sg_seq_list:
-            f.write(f"{sg}\n")
+        for sg,target in zip(sg_seq_list,targets_seq_list):
+            f.write(f"{sg}\t{target}\n")
     # run ucrispr in terminal
-    p = subprocess.run([f"{globals.CODE_PATH}/uCRISPR/uCRISPR", "-on", f"{output_path}/targets.txt", f"{output_path}/"],
+    p = subprocess.run([f"{globals.CODE_PATH}/uCRISPR/uCRISPR", "-off", f"{output_path}/targets.txt", f"{output_path}/"],
                        stdout=subprocess.PIPE)
     # parse the results
     res_lst = p.stdout.decode('utf-8').split("\n")
     with open(f"{output_path}/ucrisper_out.txt", "w") as u_out:
-        for whatever in res_lst:
-            u_out.write(f"{whatever}\n")
+        for result in res_lst:
+            u_out.write(f"{result}\n")
     # delete input file
     subprocess.run(["rm", f"{output_path}/targets.txt"])
     # return a list of the results
-    return [float(i.split(" ")[1]) for i in res_lst[1:len(res_lst) - 1]]
-
+    ucrispr_scores = [float(i.split(" ")[2]) for i in res_lst[1:len(res_lst) - 1]]
+    # normalize the values given by ucrispr to a range between 0 and 1
+    ucrispr_scores_normalized = list(np.clip(np.array(ucrispr_scores)/7,0,1))
+    if for_metric:
+        return [1 - score for score in ucrispr_scores_normalized]
+    else:
+        return ucrispr_scores_normalized
 
 def default_on_target(target_lst: List[str], for_metric: bool = False) -> List[int]:
     """
@@ -290,7 +297,11 @@ def make_distance_matrix_from_average(targets_seqs_list: List[str], names_list: 
     for target_pair in itertools.product(targets_seqs_list, repeat=2):  # prepare the input for the scoring function
         targets_list_1.append(target_pair[0])
         targets_list_2.append(target_pair[1])
-    list_of_scores = off_scoring_function(targets_list_1, targets_list_2, for_metric=True)
+    if off_scoring_function in {moff, gold_off_func, crisprnet}\
+            or getattr(off_scoring_function, "func", "") == ucrispr:
+        list_of_scores = off_scoring_function(targets_list_1, targets_list_2, for_metric=True)
+    else:
+        list_of_scores = [off_scoring_function(t1, t2) for t1, t2 in zip(targets_list_1, targets_list_2)]
     n = len(targets_seqs_list)
     chunks_list = [list_of_scores[i:i + n] for i in range(0, len(list_of_scores), n)]  # divide the scores into chunks
     distance_matrix = []
@@ -319,13 +330,13 @@ def return_targets_upgma(targets_seqs_list: List[str], names_list: List[str], of
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
     :return: potential targets' tree hierarchically clustered by UPGMA.
     """
-    if off_scoring_function == cfd_funct:
+    if target_distance_metric == "average_score_linkage":
+        distance_matrix = make_distance_matrix_from_average(targets_seqs_list, names_list, off_scoring_function)
+    else:
         # create a list of vectors for the targets, which is then used to create the distance matrix
         vectors_list = pos_in_metric_general(targets_seqs_list, off_scoring_function, on_scoring_function, cfd_dict)
         # create the distance matrix
         distance_matrix = make_distance_matrix(names_list, vectors_list)
         # apply UPGMA, return a target tree
-    else:
-        distance_matrix = make_distance_matrix_from_average(targets_seqs_list, names_list, off_scoring_function)
     targets_tree = make_upgma(distance_matrix)
     return targets_tree

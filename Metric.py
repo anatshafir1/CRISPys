@@ -5,6 +5,7 @@ import Distance_matrix_and_UPGMA
 import random
 import globals
 from typing import List, Dict
+from globals import target_distance_metric
 
 
 def pos_in_metric_general_single_batch(list_of_targets: List[str], metric_seqs_list: List[str],
@@ -45,7 +46,8 @@ def pos_in_metric_general_single_batch(list_of_targets: List[str], metric_seqs_l
         return output_vectors_list
 
 
-def pos_in_metric_general(list_of_targets: List[str], off_scoring_function, on_scoring_function, cfd_dict: Dict) -> List[List[float]]:
+def pos_in_metric_general(list_of_targets: List[str], off_scoring_function, on_scoring_function, cfd_dict: Dict) -> \
+List[List[float]]:
     """
     This function takes a list of targets and creates a new list of vectors,
     where each target is converted into a point in number-of-targets dimensional space.
@@ -66,10 +68,14 @@ def pos_in_metric_general(list_of_targets: List[str], off_scoring_function, on_s
         for target in list_of_targets:
             list_of_vectors.append(pos_in_metric_cfd(target, cfd_dict))
         return list_of_vectors
-    elif off_scoring_function == Distance_matrix_and_UPGMA.gold_off_func or off_scoring_function == Distance_matrix_and_UPGMA.crisprnet or off_scoring_function == Distance_matrix_and_UPGMA.moff:
+    elif off_scoring_function == Distance_matrix_and_UPGMA.gold_off_func \
+            or off_scoring_function == Distance_matrix_and_UPGMA.crisprnet \
+            or off_scoring_function == Distance_matrix_and_UPGMA.moff \
+            or getattr(off_scoring_function, "func", "") == Distance_matrix_and_UPGMA.ucrispr:
         with_pam = True
         metric_sequences_list = create_list_of_metric_sequences(list_of_targets, with_pam)
-        return pos_in_metric_general_single_batch(list_of_targets, metric_sequences_list, off_scoring_function, on_scoring_function)
+        return pos_in_metric_general_single_batch(list_of_targets, metric_sequences_list, off_scoring_function,
+                                                  on_scoring_function)
     elif off_scoring_function == Distance_matrix_and_UPGMA.ccTop or off_scoring_function == Distance_matrix_and_UPGMA.MITScore:
         with_pam = False
         metric_sequences_list = create_list_of_metric_sequences(list_of_targets, with_pam)
@@ -107,19 +113,29 @@ def create_list_of_metric_sequences(list_of_targets: List[str], with_pam: bool) 
 	:param with_pam: depending on the scoring function - to include PAM or not
 	:return: a list of sampled sequences of length @globals.vector_size_cutoff.
 	"""
+    if target_distance_metric == "all_targets":
+        return list_of_targets
+    elif target_distance_metric == "full_perturbation":
+        metric_sequences_list = []
+        for i in range(globals.vector_size_cutoff):
+            metric_sequences_list.append(create_perturbed_target(random.choice(list_of_targets)))
+        return metric_sequences_list
+    # Run the mixed_perturbation distance metric
+    # If the list of targets is bigger than the cutoff, sample the targets at random
     if len(list_of_targets) >= globals.vector_size_cutoff:
         shuffled_targets_list = random.sample(list_of_targets, globals.vector_size_cutoff)[:globals.vector_size_cutoff]
         if with_pam:
             return shuffled_targets_list
         else:
             return [t[:20] for t in shuffled_targets_list]
+    # Otherwise, complete the list to the cutoff by adding perturbed sequences
     elif len(list_of_targets) < globals.vector_size_cutoff:
         if with_pam:
-            metric_sequences_list = []+list_of_targets
+            metric_sequences_list = [] + list_of_targets
         else:
             metric_sequences_list = [t[:20] for t in list_of_targets]
         for i in range(globals.vector_size_cutoff - len(metric_sequences_list)):
-            perturbed_target = create_perturbed_target(random.choice(metric_sequences_list))
+            perturbed_target = create_perturbed_target(random.choice(list_of_targets))
             metric_sequences_list.append(perturbed_target)
         return metric_sequences_list
 
@@ -174,5 +190,5 @@ def pos_in_metric_cfd(target_seq: str, cfd_dict: Dict) -> List[float]:
 def cfd_funct(sgRNA: str, target: str, cfd_dict: Dict) -> float:
     """An implementation of the CFD function"""
     return reduce(lambda x, y: x * y,
-                      map(lambda i: cfd_dict[('r' + sgRNA[i] + ':d' + target[i], i + 1)] if sgRNA[i] != target[i] else 1,
-                          [j for j in range(0, 20)]))
+                  map(lambda i: cfd_dict[('r' + sgRNA[i] + ':d' + target[i], i + 1)] if sgRNA[i] != target[i] else 1,
+                      [j for j in range(0, 20)]))
