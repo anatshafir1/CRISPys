@@ -4,7 +4,7 @@ __author__ = 'GH'
 # the naive algorithm - for a given family, with its group of sgRNA, find the most promising sgRNAs
 from typing import List, Dict, Tuple
 from Candidate import Candidate
-from Distance_matrix_and_UPGMA import gold_off_func, crisprnet, moff, ccTop, MITScore, default_on_target
+from Distance_matrix_and_UPGMA import gold_off_func, crisprnet, moff, ccTop, ucrispr, MITScore, default_on_target
 from Metric import cfd_funct
 from TreeConstruction_changed import CladeNew
 
@@ -23,7 +23,8 @@ def generate_scores(genes_targets_dict: Dict[str, List[str]], list_of_candidates
 	:return: scores_dict = {gene : [(target,candidates_target_scores) for target in the gene]}
 	"""
     scores_dict = {}
-    if off_scoring_function in (gold_off_func, crisprnet, moff):
+    if off_scoring_function in (gold_off_func, crisprnet, moff) \
+            or getattr(off_scoring_function, "func", "") == ucrispr:
         return generate_scores_one_batch(genes_targets_dict, list_of_candidates, off_scoring_function,
                                          on_scoring_function)
     if on_scoring_function == default_on_target:  # if no on-target scoring function was given
@@ -152,7 +153,8 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, of
             if prob_gene_cut >= omega and len(list_of_targets) > 0:
                 targets_dict[gene] = list_of_targets
                 genes_covering.append((gene, prob_gene_cut))
-        if len(genes_covering) < 2 and not singletons_from_crispys:  # check if the potential candidate covers less than two genes
+        # check if the potential candidate covers less than two genes
+        if len(genes_covering) < 2 and not singletons_from_crispys:
             continue
         cut_expectation = 0  # the probability the permutated sequence will cut all the genes, that the probability each
         # of them will be cut is greater then omega

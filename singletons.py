@@ -17,9 +17,10 @@ def create_singletons_subgroup(gene, singletons_on_target_function, genes_target
 
     """
     candidates_list = []
-    singletons_scores_list = singletons_on_target_function(genes_targets_dict[gene])
+    # get the on-target score of each target against itself
+    singletons_scores_list = singletons_on_target_function(genes_targets_dict[gene],genes_targets_dict[gene])
     for singleton_sequence, score in zip(genes_targets_dict[gene], singletons_scores_list):
-        singleton_candidate = Candidate(seq=singleton_sequence[:20], cut_expectation=1, genes_score_dict={gene: 1},
+        singleton_candidate = Candidate(seq=singleton_sequence[:20], cut_expectation=score, genes_score_dict={gene: 1},
                                         mismatch_site_dict={gene: [[singleton_sequence[:20], {}]]})
         singleton_candidate.on_target_score = score
         candidates_list.append(singleton_candidate)
