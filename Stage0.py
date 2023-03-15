@@ -275,7 +275,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0, set_cover: int = 0,
                  desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
                  singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
-                 max_gap_distance: int = 3, chips_singletons: int = 0, export_tree: int = 0) -> List[SubgroupRes]:
+                 max_gap_distance: int = 3, export_tree: int = 0) -> List[SubgroupRes]:
     """
     Algorithm main function
 
@@ -303,7 +303,6 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param number_of_singletons: the number of singletons that will be included for each gene.
     :param singletons_on_target_function: The on-target scoring function used for evaluating singletons.
     :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
-    :param chips_singletons: if running crispys for chips, return all singletons and not only for 'genes of interest'
     :param export_tree: if 1 the genes tree created with 'gene homology' will be writen to 'genes_tree.p' pickle file
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
 
@@ -355,8 +354,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                                                                                output_path)
         singleton_results = singletons_main(genes_targets_dict, singletons_on_scoring_function, res,
                                             number_of_singletons,
-                                            genes_of_interest_set,
-                                            chips_singletons)
+                                            genes_of_interest_set)
         # Add singleton subgroups to the list of results
         res += singleton_results
     if genes_of_interest_set:
@@ -447,7 +445,6 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                                  ' 0 to exclude them. Default: 1')
 
     parser_obj.add_argument('--slim_output', '-slim', choices=[0, 1], type=int, default=0,
-
                             help='optional choice to store only "res_in_lst" as the result of the algorithm run.'
                                  'Default: 0')
     parser_obj.add_argument('--set_cover', choices=[0, 1], type=int, default=0,
@@ -472,10 +469,6 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                                  'Here, the distance is defined as the number of internal nodes between the genes'
                                  '(which is the distance between the genes - 1).'
                                  ' if set to 0, CRISPys will not filter out any sgRNAs that target distant genes')
-    parser_obj.add_argument('--chips_singletons', '-chips', type=int, default=0,
-                             help="when ther output is intended to use in chips we want all singletons and not only "
-                                  "for 'genes of intereset', this argument when equal 1 will output singletons for"
-                                  " all genes")
     parser_obj.add_argument('--export_tree', '-tree', type=int, default=0,
                              help="when set to 1 the gene tree created with the 'gene_homology' option will be writen "
                                   "out ot file, it will be used in chips to filter multiplex")
@@ -509,5 +502,4 @@ if __name__ == "__main__":
                  singletons_on_target_function=args.singletons_on_target_function,
                  number_of_singletons=args.number_of_singletons,
                  max_gap_distance=args.max_gap_distance,
-                 chips_singletons=args.chips_singletons,
                  export_tree=args.export_tree)

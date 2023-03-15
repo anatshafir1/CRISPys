@@ -98,7 +98,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     # write the gene tree (will be used in chips to filter multiplex)
     if export_tree:
         with open(f"{output_path}/genes_tree.p", "wb") as f:
-            pickle.dump(genes_upgma_tree, f)
+            pickle.dump(genes_upgma_tree.root, f)
     # use the gene tree to get candidates for each internal node
     genes_tree_top_down(list_of_subgroups, genes_upgma_tree.root, genes_of_interest_set, omega, genes_targets_dict,
                         targets_genes_dict, off_scoring_function, on_scoring_function, internal_node_candidates,
