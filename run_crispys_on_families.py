@@ -14,7 +14,7 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
                            slim_output: int = 0,
                            set_cover: int = 0, desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
                            singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
-                           max_gap_distance: int = 3, chips_singletons: int = 0) -> str:
+                           max_gap_distance: int = 0, export_tree: int = 0) -> str:
     """
     This function creates a string for the CRISPys command.
     Args:
@@ -44,7 +44,7 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
         number_of_singletons: the number of singletons that will be included for each gene.
         singletons_on_target_function: The on-target scoring function used for evaluating singletons.
         max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
-
+        export_tree: to output a pickle file with the gene tree object
 
     Returns: The CRISPys command as a string
     """
@@ -74,7 +74,7 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
     command += f"--singletons_on_target_function {singletons_on_target_function} "
     command += f"--number_of_singletons {number_of_singletons} "
     command += f"--max_gap_distance {max_gap_distance} "
-    command += f"--chips_singletons {chips_singletons} "
+    command += f"--export_tree {export_tree}"
 
     return command
 
@@ -106,7 +106,7 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         max_target_polymorphic_sites: int = 12, pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0,
         set_cover: int = 0, desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
         singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50, max_gap_distance: int = 3,
-        check_for_genes_of_interest: bool = False, chips_singletons:int = 0):
+        check_for_genes_of_interest: bool = False, export_tree:int = 0):
     """
     A wrapper function to run CRISPys on the cluster for multiple folders.
     Args:
@@ -138,6 +138,7 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         number_of_singletons: the number of singletons that will be included for each gene.
         singletons_on_target_function: The on-target scoring function used for evaluating singletons.
         max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
+        export_tree: if to output a pickle file of gene tree
         check_for_genes_of_interest: optional: checks if the fasta file contains any genes of interest before submitting
         the job for that particular family
     Returns:
@@ -177,7 +178,8 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
                                              desired_genes_fraction_threshold=desired_genes_fraction_threshold,
                                              singletons=singletons, number_of_singletons=number_of_singletons,
                                              singletons_on_target_function=singletons_on_target_function,
-                                             max_gap_distance=max_gap_distance, chips_singletons=chips_singletons)
+                                             max_gap_distance=max_gap_distance,
+                                             export_tree=export_tree)
             with open(sh_file, "w") as f:
                 f.write(f"{header}\n{command}")
             os.system(f"qsub {sh_file}")
@@ -188,9 +190,9 @@ if __name__ == '__main__':
     run(code_path="/groups/itay_mayrose/udiland/crispys_code/CRISPys",
         main_folder_path="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/families",
         include_family_name_in_output=True,
-        genes_of_interest_file="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/genes2target.txt",
+        # genes_of_interest_file="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/genes2target.txt",
         queue="itaym", desired_genes_fraction_threshold=0.0, algorithm="gene_homology", where_in_gene=0.8, slim_output=1,
         off_scoring_function="moff", omega=0.15, output_name="moff_0.15",
         internal_node_candidates=200, singletons_from_crispys=0, mem=32, ncpu=1, max_target_polymorphic_sites=12,
         set_cover=0, singletons=1,
-        check_for_genes_of_interest=True, max_gap_distance=3, chips_singletons=1)
+        check_for_genes_of_interest=True, max_gap_distance=0, export_tree=1)
