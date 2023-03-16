@@ -275,7 +275,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0, set_cover: int = 0,
                  desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
                  singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
-                 max_gap_distance: int = 3, export_tree: int = 0) -> List[SubgroupRes]:
+                 max_gap_distance: int = 3, export_tree: int = 0, run4chips: int = 0) -> List[SubgroupRes]:
     """
     Algorithm main function
 
@@ -304,6 +304,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param singletons_on_target_function: The on-target scoring function used for evaluating singletons.
     :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
     :param export_tree: if 1 the genes tree created with 'gene homology' will be writen to 'genes_tree.p' pickle file
+    :param run4chips: if the iutput is intended to use with chips dont filter sgRNAs that are not in list of interest genes
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
 
     """
@@ -352,12 +353,12 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     if singletons:
         singletons_on_scoring_function, pam_included = choose_scoring_function(singletons_on_target_function,
                                                                                output_path)
-        singleton_results = singletons_main(genes_targets_dict, singletons_on_scoring_function, res,
+        singleton_results = singletons_main(genes_targets_dict, singletons_on_scoring_function,
                                             number_of_singletons,
-                                            genes_of_interest_set)
+                                            genes_of_interest_set, run4chips)
         # Add singleton subgroups to the list of results
         res += singleton_results
-    if genes_of_interest_set:
+    if genes_of_interest_set and not run4chips:
         res = remove_sgrnas_without_gene_of_interest(res, genes_of_interest_set)
     if use_thr:
         sort_threshold(res, omega)
@@ -472,6 +473,9 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--export_tree', '-tree', type=int, default=0,
                              help="when set to 1 the gene tree created with the 'gene_homology' option will be writen "
                                   "out ot file, it will be used in chips to filter multiplex")
+    parser_obj.add_argument('--run4chips', '-run4chips', type=int, default=0,
+                             help="If set to 1 the output will NOT be filtered fo sgRNAs that do not target genes in the"
+                                  " 'genes of interest' list")
 
     arguments = parser_obj.parse_args()
     return arguments
@@ -502,4 +506,5 @@ if __name__ == "__main__":
                  singletons_on_target_function=args.singletons_on_target_function,
                  number_of_singletons=args.number_of_singletons,
                  max_gap_distance=args.max_gap_distance,
-                 export_tree=args.export_tree)
+                 export_tree=args.export_tree,
+                 run4chips=args.run4chips)
