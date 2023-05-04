@@ -410,10 +410,10 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--output_name', type=str, default='crispys_output',
                             help="The name that would be given to the crispys output.")
     parser_obj.add_argument('--genes_of_interest_file', type=str, metavar='<gene_list_path>', default='None',
-                            help="path to a csv file consisting of a 'gene' column with genes of interest, "
-                                 "and a 'family' column containing the family of the gene. the file must include a "
-                                 "header row.")
-    parser_obj.add_argument('--alg', type=str, default='default', help='Choose "gene_homology" to considering homology')
+                            help="path to a file that list the genes that are needed to be target (subset of the family)"
+                                 " each row in the file should have one gene")
+    parser_obj.add_argument('--alg', type=str, default='default', help='Choose "gene_homology" to considering homology',
+                            choices=['default', 'gene_homology'])
     parser_obj.add_argument('--where_in_gene', type=float, default=1,
                             help='input a number between 0 to 1 in order to ignore targets sites downstream to the '
                                  'fractional part of the gene')

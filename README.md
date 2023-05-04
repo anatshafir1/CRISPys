@@ -3,22 +3,39 @@ A tool for the optimal design of sgRNAs for simultaneous cleavage of multiple ge
 Given a set of genomic sequences as input, CRISPys first clusters all the potential CRISPR-Cas9 targets that are located within them, and then designs the most promising sgRNAs to each cluster.
 
 This is the standalone version of CRISPys. An online tool can be found at http://multicrispr.tau.ac.il/.
-Running instructions:
-Dependencies: Python 3.5; Biopython module; For the ‘considering genes homology’ service install MAFFT (https://mafft.cbrc.jp/alignment/software/) and keep the Protdist (http://evolution.genetics.washington.edu/phylip/doc/protdist.html) execution file (supplied here for convenience) in the source directory.
-Running command: python stage0.py path_of_input_file execution_directory_path
-python stage0.py –i path_of_input_-d file execution_directory_path [-a A –w 1 –t 0 –o 0.43 –s cfd –p outfile –l 20 –m 20 –s 0 –n 20 –c 12]
-alg: A for the basic CRISPys algorithm or E for considering genes homology when desining the sgRNAs. The considering homology option can run only on Unix. Default: A.
-where_in_gene : floating point number between 0 to 1. Search for targets only in this primary fraction of the gene, in order to increase the likelihood that cleavage in the chosen target will be upstream to the active site and results in a loss of function mutation. Default: 1.
-t: 0 for using sgRNA to gain maximal gaining score among all of the input genes or 1 for the maximal cleavage likelihood only among genes with score higher than the average. Default: 0.
-v: the value of the threshold. Default: 0.43
-s: the scoring function of the targets. Optional scoring systems are: cfd (default), …
-p: protDist output file name. Default: "outfile".
-l: minimal length of the target site. Default:20
-m: maximal length of the target site, Default:20
-g: 1 if the target sites are obligated to start with a G codon or 0 otherwise. Default: 0.
-i: when choosing the consider homology option, this is the number of sgRNAs designed for each homology sub-group. Default: 10
-ps the maximal number of possible polymorphic sites in a target. Default: 12
 
-For any questions, please contect the author at galhyams@gmail.com
+### Installation
+This version will run on gnu/linux based OS, after cloning the repository we recommend using conda to create an environment with all the program needed using the crispys.yml file.
+
+If you want CRISPys to output singletons (sgRNAs that target one site) you need to unzip the uCRISPR.zip file and add the DATAPATH variable.
+Before running CRISPys execute:
+export DATAPATH=/path_to_repo/CRISPys/uCRISPR/RNAstructure/data_tables/
+
+### Input file
+CRISPys take as an input a Fasta file of genomic sequences from multiple resources (genes) each one with its uniqe header, it is possible to enter different exons of the same gene by giving them the same header.
+
+### Run CRISPys
+To run CRISPys use the Stage0.py, run 'Stage0.py --help' to see all arguments.\
+The common user will probably only need to configure the input file, output dir, algorithm, where_in_gene, scoring function and omega (most of the times the other parameters can be set to default).\
+* The algorithm (--alg) argument can take two values: 'default' or 'gene_homolog'. The default option will find sgRNAs for all the genes in the input file, and the gene homology option will create a tree based on sequence homology and will output sgRNAs for each subgroup of that tree, this approach described in the paper as strategy III.\The 'where in gene' argument will determine the percentage of the gene length that will be used to look for CRISPR targets, for example: if the user would like to search for targets only in the first half of the gene he should set tish variable to 0.5. 
+
+  
+* The scoring function argument determine the function that is used to score the efficiency of the sgRNA, see the help page of available functions. 
+  
+
+* The omega argument is the threshold of the sgRNA score, guide with score less than the threshold will not be considered, the threshold is dependent on the scoring function that been used, the user needs to be familiar with the distribution of the score in order to select the threshold, previously we used 0.43 for CFD and 0.15 for MOFF but this is not a recommendation.
+
+#### An example of CRISPys run:
+export DATAPATH=/home/CRISPys/uCRISPR/RNAstructure/data_tables/ \
+python Stage0.py /home/fam_seq/fam1.fa /home/CRISPys_output/fam1 \
+--output_name fam1 \
+--alg gene_homology \
+--where_in_gene 0.8 \
+--omega 0.15 \
+--off_scoring_function moff \
+--internal_node_candidates 200 \
+--max_target_polymorphic_sites 12 \
+
+For any questions, please contact the author at galhyams@gmail.com
 
 For any commercial use, please contact the author. 

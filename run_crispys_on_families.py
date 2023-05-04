@@ -75,7 +75,7 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
     command += f"--singletons_on_target_function {singletons_on_target_function} "
     command += f"--number_of_singletons {number_of_singletons} "
     command += f"--max_gap_distance {max_gap_distance} "
-    command += f"--export_tree {export_tree}"
+    command += f"--export_tree {export_tree} "
     command += f"--run4chips {run4chips}"
 
     return command
@@ -196,6 +196,6 @@ if __name__ == '__main__':
         genes_of_interest_file="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/genes2target.txt",
         queue="itaym", desired_genes_fraction_threshold=0.0, algorithm="gene_homology", where_in_gene=0.8, slim_output=1,
         off_scoring_function="moff", omega=0.15, output_name="moff_0.15",
-        internal_node_candidates=200, singletons_from_crispys=0, mem=32, ncpu=1, max_target_polymorphic_sites=12,
+        internal_node_candidates=200, singletons_from_crispys=0, mem=64, ncpu=1, max_target_polymorphic_sites=12,
         set_cover=0, singletons=1,
         check_for_genes_of_interest=True, max_gap_distance=0, export_tree=1, run4chips=1)
