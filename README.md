@@ -1,4 +1,4 @@
-A tool for the optimal design of sgRNAs for simultaneous cleavage of multiple genes.
+## A tool for the optimal design of sgRNAs for simultaneous cleavage of multiple genes.
 
 Given a set of genomic sequences as input, CRISPys first clusters all the potential CRISPR-Cas9 targets that are located within them, and then designs the most promising sgRNAs to each cluster.
 
