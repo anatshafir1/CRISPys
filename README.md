@@ -1,41 +1,55 @@
-## A tool for the optimal design of sgRNAs for simultaneous cleavage of multiple genes.
+#CRISPys - A tool for the optimal design of sgRNAs for simultaneous cleavage of multiple genes.
 
-Given a set of genomic sequences as input, CRISPys first clusters all the potential CRISPR-Cas9 targets that are located within them, and then designs the most promising sgRNAs to each cluster.
+CRISPys is a powerful tool designed to facilitate the optimal design of sgRNAs for the simultaneous cleavage of multiple genes. It clusters potential CRISPR-Cas9 targets within a set of genomic sequences and generates highly promising sgRNA designs for each cluster.
 
-This is the standalone version of CRISPys. An online tool can be found at http://multicrispr.tau.ac.il/.
+Please note that this is the standalone version of CRISPys. An online version of the tool is available at http://multicrispr.tau.ac.il/.
 
 ### Installation
-This version will run on gnu/linux based OS, after cloning the repository we recommend using conda to create an environment with all the program needed using the crispys.yml file.
+To run CRISPys on a GNU/Linux-based operating system, clone the repository.
 
-If you want CRISPys to output singletons (sgRNAs that target one site) you need to unzip the uCRISPR.zip file and add the DATAPATH variable.
-Before running CRISPys execute:
-export DATAPATH=/path_to_repo/CRISPys/uCRISPR/RNAstructure/data_tables/
+We recommend creating a conda environment and installing all the necessary dependencies using the crispys.yml file.
+If you intend to use uCRISPR as the scoring function, extract the contents of the uCRISPR.zip file and update the value of the global DATAPATH variable to match the extracted directory. 
+### Input File
+CRISPys requires a Fasta file as input, containing genomic sequences from various resources (genes), with each sequence accompanied by a unique header. It is also possible to include different coding sequences of the same gene by assigning them the same header.
 
-### Input file
-CRISPys take as an input a Fasta file of genomic sequences from multiple resources (genes) each one with its uniqe header, it is possible to enter different exons of the same gene by giving them the same header.
+Here's an example of an input file:
 
-### Run CRISPys
-To run CRISPys use the Stage0.py, run 'Stage0.py --help' to see all arguments.\
-The common user will probably only need to configure the input file, output dir, algorithm, where_in_gene, scoring function and omega (most of the times the other parameters can be set to default).\
-* The algorithm (--alg) argument can take two values: 'default' or 'gene_homolog'. The default option will find sgRNAs for all the genes in the input file, and the gene homology option will create a tree based on sequence homology and will output sgRNAs for each subgroup of that tree, this approach described in the paper as strategy III.\The 'where in gene' argument will determine the percentage of the gene length that will be used to look for CRISPR targets, for example: if the user would like to search for targets only in the first half of the gene he should set tish variable to 0.5. 
+    >Gene1
+    ATGCGCACGCCCTACCTCCATGATCCACTGACGTCCCTGAGGCTGCAATACATG
+    >Gene1
+    CAACCGGGCAGTCTCCGCGGCAAGTCCTAGTGCAATGGGGCTTTTTTTTAA
+    >Gene2
+    ATGTGCACAGGCTAAATCCATGATCCACTGACGTCCCTGAGGCACAGTGACCAATACATG
+    >Gene3
+    ATGTGCACAGGCTAAATACATGATAACACTATCCTATCCGTGGGGCACAGTGACCAATACCAC
 
-  
-* The scoring function argument determine the function that is used to score the efficiency of the sgRNA, see the help page of available functions. 
-  
+### Running CRISPys
+To run CRISPys, use the Stage0.py script. Run Stage0.py --help to view all available arguments.
+For most users, configuring the following parameters will suffice:
 
-* The omega argument is the threshold of the sgRNA score, guide with score less than the threshold will not be considered, the threshold is dependent on the scoring function that been used, the user needs to be familiar with the distribution of the score in order to select the threshold, previously we used 0.43 for CFD and 0.15 for MOFF but this is not a recommendation.
+* input_file: Path to the input file.
+* output_dir: Path to the output directory.
+* algorithm: Choose between "default" or "gene_homology" options. The "default" option finds sgRNAs for all genes in the input file, while the "gene_homology" option creates a sequence homology-based tree and outputs sgRNAs for each subgroup.
+* where_in_gene: Determines the percentage of gene length used to search for CRISPR targets. For example, setting this variable to 0.5 will search for targets only in the first half of the gene.
+
+Additional configurable parameters include:
+
+* scoring_function: Determines the function used to score the efficiency of the sgRNA. Refer to the help page for available functions.
+* omega: Sets the threshold for the sgRNA score. Guides with scores below the threshold will not be considered. The threshold depends on the scoring function used, and users should be familiar with the score distribution to select an appropriate value. (Note: In the past, we used 0.43 for CFD and 0.15 for MOFF, but this is not a recommendation.)
 
 #### An example of CRISPys run:
-export DATAPATH=/home/CRISPys/uCRISPR/RNAstructure/data_tables/ \
-python Stage0.py /home/fam_seq/fam1.fa /home/CRISPys_output/fam1 \
---output_name fam1 \
---alg gene_homology \
---where_in_gene 0.8 \
---omega 0.15 \
---off_scoring_function moff \
---internal_node_candidates 200 \
---max_target_polymorphic_sites 12 \
+If uCRISPR was selected as the scoring function, run the following command before executing:
 
-For any questions, please contact the author at galhyams@gmail.com
+    export DATAPATH=/<path_to_repo>/CRISPys/uCRISPR/RNAstructure/data_tables/
 
-For any commercial use, please contact the author. 
+Execute the following command to run CRISPys with the provided parameters:
+
+    python Stage0.py /home/fam_seq/fam1.fa /home/CRISPys_output/fam1 --output_name fam1 --alg gene_homology --where_in_gene 0.8 --omega 0.15 --off_scoring_function moff --internal_node_candidates 200 --max_target_polymorphic_sites 12
+
+For any inquiries, please feel free to contact the author at galhyams@gmail.com.
+
+For commercial use, kindly reach out to the author for further arrangements.
+
+
+
+

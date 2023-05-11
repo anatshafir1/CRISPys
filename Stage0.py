@@ -304,7 +304,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param singletons_on_target_function: The on-target scoring function used for evaluating singletons.
     :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
     :param export_tree: if 1 the genes tree created with 'gene homology' will be writen to 'genes_tree.p' pickle file
-    :param run4chips: if the iutput is intended to use with chips dont filter sgRNAs that are not in list of interest genes
+    :param run4chips: if the output is intended to use with chips dont filter sgRNAs that are not in list of interest genes
     :return: List of sgRNA candidates as a SubgroupRes objects or Candidates object, depending on the algorithm run type
 
     """
