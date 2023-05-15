@@ -55,7 +55,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
                       on_scoring_function,
                       internal_node_candidates: int, max_target_polymorphic_sites: int = 12,
                       singletons_from_crispys: int = 1,
-                      genes_of_interest_fraction_threshold: float = -1.0, slim_output: bool = False,
+                      min_desired_genes_fraction: float = -1.0, slim_output: bool = False,
                       max_gap_distance: int = 3, export_tree: int = 0) -> List[SubgroupRes]:
     """
     Called by the main function when choosing algorithm with gene homology taken in consideration. Creates a UPGMA tree
@@ -77,7 +77,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param singletons_from_crispys: optional choice to include singletons_from_crispys given by CRISPys
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
-    :param genes_of_interest_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
+    :param min_desired_genes_fraction: If a list of genes of interest was entered: the minimal fraction of genes
            of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
     :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
     :param export_tree: if 1 the gene tree will be writen to pickle file, default=0
@@ -102,7 +102,7 @@ def gene_homology_alg(genes_list: List, genes_names: List, genes_targets_dict: D
     # use the gene tree to get candidates for each internal node
     genes_tree_top_down(list_of_subgroups, genes_upgma_tree.root, genes_of_interest_set, omega, genes_targets_dict,
                         targets_genes_dict, off_scoring_function, on_scoring_function, internal_node_candidates,
-                        max_target_polymorphic_sites, genes_of_interest_fraction_threshold, cfd_dict,
+                        max_target_polymorphic_sites, min_desired_genes_fraction, cfd_dict,
                         singletons_from_crispys, max_gap_distance=max_gap_distance)
     return list_of_subgroups
 
@@ -167,7 +167,7 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
                         genes_targets_dict: Dict[str, List[str]],
                         targets_genes_dict: Dict[str, List[str]], off_scoring_function, on_scoring_function,
                         internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                        genes_of_interest_fraction_threshold: float = -1.0, cfd_dict=None,
+                        min_desired_genes_fraction: float = -1.0, cfd_dict=None,
                         singletons_from_crispys: int = 1, max_gap_distance: int = 3):
     """
     Given an initial input of genes UPGMA tree root the function traverses the tree in a top-town (depth first) order.
@@ -175,7 +175,7 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
     the best candidate sgRNA for the targets. The candidates for each genes subgroup are stored as a SubgroupRes object.
 
     :param max_gap_distance: max_gap_distance: The maximal distance that is allowed between the genes targeted by the sgRNA
-    :param genes_of_interest_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
+    :param min_desired_genes_fraction: If a list of genes of interest was entered: the minimal fraction of genes
            of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
     :param genes_of_interest_set: A set of genes of interest.
     :param res: the result as a list of SubgroupRes objects
@@ -217,7 +217,7 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
         # If a desired genes file was defined, and the internal node does not satisfy the conditions, move to the next
         # internal node & don't enter Stage2.
         if not genes_of_interest_set or determine_if_relevant_node(node, genes_of_interest_set,
-                                                                   genes_of_interest_fraction_threshold):
+                                                                   min_desired_genes_fraction):
             best_permutations = stage_two_main(targets_list, targets_names, current_targets_genes_dict, omega,
                                                off_scoring_function, on_scoring_function, max_target_polymorphic_sites,
                                                cfd_dict, singletons_from_crispys)
@@ -242,12 +242,12 @@ def genes_tree_top_down(res: List, node: CladeNew, genes_of_interest_set: set, o
     if node.clades[0]:
         genes_tree_top_down(res, node.clades[0], genes_of_interest_set, omega, genes_targets_dict, targets_genes_dict,
                             off_scoring_function, on_scoring_function, internal_node_candidates,
-                            max_target_polymorphic_sites, genes_of_interest_fraction_threshold,
+                            max_target_polymorphic_sites, min_desired_genes_fraction,
                             cfd_dict, singletons_from_crispys, max_gap_distance=max_gap_distance)
     if node.clades[1]:
         genes_tree_top_down(res, node.clades[1], genes_of_interest_set, omega, genes_targets_dict, targets_genes_dict,
                             off_scoring_function, on_scoring_function, internal_node_candidates,
-                            max_target_polymorphic_sites, genes_of_interest_fraction_threshold,
+                            max_target_polymorphic_sites, min_desired_genes_fraction,
                             cfd_dict, singletons_from_crispys, max_gap_distance=max_gap_distance)
 
 
@@ -266,18 +266,18 @@ def get_genes_list(candidates_lst: List) -> List[str]:
     return list(res)
 
 
-def determine_if_relevant_node(node: CladeNew, input_genes_set, gene_fraction_threshold=-1.0):
+def determine_if_relevant_node(node: CladeNew, input_genes_set, min_desired_genes_fraction=-1.0):
     """
     This function determines if a node is considered relevant based on the fraction of genes from the set of genes
     of interest.
     :param node: The internal node, a CladeNew object.
-    :param gene_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
+    :param min_desired_genes_fraction: If a list of genes of interest was entered: the minimal fraction of genes
     :param gene_fraction_threshold: The minimal fraction of genes to
     :return: True if #genes_of_interest/#genes_in internal node > gene_fraction_threshold. Otherwise, returns False.
     """
     total_genes_in_node = {gene for gene in node.node_leaves}
     # Intersect between the genes of interest and the genes in the internal node.
     genes_from_set_in_node = input_genes_set.intersection(total_genes_in_node)
-    if len(genes_from_set_in_node) / len(total_genes_in_node) > gene_fraction_threshold:
+    if len(genes_from_set_in_node) / len(total_genes_in_node) > min_desired_genes_fraction:
         return True
     return False

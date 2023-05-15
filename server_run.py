@@ -92,7 +92,7 @@ if __name__ == "__main__":
                # singletons_from_crispys=args_main.singletons_from_crispys,
                # slim_output=args_main.slim_output,
                # set_cover=args_main.set_cover,
-               # desired_genes_fraction_threshold=args_main.desired_genes_fraction_threshold,
+               # min_desired_genes_fraction=args_main.min_desired_genes_fraction,
                # singletons=args_main.singletons,
                # singletons_on_target_function=args_main.singletons_on_target_function,
                # number_of_singletons=args_main.number_of_singletons,

@@ -273,7 +273,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: int = 0, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
                  pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0, set_cover: int = 0,
-                 desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
+                 min_desired_genes_fraction: float = -1.0, singletons: int = 0,
                  singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
                  max_gap_distance: int = 3, export_tree: int = 0, run4chips: int = 0) -> List[SubgroupRes]:
     """
@@ -297,7 +297,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param singletons_from_crispys: optional choice to include singletons given by CRISPys
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
     :param set_cover: if 1, will output the minimal amount of guides that will capture all genes
-    :param desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
+    :param min_desired_genes_fraction: If a list of genes of interest was entered: the minimal fraction of genes
            of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
     :param singletons: select 1 to create singletons (sgRNAs candidates that target a single gene).
     :param number_of_singletons: the number of singletons that will be included for each gene.
@@ -323,7 +323,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
             print(f"Job ended  for {output_name}. This family contains no genes from the list of interest")
             return []
     else:
-        desired_genes_fraction_threshold = -1.0
+        min_desired_genes_fraction = -1.0
     # find the potential sgRNA target sites for each gene:
     genes_targets_dict, genes_target_with_position = fill_genes_targets_dict(genes_exons_dict, pam_included,
                                                                              where_in_gene, start_with_g, pams)
@@ -344,7 +344,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
         res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict,
                                 genes_of_interest_set, omega, output_path, off_scoring_function, on_scoring_function,
                                 internal_node_candidates, max_target_polymorphic_sites, singletons_from_crispys,
-                                desired_genes_fraction_threshold, slim_output, max_gap_distance,
+                                min_desired_genes_fraction, slim_output, max_gap_distance,
                                 export_tree)
     elif alg == 'default':  # alg == "default". automatically used on single-gene families.
         res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
@@ -451,11 +451,12 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--set_cover', choices=[0, 1], type=int, default=0,
                             help='optional choice to output the minimal amount of guides that will capture all genes.'
                                  'Default: 0')
-    parser_obj.add_argument('--desired_genes_fraction_threshold', '-desired_genes_thr', type=float, default=-1.0,
-                            help="If a list of genes of interest was entered: the minimal fraction of genes of "
-                                 "interest. CRISPys will ignore internal nodes with lower or equal fraction of genes "
-                                 "of interest. "
-                                 'Default: -1.0')
+    parser_obj.add_argument('--min_desired_genes_fraction', '-min_genes_frac', type=float, default=-1.0,
+                            help="Specifies the minimum fraction of genes of interest required for CRISPys analysis, "
+                                 "if genes of interest were specified. "
+                                 "CRISPys will ignore internal nodes with a lower or equal fraction of genes of "
+                                 "interest. "
+                                 "Default: -1.0")
     parser_obj.add_argument('--singletons', '-singletons', choices=[0, 1], type=int, default=0,
                             help="optional: select 1 to create singletons (sgRNAs candidates that target "
                                  "a single gene) "
@@ -501,7 +502,7 @@ if __name__ == "__main__":
                  singletons_from_crispys=args.singletons_from_crispys,
                  slim_output=args.slim_output,
                  set_cover=args.set_cover,
-                 desired_genes_fraction_threshold=args.desired_genes_fraction_threshold,
+                 min_desired_genes_fraction=args.min_desired_genes_fraction,
                  singletons=args.singletons,
                  singletons_on_target_function=args.singletons_on_target_function,
                  number_of_singletons=args.number_of_singletons,
