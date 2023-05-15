@@ -12,7 +12,7 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
                            internal_node_candidates: int = 10,
                            max_target_polymorphic_sites: int = 12, pams: int = 0, singletons_from_crispys: int = 0,
                            slim_output: int = 0,
-                           set_cover: int = 0, desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
+                           set_cover: int = 0, min_desired_genes_fraction: float = -1.0, singletons: int = 0,
                            singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
                            max_gap_distance: int = 0, export_tree: int = 0, run4chips: int = 0) -> str:
     """
@@ -38,7 +38,7 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
         singletons_from_crispys: optional choice to include singletons given by CRISPys
         slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
         set_cover: if True will output the minimal amount of guides that will capture all genes
-        desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
+        min_desired_genes_fraction: If a list of genes of interest was entered: the minimal fraction of genes
         of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
         singletons: select 1 to create singletons (sgRNAs candidates that target a single gene).
         number_of_singletons: the number of singletons that will be included for each gene.
@@ -70,7 +70,7 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
     command += f"--singletons_from_crispys {singletons_from_crispys} "
     command += f"--slim_output {slim_output} "
     command += f"--set_cover {set_cover} "
-    command += f"--desired_genes_fraction_threshold {desired_genes_fraction_threshold} "
+    command += f"--min_desired_genes_fraction {min_desired_genes_fraction} "
     command += f"--singletons {singletons} "
     command += f"--singletons_on_target_function {singletons_on_target_function} "
     command += f"--number_of_singletons {number_of_singletons} "
@@ -106,7 +106,7 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         where_in_gene: float = 0.8, use_thr: int = 1, omega: float = 0.43, off_scoring_function: str = "cfd",
         on_scoring_function: str = "default", start_with_g: int = 0, internal_node_candidates: int = 10,
         max_target_polymorphic_sites: int = 12, pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0,
-        set_cover: int = 0, desired_genes_fraction_threshold: float = -1.0, singletons: int = 0,
+        set_cover: int = 0, min_desired_genes_fraction: float = -1.0, singletons: int = 0,
         singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50, max_gap_distance: int = 3,
         check_for_genes_of_interest: bool = False, export_tree:int = 0, run4chips:int = 0):
     """
@@ -134,7 +134,7 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
         singletons_from_crispys: optional choice to include singletons given by CRISPys
         slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
         set_cover: if True will output the minimal amount of guides that will capture all genes
-        desired_genes_fraction_threshold: If a list of genes of interest was entered: the minimal fraction of genes
+        min_desired_genes_fraction: If a list of genes of interest was entered: the minimal fraction of genes
         of interest. CRISPys will ignore internal nodes with lower or equal fraction of genes of interest.
         singletons: select 1 to create singletons (sgRNAs candidates that target a single gene).
         number_of_singletons: the number of singletons that will be included for each gene.
@@ -178,7 +178,7 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
                                              max_target_polymorphic_sites=max_target_polymorphic_sites, pams=pams,
                                              singletons_from_crispys=singletons_from_crispys, slim_output=slim_output,
                                              set_cover=set_cover,
-                                             desired_genes_fraction_threshold=desired_genes_fraction_threshold,
+                                             min_desired_genes_fraction=min_desired_genes_fraction,
                                              singletons=singletons, number_of_singletons=number_of_singletons,
                                              singletons_on_target_function=singletons_on_target_function,
                                              max_gap_distance=max_gap_distance,

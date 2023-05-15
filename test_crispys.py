@@ -236,7 +236,7 @@ def run_crispys_test(code_folder, res_folder, queue):
 
     # genes_of_interest/genes_of_interest
     header = createHeaderJob(res_folder + "/genes_of_interest/genes_of_interest", "genes_of_interest", queue)
-    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/caldararu/test_crispys/HOM05D000360_1.fa {res_folder}/singletons_from_crispys/without_singletons -- --alg gene_homology --use_thr 1 --omega 0.45 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function cfd_funct --singletons_from_crispys 1 --desired_genes_fraction_threshold 0"
+    cmd = f"python {code_folder}/Stage0.py /groups/itay_mayrose/caldararu/test_crispys/HOM05D000360_1.fa {res_folder}/singletons_from_crispys/without_singletons -- --alg gene_homology --use_thr 1 --omega 0.45 --internal_node_candidates 200 --where_in_gene 0.8 --scoring_function cfd_funct --singletons_from_crispys 1 --min_desired_genes_fraction  0"
 
     with open(res_folder + "/singletons_from_crispys/without_singletons/Crispys.sh", "w") as f:
         f.write(header + "\n" + cmd)
