@@ -2,17 +2,17 @@
 
 CRISPys is a powerful tool designed to facilitate the optimal design of sgRNAs for the simultaneous cleavage of multiple genes. It clusters potential CRISPR-Cas9 targets within a set of genomic sequences and generates highly promising sgRNA designs for each cluster.
 
-Please note that this is the standalone version of CRISPys. An online version of the tool is available at http://multicrispr.tau.ac.il/.
+This is the standalone version of CRISPys, an online version is available at http://multicrispr.tau.ac.il/.
 
 ### Installation
-To run CRISPys on a GNU/Linux-based operating system, clone the repository.
+CRISPys can run on a GNU/Linux-based operating system only. 
+After clonning of the repository, we recommend creating a conda environment and installing all the necessary dependencies using the crispys.yml file.
+If you want CRISPys to output singletones (the --singletons option) that uses uCRISPR as the scoring function, extract the contents of the uCRISPR.zip file and add the global DATAPATH variable to match the extracted directory (see theexample below). 
 
-We recommend creating a conda environment and installing all the necessary dependencies using the crispys.yml file.
-If you intend to use uCRISPR as the scoring function, extract the contents of the uCRISPR.zip file and update the value of the global DATAPATH variable to match the extracted directory. 
 ### Input File
 CRISPys requires a Fasta file as input, containing genomic sequences from various resources (genes), with each sequence accompanied by a unique header. It is also possible to include different coding sequences of the same gene by assigning them the same header.
 
-Here's an example of an input file:
+Here's an example of an input file with 3 genes:
 
     >Gene1
     ATGCGCACGCCCTACCTCCATGATCCACTGACGTCCCTGAGGCTGCAATACATG
