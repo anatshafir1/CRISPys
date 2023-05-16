@@ -104,7 +104,7 @@ def generate_scores_one_batch(genes_targets_dict: Dict[str, List[str]], list_of_
 
 
 def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, off_scoring_function, on_scoring_function,
-                      node: CladeNew, cfd_dict: Dict = None, singletons_from_crispys: int = 1) -> List[Candidate]:
+                      node: CladeNew, cfd_dict: Dict = None) -> List[Candidate]:
     """
 
     :param genes_targets_dict: a dictionary of gene -> list of potential targets found in the gene
@@ -113,7 +113,6 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, of
 	:param on_scoring_function: the on target scoring function
     :param node: current node in the targets UPGMA tree that the targets in genes_targets_dict belong to
     :param cfd_dict: a dictionary of mismatches and their scores for the CFD function
-    :param singletons_from_crispys: optional choice to include singletons given by CRISPys
 
     :return:
     """
@@ -154,7 +153,7 @@ def return_candidates(genes_targets_dict: Dict[str, List[str]], omega: float, of
                 targets_dict[gene] = list_of_targets
                 genes_covering.append((gene, prob_gene_cut))
         # check if the potential candidate covers less than two genes
-        if len(genes_covering) < 2 and not singletons_from_crispys:
+        if len(genes_covering) < 2:
             continue
         cut_expectation = 0  # the probability the permutated sequence will cut all the genes, that the probability each
         # of them will be cut is greater then omega
