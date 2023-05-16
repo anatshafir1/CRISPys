@@ -6,11 +6,11 @@ from test_crispys import createHeaderJob
 def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: str,
                            genes_of_interest_file: str = "None",
                            output_name: str = "CRISPys", algorithm: str = "default",
-                           where_in_gene: int = 0.8, use_thr: int = 1, omega: int = 0.43,
+                           where_in_gene: float = 0.8, omega: float = 0.43,
                            off_scoring_function: str = "cfd",
                            on_scoring_function: str = "default", start_with_g: int = 0,
                            internal_node_candidates: int = 10,
-                           max_target_polymorphic_sites: int = 12, pams: int = 0, singletons_from_crispys: int = 0,
+                           max_target_polymorphic_sites: int = 12, pams: int = 0,
                            slim_output: int = 0,
                            set_cover: int = 0, min_desired_genes_fraction: float = -1.0, singletons: int = 0,
                            singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
@@ -27,7 +27,6 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
         genes_of_interest_file: path to a txt file consisting of a "gene" column with genes of interest.
         algorithm: the type of the algorithm run - with gene homology or without
         where_in_gene: ignore targets sites downstream to the fractional part of the gene
-        use_thr:
         omega: threshold of targeting propensity of a gene by a considered sgRNA (see article p. 4)
         off_scoring_function: off target scoring function
         on_scoring_function: on target scoring function
@@ -35,7 +34,6 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
         internal_node_candidates: number of sgRNAs designed for each homology subgroup
         max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
         pams: the pams by which potential sgRNA target sites will be searched
-        singletons_from_crispys: optional choice to include singletons given by CRISPys
         slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
         set_cover: if True will output the minimal amount of guides that will capture all genes
         min_desired_genes_fraction: If a list of genes of interest was entered: the minimal fraction of genes
@@ -59,7 +57,6 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
     command += f"--genes_of_interest_file {genes_of_interest_file} "
     command += f"--alg {algorithm} "
     command += f"--where_in_gene {where_in_gene} "
-    command += f"--use_thr {use_thr} "
     command += f"--omega {omega} "
     command += f"--off_scoring_function {off_scoring_function} "
     command += f"--on_scoring_function {on_scoring_function} "
@@ -67,7 +64,6 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
     command += f"--internal_node_candidates {internal_node_candidates} "
     command += f"--max_target_polymorphic_sites {max_target_polymorphic_sites} "
     command += f"--pams {pams} "
-    command += f"--singletons_from_crispys {singletons_from_crispys} "
     command += f"--slim_output {slim_output} "
     command += f"--set_cover {set_cover} "
     command += f"--min_desired_genes_fraction {min_desired_genes_fraction} "
@@ -171,12 +167,12 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
                                              fam_dir_path=fam_dir_path,
                                              genes_of_interest_file=genes_of_interest_file,
                                              output_name=family_output_name,
-                                             algorithm=algorithm, where_in_gene=where_in_gene, use_thr=use_thr,
+                                             algorithm=algorithm, where_in_gene=where_in_gene,
                                              omega=omega, off_scoring_function=off_scoring_function,
                                              on_scoring_function=on_scoring_function, start_with_g=start_with_g,
                                              internal_node_candidates=internal_node_candidates,
                                              max_target_polymorphic_sites=max_target_polymorphic_sites, pams=pams,
-                                             singletons_from_crispys=singletons_from_crispys, slim_output=slim_output,
+                                             slim_output=slim_output,
                                              set_cover=set_cover,
                                              min_desired_genes_fraction=min_desired_genes_fraction,
                                              singletons=singletons, number_of_singletons=number_of_singletons,
@@ -194,7 +190,7 @@ if __name__ == '__main__':
         main_folder_path="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/families",
         include_family_name_in_output=True,
         genes_of_interest_file="/groups/itay_mayrose/udiland/crispys_chips_arabidopsis/genes2target.txt",
-        queue="itaym", desired_genes_fraction_threshold=0.0, algorithm="gene_homology", where_in_gene=0.8, slim_output=1,
+        queue="itaym", min_desired_genes_fraction=0.0, algorithm="gene_homology", where_in_gene=0.8, slim_output=1,
         off_scoring_function="moff", omega=0.15, output_name="moff_0.15",
         internal_node_candidates=200, singletons_from_crispys=0, mem=64, ncpu=1, max_target_polymorphic_sites=12,
         set_cover=0, singletons=1,
