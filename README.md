@@ -46,7 +46,7 @@ Execute the following command to run CRISPys with the provided parameters:
 
     python Stage0.py /home/fam_seq/fam1.fa /home/CRISPys_output/fam1 --output_name fam1 --alg gene_homology --where_in_gene 0.8 --omega 0.15 --off_scoring_function moff --internal_node_candidates 200 --max_target_polymorphic_sites 12
 
-For any inquiries, please feel free to contact the author at galhyams@gmail.com.
+For any inquiries, please feel free to contact the author at galhyams@gmail.com or omer.cald123@gmail.com
 
 For commercial use, kindly reach out to the author for further arrangements.
 
