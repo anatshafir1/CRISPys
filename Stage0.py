@@ -272,7 +272,7 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
                  where_in_gene: float = 1, use_thr: int = 1,
                  omega: float = 1, off_scoring_function: str = "cfd_funct", on_scoring_function: str = "default",
                  start_with_g: int = 0, internal_node_candidates: int = 10, max_target_polymorphic_sites: int = 12,
-                 pams: int = 0, singletons_from_crispys: int = 0, slim_output: int = 0, set_cover: int = 0,
+                 pams: int = 0, slim_output: int = 0, set_cover: int = 0,
                  min_desired_genes_fraction: float = -1.0, singletons: int = 0,
                  singletons_on_target_function: str = "ucrispr", number_of_singletons: int = 50,
                  max_gap_distance: int = 3, export_tree: int = 0, run4chips: int = 0) -> List[SubgroupRes]:
@@ -294,7 +294,6 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     :param internal_node_candidates: number of sgRNAs designed for each homology subgroup
     :param max_target_polymorphic_sites: the maximal number of possible polymorphic sites in a target
     :param pams: the pams by which potential sgRNA target sites will be searched
-    :param singletons_from_crispys: optional choice to include singletons given by CRISPys
     :param slim_output: optional choice to store only 'res_in_lst' as the result of the algorithm run
     :param set_cover: if 1, will output the minimal amount of guides that will capture all genes
     :param min_desired_genes_fraction: If a list of genes of interest was entered: the minimal fraction of genes
@@ -332,10 +331,8 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     genes_list = get_genes_list(genes_exons_dict)  # a list of all the input genes in the algorithm
     res = []
     if len(genes_exons_dict) == 1:
-        if singletons_from_crispys:
-            alg = "default"
-            res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
-                              max_target_polymorphic_sites, singletons_from_crispys, genes_names_list)
+        if singletons:
+            print("family contains a single gene")
         elif not singletons:
             print("family contains a single gene")
             return []
@@ -343,12 +340,12 @@ def CRISPys_main(fasta_file: str, output_path: str, output_name: str = "crispys_
     elif alg == 'gene_homology':
         res = gene_homology_alg(genes_list, genes_names_list, genes_targets_dict, targets_genes_dict,
                                 genes_of_interest_set, omega, output_path, off_scoring_function, on_scoring_function,
-                                internal_node_candidates, max_target_polymorphic_sites, singletons_from_crispys,
+                                internal_node_candidates, max_target_polymorphic_sites,
                                 min_desired_genes_fraction, slim_output, max_gap_distance,
                                 export_tree)
     elif alg == 'default':  # alg == "default". automatically used on single-gene families.
         res = default_alg(targets_genes_dict, omega, off_scoring_function, on_scoring_function,
-                          max_target_polymorphic_sites, singletons_from_crispys, genes_names_list)
+                          max_target_polymorphic_sites, genes_names_list)
 
     if singletons:
         singletons_on_scoring_function, pam_included = choose_scoring_function(singletons_on_target_function,
@@ -424,7 +421,7 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
     parser_obj.add_argument('--omega', '-v', type=float, default=0.43,
                             help='the value of the threshold. A number between 0 to 1 (included). Default: 0.43')
     parser_obj.add_argument('--off_scoring_function', '-s', type=str, default='cfd_funct',
-                            help='the off scoring function of the targets. Optional scoring systems are: cfd_funct('
+                            help='the off scoring function of the targets. Optional scoring algorithms are: cfd_funct('
                                  'default), gold_off, CrisprMIT and CCtop. Additional scoring function may be added '
                                  'by the user or by request.')
     parser_obj.add_argument('--on_scoring_function', '-n', type=str, default='default',
@@ -440,10 +437,6 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                             help='the maximal number of possible polymorphic sites in a target. Default: 12')
     parser_obj.add_argument('--pams', type=int, default=0,
                             help='0 to search NGG pam or 1 to search for NGG and NAG. Default: 0')
-
-    parser_obj.add_argument('--singletons_from_crispys', choices=[0, 1], type=int, default=1,
-                            help='1 to return results with singletons given by CRISPys (sgRNAs that target only 1 gene),'
-                                 ' 0 to exclude them. Default: 1')
 
     parser_obj.add_argument('--slim_output', '-slim', choices=[0, 1], type=int, default=0,
                             help='optional choice to store only "res_in_lst" as the result of the algorithm run.'
@@ -499,7 +492,6 @@ if __name__ == "__main__":
                  internal_node_candidates=args.internal_node_candidates,
                  max_target_polymorphic_sites=args.max_target_polymorphic_sites,
                  pams=args.pams,
-                 singletons_from_crispys=args.singletons_from_crispys,
                  slim_output=args.slim_output,
                  set_cover=args.set_cover,
                  min_desired_genes_fraction=args.min_desired_genes_fraction,
