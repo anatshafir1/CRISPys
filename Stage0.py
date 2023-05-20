@@ -446,7 +446,7 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                                  'Default: 0')
     parser_obj.add_argument('--min_desired_genes_fraction', '-min_genes_frac', type=float, default=-1.0,
                             help="Specifies the minimum fraction of genes of interest required for CRISPys analysis, "
-                                 "if genes of interest were specified. "
+                                 "if genes of interest were specified, "
                                  "CRISPys will ignore internal nodes with a lower or equal fraction of genes of "
                                  "interest. "
                                  "Default: -1.0")
