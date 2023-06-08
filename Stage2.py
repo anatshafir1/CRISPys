@@ -83,7 +83,7 @@ def stage_two_main(targets_list: List[str], targets_names: List[str], targets_ge
     """
     best_permutations = []
     if len(targets_list) == 1:
-        if len(targets_genes_dict[targets_list[0]]):
+        if len(targets_genes_dict[targets_list[0]]) > 1:
             print("only one sgRNA in the group")
             genes = targets_genes_dict[targets_list[0]]
             candidate = Candidate(targets_list[0][0:20])

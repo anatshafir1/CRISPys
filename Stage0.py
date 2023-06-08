@@ -391,34 +391,45 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                                                                                  'file')
     parser_obj.add_argument('output_path', type=str, metavar='<output_path>',
                             help='The path to the directory in which the output files will be written.')
+
     parser_obj.add_argument('--output_name', type=str, default='crispys_output',
                             help="The name that would be given to the crispys output file.")
     parser_obj.add_argument('--genes_of_interest_file', type=str, metavar='<gene_list_path>', default='None',
-                            help="you can tell CRISPys to only consider subset of genes in the family by entering here "
-                                 "the path to a file that list the genes that you want to target (a subset of the family)"
-                                 " each row in the file should have one gene")
-    parser_obj.add_argument('--alg', type=str, default='default', help='CRIPSys can use the gene sequence homology to '
-                                'create a gene tree and output results for each internal node. '
-                                'Choose "gene_homology" to considering homology',
+                            help="path to a file that list the genes that need to be targeted (subset of the family)."
+                                 "The results will only include sgRNA that target one or more genes from the list."
+                                 "Each row in the file should have one gene")
+    parser_obj.add_argument('--alg', type=str, default='default', help='Choose "gene_homology" to consider the homology'
+                                                                       'between the genes when designing sgRNAs.'
+                                                                       'The output under this option will return sgRNA'
+                                                                       'candidates per internal node of the genes tree.'
+                                                                       'If the "default" algorithm is specified, a list'
+                                                                       'of sgRNAs will be returned.',
                             choices=['default', 'gene_homology'])
-    parser_obj.add_argument('--where_in_gene', type=float, default=1,
-                            help='input a number between 0 to 1 in order to ignore targets sites downstream to the '
-                                 'fractional part of the gene')
+    parser_obj.add_argument('--where_in_gene', type=float, default=0.67,
+                            help='A number between 0 to 1 that specifies the fraction of the gene from the start'
+                                 ' that will be accounted for. For example, for a value of "0.5",'
+                                 ' CRISPys will only look for targets at the first half of the gene')
+    parser_obj.add_argument('--use_thr', '-t', type=int, default=1,
+                            help='0 for using sgRNA to gain maximal gaining score among all of the input genes or 1 for'
+                                 ' the maximal cleavage likelihood only among genes with score higher than the average.'
+                                 ' Default: 1.')
     parser_obj.add_argument('--omega', '-v', type=float, default=0.43,
-                            help='the value of the off-target score threshold. sgRNAs that are scored lower will be '
-                                 'ignored. values are number between 0 to 1 (included). Default: 0.43')
+                            help='the value of the threshold. A number between 0 to 1 (included). Default: 0.43'
+                                 'A sgRNA candidate with a gene score below the threshold will not be considered as '
+                                 'efficient for the targeting of that particular gene')
     parser_obj.add_argument('--off_scoring_function', '-s', type=str, default='cfd_funct',
-                            help='the off scoring function to use of the score the targets. Optional scoring algorithms'
-                                 'are: cfd_funct(default), gold_off, CrisprMIT and CCtop. '
-                                 'Additional scoring function may be added by the user or by request.')
+                            help='the off scoring function of the targets. Optional scoring algorithms are: cfd_funct('
+                                 'default), gold_off, moff, CRISPR Net,DeepHF, MOFF, ucrispr,  CrisprMIT and CCtop. Additional '
+                                 'scoring function may be added by the user or by request.')
+
     parser_obj.add_argument('--on_scoring_function', '-n', type=str, default='default',
-                            help='the on scoring function of the targets. Optional scoring systems are: deephf. '
+                            help='the on scoring function of the targets. Optional scoring systems are: deephf, ucrispr '
                                  'Additional scoring function may be added by the user or by request.')
     parser_obj.add_argument('--start_with_g', '-g', choices=[0, 1], type=int, default=0,
                             help='1 if the target sites are obligated to start with a G codon or 0 otherwise. '
                                  'Default: 0.')
     parser_obj.add_argument('--internal_node_candidates', '-i', type=int, default=10,
-                            help='when choosing the considered homology option, this is the number of sgRNAs designed '
+                            help='When using the gene_homology algorithm, this is the number of sgRNAs designed '
                                  'for each homology sub-group. Default: 10')
     parser_obj.add_argument('--max_target_polymorphic_sites', '-ps', type=int, default=12,
                             help='the maximal number of possible polymorphic sites in a target. Default: 12')
@@ -426,29 +437,26 @@ def parse_arguments(parser_obj: argparse.ArgumentParser):
                             help='0 to search NGG pam or 1 to search for NGG and NAG. Default: 0')
     parser_obj.add_argument('--slim_output', '-slim', choices=[0, 1], type=int, default=0,
                             help='optional choice to output minimum number of files.'
+
                                  'Default: 0')
     parser_obj.add_argument('--set_cover', choices=[0, 1], type=int, default=0,
                             help='optional choice to output the minimal amount of guides that will capture all genes.'
                                  'Default: 0')
     parser_obj.add_argument('--min_desired_genes_fraction', '-min_genes_frac', type=float, default=-1.0,
-                            help="Specifies the minimum fraction of genes of interest required for CRISPys analysis, "
-                                 "If a file with genes to target was used (using the --genes_of_interest_file argument) "
-                                 "the user can also select how many genes that are not (!) in the list can be also "
-                                 "targeted in an sgRNA that target a gene from the list. This is done by specifying "
-                                 "the minimum fraction of genes of interest required for CRISPys analysis, CRISPys will"
-                                 " ignore internal nodes with a lower or equal fraction of genes of interest."
-                                 "for example, when this value is 1 all genes targeted by an sgRNA must be in the list "
-                                 "and when it is equal to 0 all genes in the family will be included no matter if the "
-                                 "gene is in the list."
-                                 " The default value is -1 which mean ??? Omer please complete!!!"
+                            help="When using the gene_homology algorithm and specifying a list of gene of interest."
+                                 "CRISPys will ignore internal nodes with a lower or equal fraction of genes of "
+                                 "interest. For example, if this value is set to 0.5, sgRNAs will not be designed for"
+                                 "an internal node of size n that has n/2 genes of interest or less"
+
                                  "Default: -1.0")
     parser_obj.add_argument('--singletons', '-singletons', choices=[0, 1], type=int, default=0,
                             help="select 1 to create singletons (sgRNAs candidates that target a single gene)"
                                  'Default: 0')
     parser_obj.add_argument('--singletons_on_target_function', type=str, default='ucrispr',
-                            help='the on scoring function that is used to score the singletons')
+
+                            help='If "singletons" was specified: the on scoring function used for evaluating singletons ')
     parser_obj.add_argument('--number_of_singletons', '-num_singletons', type=int, default=50,
-                            help="the number of singleton candidates to include for each gene"
+                            help="If 'singletons' was specified: the number of singleton candidates to include for each gene"
                                  'Default: 50')
     parser_obj.add_argument('--max_gap_distance', '-max_gap_distance', type=int, default=3,
                             help='In case you dont want CRISPys to target genes that are far from one another on the'
