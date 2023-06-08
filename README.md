@@ -84,7 +84,11 @@ sgRNA index	sgRNA	    Score	Genes	Genes score	Target site	#mms	Position	strand	P
 5	GACTTGCCGCGGAGACTGCC	0.892	GENE1	1	GACTTGCCGCGGAGACTGCC	0	25	        -	CGG
 ```
 
+---
+
 For any inquiries, please feel free to contact the author at galhyams@gmail.com or omer.cald123@gmail.com
+
+
 
 For commercial use, kindly reach out to the author for further arrangements.
 
