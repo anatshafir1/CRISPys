@@ -6,7 +6,7 @@ from test_crispys import createHeaderJob
 def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: str,
                            genes_of_interest_file: str = "None",
                            output_name: str = "CRISPys", algorithm: str = "default",
-                           where_in_gene: float = 0.8, use_thr: int = 1, omega: float = 0.43,
+                           where_in_gene: float = 0.8, omega: float = 0.43,
                            off_scoring_function: str = "cfd",
                            on_scoring_function: str = "default", start_with_g: int = 0,
                            internal_node_candidates: int = 10,
@@ -27,7 +27,6 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
         genes_of_interest_file: path to a txt file consisting of a "gene" column with genes of interest.
         algorithm: the type of the algorithm run - with gene homology or without
         where_in_gene: ignore targets sites downstream to the fractional part of the gene
-        use_thr:
         omega: threshold of targeting propensity of a gene by a considered sgRNA (see article p. 4)
         off_scoring_function: off target scoring function
         on_scoring_function: on target scoring function
@@ -58,7 +57,6 @@ def create_crispys_command(code_path: str, fam_fasta_path: str, fam_dir_path: st
     command += f"--genes_of_interest_file {genes_of_interest_file} "
     command += f"--alg {algorithm} "
     command += f"--where_in_gene {where_in_gene} "
-    command += f"--use_thr {use_thr} "
     command += f"--omega {omega} "
     command += f"--off_scoring_function {off_scoring_function} "
     command += f"--on_scoring_function {on_scoring_function} "
@@ -168,12 +166,13 @@ def run(code_path: str, main_folder_path: str, genes_of_interest_file: str = "No
                                              fam_dir_path=fam_dir_path,
                                              genes_of_interest_file=genes_of_interest_file,
                                              output_name=family_output_name,
-                                             algorithm=algorithm, where_in_gene=where_in_gene, use_thr=use_thr,
+                                             algorithm=algorithm, where_in_gene=where_in_gene,
                                              omega=omega, off_scoring_function=off_scoring_function,
                                              on_scoring_function=on_scoring_function, start_with_g=start_with_g,
                                              internal_node_candidates=internal_node_candidates,
                                              max_target_polymorphic_sites=max_target_polymorphic_sites, pams=pams,
-                                             slim_output=slim_output, set_cover=set_cover,
+                                             slim_output=slim_output,
+                                             set_cover=set_cover,
                                              min_desired_genes_fraction=min_desired_genes_fraction,
                                              singletons=singletons, number_of_singletons=number_of_singletons,
                                              singletons_on_target_function=singletons_on_target_function,
