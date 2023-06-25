@@ -6,7 +6,7 @@ channels:
 dependencies:
 
   - Biopython=1.79
-  - python=3.9
+  - python=3.8
   - phylip=3.697
   - regex=2021.11.10
   - mafft=7
