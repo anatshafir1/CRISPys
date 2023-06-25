@@ -105,7 +105,7 @@ def change_mismatch_to_lowercase(target_str, mm_lst):
 
 
 def tree_display(path: str, subgroups_lst: list, genes_list: list, targets_genes_dict: dict,
-                 omega: float, set_cover: bool = False, consider_homology: bool = False,
+                 omega: float, set_cover: int = 0, consider_homology: bool = False,
                  output_name: str = "crispys_output"):
     """
     This function takes the results of crispys and write the crispys results in a CSV output to the output folder
