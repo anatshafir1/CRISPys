@@ -1,11 +1,10 @@
 """CRISPR_net imports and model loading"""
-import globals
 import warnings
 import os
 from tensorflow.keras.models import model_from_json
 # set tensorflow to use 1 core
 from tensorflow.config import threading
-import Distance_matrix_and_UPGMA
+from Crispys import Distance_matrix_and_UPGMA, globals
 
 threading.set_inter_op_parallelism_threads(1)
 

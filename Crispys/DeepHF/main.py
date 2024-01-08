@@ -5,7 +5,6 @@
      --enzyme esp -s_type param_search -ds new --model_type model1  -md parallel --weighted_loss
 """
 if __name__ == '__main__':
-    import pandas as pd
     import tensorflow as tf
     from scripts.training_util import *
     # my scripts

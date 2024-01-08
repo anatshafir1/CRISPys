@@ -6,25 +6,18 @@
 import os
 import pickle as pkl
 import encode_data
-import glob
 from keras.models import Model, model_from_json
 import keras
 import numpy as np
-from keras.layers import Input, Dense, Reshape, Conv2D, Flatten, LSTM, BatchNormalization, Bidirectional, GRU
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+from keras.layers import Input, Dense, Reshape, Flatten, LSTM, Bidirectional
 from keras import layers
 from keras.layers import Input
-import matplotlib.pylab as plt
 from sklearn import metrics
-from scipy import interp
-import pandas as pd
-import re
 from numpy.random import seed
 seed(1)
 from tensorflow import set_random_seed
 set_random_seed(1)
-import scipy.stats
+
 
 def conv2d_bn(x,
               filters,
@@ -180,7 +173,7 @@ def CRISPR_Net_testing(weights_file, test_ds='listgarten'):
     X_test, y_test = load_testing_data(ds_type=test_ds)
     # print(X_test[0])
     print(len(y_test[y_test > 0]), len(y_test))
-    json_file = open("./scoring_models/CRISPR_Net_structure.json", 'r')
+    json_file = open("scoring_models/CRISPR_Net_structure.json", 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)
@@ -200,16 +193,16 @@ def CRISPR_Net_testing(weights_file, test_ds='listgarten'):
 
 # ----------------------------Mismatch----------------------------
 # Trained on CIRCLE-Seq and Elevation dataset
-weight_file = "./scoring_models/CRISPR_Net_CIRCLE_elevation_weights.h5"
+weight_file = "scoring_models/CRISPR_Net_CIRCLE_elevation_weights.h5"
 
 # Trained on Elevation dataset
-weight_file = "./scoring_models/CRISPR_Net_elevation_weights.h5"
+weight_file = "scoring_models/CRISPR_Net_elevation_weights.h5"
 
 # Trained on SITE-Seq dataset 
-weight_file = "./scoring_models/CRISPR_Net_SITE_weights.h5"
+weight_file = "scoring_models/CRISPR_Net_SITE_weights.h5"
 
 # Trained on CIRCLE-Seq, Elevation and SITE-Seq dataset
-weight_file = "./scoring_models/CRISPR_Net_CIRCLE_elevation_SITE_weights.h5"
+weight_file = "scoring_models/CRISPR_Net_CIRCLE_elevation_SITE_weights.h5"
 # test on Dataset II/5
 roc_auc, prc_auc = CRISPR_Net_testing(weight_file, test_ds='kleinstiver')
 # test on Dataset II/6

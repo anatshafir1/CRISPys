@@ -17,7 +17,7 @@ from Distance_matrix_and_UPGMA import MITScore, ccTop, gold_off_func, ucrispr, d
 from Metric import cfd_funct
 from SubgroupRes import SubgroupRes
 from Candidate import Candidate
-from CRISPR_Net.CrisprNetLoad import load_crispr_net
+from Crispys.CRISPR_Net.CrisprNetLoad import load_crispr_net
 from MOFF.MoffLoad import load_moff
 from DeepHF.LoadDeepHF import load_deephf
 from singletons import singletons_main

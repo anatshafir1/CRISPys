@@ -1,6 +1,6 @@
 """Scoring functions and tree calculations"""
 import subprocess
-from os.path import dirname, abspath, join
+from os.path import dirname, abspath
 from os import rename
 import math
 from typing import List, Dict
@@ -11,10 +11,10 @@ from Bio.Phylo.TreeConstruction import _DistanceMatrix
 
 import globals
 from mafft_and_phylip import create_protdist
-from CRISPR_Net import Encoder_sgRNA_off
+from Crispys.CRISPR_Net import Encoder_sgRNA_off
 from DeepHF.scripts import prediction_util
 from MOFF.MOFF_prediction import MOFF_score
-from Metric import pos_in_metric_general, cfd_funct
+from Metric import pos_in_metric_general
 from TreeConstruction_changed import TreeNew, DistanceTreeConstructor
 from gold_off import predict
 from globals import target_distance_metric

@@ -11,7 +11,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 import pandas as pd
 import numpy as np
 import Encoder_sgRNA_off
-import encode_data
+
 pd.options.display.max_columns = None
 from tensorflow.keras.models import model_from_json
 
@@ -34,7 +34,7 @@ def encode_on_off_seq_pairs(input_file = "./input_examples/on_off_seq_pairs_inde
     print("Save the results to ../results/CRISPR_net_results.csv!")
 
 def CRISPR_net_indels_predict(X_test):
-    json_file = open("./scoring_models/CRISPR_Net_structure.json", 'r')
+    json_file = open("scoring_models/CRISPR_Net_structure.json", 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)

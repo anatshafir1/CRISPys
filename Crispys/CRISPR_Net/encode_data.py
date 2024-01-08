@@ -7,7 +7,7 @@
 import pandas as pd
 import numpy as np
 import Encoder_sgRNA_off
-import pickle as pkl
+
 pd.options.display.max_columns = None
 
 def load_elevation_CD33_dataset():

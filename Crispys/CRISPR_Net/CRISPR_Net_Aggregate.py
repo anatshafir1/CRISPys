@@ -26,7 +26,7 @@ def encode_on_off_seq_pairs(on_seqs, off_seqs):
     # y_pred = CRISPR_net_indels_predict(input_codes)
     return input_codes
 def CRISPR_net_indels_predict(X_test):
-    json_file = open("./aggregate_models/CRISPR_Net_model.json", 'r')
+    json_file = open("aggregate_models/CRISPR_Net_model.json", 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)

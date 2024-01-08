@@ -2,8 +2,7 @@
 import pickle
 from keras.models import load_model
 
-import Distance_matrix_and_UPGMA
-import globals
+from Crispys import Distance_matrix_and_UPGMA, globals
 
 
 def load_deephf():

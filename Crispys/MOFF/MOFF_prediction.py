@@ -5,7 +5,9 @@ from itertools import combinations
 from itertools import product
 import numpy as np
 from scipy.stats import gmean
-import globals
+from Crispys import globals
+
+
 #################################
 
 

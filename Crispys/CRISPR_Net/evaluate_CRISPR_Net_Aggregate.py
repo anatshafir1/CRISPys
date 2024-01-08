@@ -1,4 +1,3 @@
-from sklearn.externals import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import ExtraTreesRegressor

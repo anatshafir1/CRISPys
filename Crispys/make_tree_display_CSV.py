@@ -2,7 +2,6 @@ import os
 
 import set_cover_greedy
 import SubgroupRes
-from typing import List, Dict
 
 
 def sub_tree_display(candidates_lst, f, consider_homology, genes_names):

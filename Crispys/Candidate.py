@@ -20,7 +20,7 @@ class Candidate:
         off_targets : bool
         """
 
-    def __init__(self, seq: str, cut_expectation: float = 0.0, genes_score_dict: Dict = None,
+    def __init__(self, position: int, chromosome: int, gene: str, seq: str, cut_expectation: float = 0.0, genes_score_dict: Dict = None,
                  mismatch_site_dict: Dict = None):
         """
 
@@ -46,6 +46,9 @@ class Candidate:
         self.cleave_all_above_thr = 1.0
         self.off_targets = False
         self.on_target_score = 0.0
+        self.position = position
+        self.chromosome = chromosome
+        self.gene = gene
 
     def fill_default_fields(self, gene_names):
         """

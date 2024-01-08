@@ -1,0 +1,7 @@
+reference genome file: /whatever.fasta
+path_to_annotation_file: /annotations.gff
+path_to_VCF_file: /annotations.vcf
+pam_type: NGG
+sequence_relative_to_pam: upstream
+common_or_unique_sgrna: common
+primer_length: 18

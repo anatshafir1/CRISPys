@@ -2,10 +2,7 @@
 
 from keras import models
 from json import loads
-import Distance_matrix_and_UPGMA
-import globals
-import keras
-import tensorflow.python
+from Crispys import Distance_matrix_and_UPGMA, globals
 
 
 def load_moff():
