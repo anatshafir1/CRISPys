@@ -27,13 +27,15 @@ def calc_amplicon_size(target: Candidate, first_snp: tuple[SNP_Obj, str], last_s
     return amp_size
 
 
-def create_relevant_snps_list(target: Candidate, snps_list: List[SNP_Obj]) -> List[(SNP_Obj, str)]:
+def create_relevant_snps_list(max_amplicon_len: int, primer_len: int, target: Candidate, snps_list: List[SNP_Obj]) -> List[tuple[SNP_Obj, str]]:
     """
-    Given a sgRNA target and a list of all the SNPs of the target's gene create a list of SNPs that are less than 921
-    nucleotides upstream and downstream to the target. Also exclude SNPs which are in the safe zone around the target
-    and the target sequence itself. The returned list has tuples with the SNP object and string "up" or "down" to
-    indicate whether the SNP is upstream or downstream to the target.
+    Given a sgRNA target and a list of all the SNPs of the target's gene create a list of SNPs that are less than
+    'max_upstream' upstream and 'max_downstream' downstream to the target. Also exclude SNPs which are in the safe zone
+    around the target and the target sequence itself. The returned list has tuples with the SNP object and string
+    "up" or "down" to indicate whether the SNP is upstream or downstream to the target.
 
+    :param max_amplicon_len:
+    :param primer_len:
     :param target: sgRNA target of the Amplicon, as a Candidate object
     :param snps_list: list of all the SNPs of the target's gene
     :return: list of SNPs with upstream/downstream notation as tuples
@@ -42,36 +44,42 @@ def create_relevant_snps_list(target: Candidate, snps_list: List[SNP_Obj]) -> Li
     # loop over SNPs list and create lists of SNPs for upstream and downstream seqs
     lower_limit = target.position - globals.safety_padding_around_target
     upper_limit = target.position + len(target.seq) + globals.safety_padding_around_target
+    max_upstream = max_amplicon_len - primer_len - globals.safety_padding_around_target
+    max_downstream = max_amplicon_len - len(target.seq) - primer_len - globals.safety_padding_around_target
     for snp in snps_list:
-        if 1 <= (target.position - snp.position_in_sequence) <= 921 and not (lower_limit <= snp.position_in_sequence <= upper_limit):
+        if 1 <= (target.position - snp.position_in_sequence) <= max_upstream and not (lower_limit <= snp.position_in_sequence <= upper_limit):
             relevant_snp_list += [(snp, "up")]
-        if -921 <= (target.position - snp.position_in_sequence) <= -1 and not (lower_limit <= snp.position_in_sequence <= upper_limit):
+        if -max_downstream <= (target.position - snp.position_in_sequence) <= -1 and not (lower_limit <= snp.position_in_sequence <= upper_limit):
             relevant_snp_list += [(snp, "down")]
     return relevant_snp_list
 
 
-def find_closest_snp(target: Candidate, snps_list: List[SNP_Obj]) -> bool:
+def find_closest_snp(max_amplicon_len: int, primer_length: int, target: Candidate, snps_list: List[SNP_Obj]) -> bool:
     """
     Check if the current target has any SNP that is closer than 921 nucleotides upstream or downstream.
 
+    :param max_amplicon_len:
+    :param primer_length:
     :param target: sgRNA target of the Amplicon, as a Candidate object
     :param snps_list: list of all the SNPs of the target's gene
     :return: False if no relevant SNP found. True otherwise
     """
     max_distance = False
     for snp in snps_list:
-        if abs(target.position - snp.position_in_sequence) <= 921:
+        if abs(target.position - snp.position_in_sequence) <=\
+                (max_amplicon_len - globals.safety_padding_around_target - primer_length):
             max_distance = True
             break
     return max_distance
 
 
-def construct_amplicon(primer_length, candidates_list: List[Candidate], snps_list: List[SNP_Obj], distinct_alleles_num) -> List[Amplicon_Obj]:
+def construct_amplicon(max_amplicon_len: int, primer_length: int, candidates_list: List[Candidate], snps_list: List[SNP_Obj], distinct_alleles_num) -> List[Amplicon_Obj]:
     """
     Given a list of sgRNA targets and a list of SNP of a gene - for every target find SNPs so that all the distinct
     alleles of the gene will be represented by an SNP with the shortest possible size of the Amplicon constructed from
     the target and it's SNPs.
 
+    :param max_amplicon_len: maximum length of the amplicon, defined by user
     :param primer_length: length of the primer sequence, defined by the user in the algorithm run
     :param candidates_list: list of sgRNA target of a gene, as Candidate objects
     :param snps_list: list of all the SNPs of the target's gene
@@ -81,11 +89,11 @@ def construct_amplicon(primer_length, candidates_list: List[Candidate], snps_lis
     amplicons_list = []
     # loop over targets in candidates list
     for target in candidates_list:
-        # check if the distance of the closest SNP to the target is 921 or less.
-        if not find_closest_snp(target, snps_list):
+        # check if the distance of the closest SNP to the target is max distance or less.
+        if not find_closest_snp(max_amplicon_len, primer_length, target, snps_list):
             continue
         # create list of relevant SNPs for the target
-        relevant_snp_list = create_relevant_snps_list(target, snps_list)
+        relevant_snp_list = create_relevant_snps_list(max_amplicon_len, primer_length, target, snps_list)
         # Initiate alleles set to be the set of the first SNP
         cur_alleles_set = set()
         # Initiate SNPs list with the first SNP
