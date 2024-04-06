@@ -1,6 +1,6 @@
 import subprocess
 import sys
-from typing import List
+from typing import List, Tuple, Dict
 
 from Bio import SeqIO
 from Bio.Align.Applications import MafftCommandline
@@ -29,7 +29,13 @@ def call_mafft(in_file: str, out_file: str):
         handle.write(stdout)
 
 
-def add_id_parent_columns(filtered_by_feature):
+def add_id_parent_columns(filtered_by_feature: DataFrame):
+    """
+    Given a DataFrame made from annotations GFF the function adds columns of object ID and object parent. This is
+    done "in place", so the function returns None.
+
+    :param filtered_by_feature: DataFrame made from annotations GFF
+    """
     # add column with object ID
     start_char = 'ID='
     end_char = ';P'
@@ -37,6 +43,7 @@ def add_id_parent_columns(filtered_by_feature):
     filtered_by_feature['end_position'] = filtered_by_feature['attribute'].str.find(end_char)
     filtered_by_feature['ID'] = filtered_by_feature.apply(
         lambda row: row['attribute'][row['start_position']:row['end_position']], axis=1)
+    # add column with object parent
     start_char = 'Parent='
     end_char = ';T'
     filtered_by_feature['start_position'] = filtered_by_feature['attribute'].str.find(start_char) + 7
@@ -46,36 +53,41 @@ def add_id_parent_columns(filtered_by_feature):
     filtered_by_feature.drop(['start_position', 'end_position'], axis=1, inplace=True)
 
 
-def annotations_to_lst_df(max_amplicon_len: int, primer_length: int, target_len: int,
+def annotations_to_lst_df(max_amplicon_len: int, primer_length: int, cut_location: int,
                           annotations_file_path: str, distinct_alleles_num: int) -> List[DataFrame]:
     """
-    Given a gene annotations file path, construct a list of dataframes, each representing the same exon from all the
-    different alleles. The start and end columns of each exon will include a region around the exon from which an
-    Amplicon can be later constructed.
+    Given a gene annotations file path, construct a list of dataframes, with annotations of all the
+    different alleles of a single exon. The start and end columns of each exon will include a region around the exon
+    (part of the surrounding introns) from which an Amplicon can be later constructed.
 
-    :param max_amplicon_len:
-    :param primer_length:
-    :param target_len:
-    :param annotations_file_path:
-    :param distinct_alleles_num:
-    :return:
+    :param max_amplicon_len: maximum length of the amplicon, defined by user
+    :param primer_length: minimum length of the primer sequence, defined by the user in the algorithm run
+    :param cut_location: length of the sgRNA target sequence in the gene, defined by user, depending on the CAS used.
+    :param annotations_file_path: path to GFF file with annotations of the genome
+    :param distinct_alleles_num: number of copies of each chromosome in the genome
+    :return: a list of DataFrames, each with annotations of all the alleles of a single exon in the gene
     """
-    annotations_df = pd.read_csv(annotations_file_path, sep='\s{2,}')  # sep='\s{2,}' uses a regular expression to match two or more whitespace characters as the separator
+    annotations_df = pd.read_csv(annotations_file_path,
+                                 sep='\s{2,}')  # sep='\s{2,}' uses a regular expression to match two or more whitespace characters as the separator
     filtered_by_exon = annotations_df[annotations_df['feature'] == 'exon']
     add_id_parent_columns(filtered_by_exon)  # add columns of ID and Parent
-    exon_surrounding_seq_len = max_amplicon_len - primer_length - target_len - globals.safety_padding_around_target * 2
+    # calculate the maximum range upstream and downstream the exon, which are intron sites that are allowed be used to construct an amplicon
+    exon_surrounding_seq_len = max_amplicon_len - cut_location - globals.safety_padding_around_target - primer_length
+    # calculate the new start and end indexes of the sequence to extract from the genome fasta file
     filtered_by_exon['new_start'] = filtered_by_exon.apply(lambda x: x['start'] - exon_surrounding_seq_len - 1, axis=1)
     filtered_by_exon['new_end'] = filtered_by_exon.apply(lambda x: x['end'] + exon_surrounding_seq_len, axis=1)
     filtered_by_exon.reset_index(drop=True, inplace=True)
+    num_of_exons = int(len(filtered_by_exon) / distinct_alleles_num)  # calculate number of exons in the gene
     # Group exons by mRNA ID
-    num_of_exons = int(len(filtered_by_exon)/distinct_alleles_num)
     exon_groups = filtered_by_exon[filtered_by_exon['feature'] == 'exon'].groupby('parent')
-    exons_dfs_list = [pd.DataFrame(columns=filtered_by_exon.columns) for _ in range(num_of_exons)]
-    # Iterate over the groups of exons
+    exons_dfs_list = [pd.DataFrame(columns=filtered_by_exon.columns) for _ in
+                      range(num_of_exons)]  # a list of empty DataFrames with the columns for the annotations
+
     for _, group in exon_groups:
         # Sort exons by start index
         group.reset_index(drop=True, inplace=True)
-        group_sorted = group.sort_values(by='new_start') if group['strand'].iloc[0] == "+" else group.sort_values(by='new_start', ascending=False)
+        group_sorted = group.sort_values(by='new_start') if group['strand'].iloc[0] == "+" else group.sort_values(
+            by='new_start', ascending=False)
         group_sorted.reset_index(drop=True, inplace=True)
         for index, row in group_sorted.iterrows():
             exons_dfs_list[index].loc[len(exons_dfs_list[index].index)] = row
@@ -116,7 +128,7 @@ def genomic_sites_list_to_fasta(genomic_sites_list: List, out_path: str):
     SeqIO.write(sequences, out_path, "fasta")
 
 
-def genes_fasta_to_list(aligned_genes: str) -> List[str]:
+def genes_fasta_to_list(aligned_genes: str) -> List[Tuple[str, str]]:
     """
 
     :param aligned_genes:
@@ -124,35 +136,37 @@ def genes_fasta_to_list(aligned_genes: str) -> List[str]:
     """
     gene_sequences = []
 
-    # Iterate over the sequences in the FASTA file
+    # Iterate over the sequences in the FASTA file and save them to a list
     for record in SeqIO.parse(aligned_genes, "fasta"):
-        gene_sequences.append(str(record.id))
-        gene_sequences.append(str(record.seq).upper())
+        gene_sequences.append((str(record.id), str(record.seq).upper()))
     return gene_sequences
 
 
-def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_len: int, annotations_file_path,
-                          out_path: str, genome_fasta_file: str, distinct_alleles_num: int):
+def extract_exons_regions(max_amplicon_len: int, primer_length: int, cut_location: int, annotations_file_path,
+                          out_path: str, genome_fasta_file: str, distinct_alleles_num: int) -> Dict[int, List[Tuple[str, str]]]:
     """
 
     :param max_amplicon_len: maximum length of the amplicon, defined by user
     :param primer_length: length of the primer sequence, defined by the user in the algorithm run
-    :param target_len: length of the sgRNA target sequence in the gene, defined by user, depending on the CAS used.
-    :param annotations_file_path:
-    :param out_path:
-    :param genome_fasta_file:
-    :param distinct_alleles_num: number of distinct alleles of the gene
-    :return:
+    :param cut_location: number of nucleotides upstream to the PAM sequence where the Cas should cut (negative number if downstream)
+    :param annotations_file_path: path to GFF file with annotations of the genome
+    :param out_path: path to output directory where algorithm results will be saved
+    :param genome_fasta_file: path to input FASTA format file of the genome
+    :param distinct_alleles_num: number of copies of each chromosome in the genome
+    :return: dictionary of exon number -> list of tuples of allele IDs and their sequences
     """
 
     aligned_exons_regions_dict = {}
     exon_regions_path = out_path + "/exons_regions.fasta"
     aligned_exons_regions_path = out_path + "/aligned_exons_regions.fasta"
-    exon_regions_lst_df = annotations_to_lst_df(max_amplicon_len, primer_length, target_len, annotations_file_path, distinct_alleles_num)
+    # create list of DataFrames of every exon in the gene with annotations of their alleles
+    exon_regions_lst_df = annotations_to_lst_df(max_amplicon_len, primer_length, cut_location, annotations_file_path,
+                                                distinct_alleles_num)
     for exon_num, exon_region in enumerate(exon_regions_lst_df):
-        genomic_sites_list = get_genomic_sites(out_path, genome_fasta_file, exon_region)
-        genomic_sites_list_to_fasta(genomic_sites_list, exon_regions_path)
-        call_mafft(exon_regions_path, aligned_exons_regions_path)
-        exon_region_aligned_lst = genes_fasta_to_list(aligned_exons_regions_path)
-        aligned_exons_regions_dict[exon_num+1] = exon_region_aligned_lst
+        genomic_sites_list = get_genomic_sites(out_path, genome_fasta_file,
+                                               exon_region)  # extract exon regions from genome FASTA
+        genomic_sites_list_to_fasta(genomic_sites_list, exon_regions_path)  # save exon regions in FASTA file
+        call_mafft(exon_regions_path, aligned_exons_regions_path)  # create an MSA of the alleles of the exon
+        exon_region_aligned_lst = genes_fasta_to_list(aligned_exons_regions_path)  # save the aligned exon regions in a list
+        aligned_exons_regions_dict[exon_num + 1] = exon_region_aligned_lst  # add the list of aligned exon regions to a dictionary
     return aligned_exons_regions_dict

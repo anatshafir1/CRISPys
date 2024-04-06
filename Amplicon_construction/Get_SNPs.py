@@ -13,7 +13,7 @@ def create_snps_dict(fasta_sequences_lst: List, distinct_alleles_num: int) -> Di
     :return:
     """
     snps_dict = {}
-    only_sequences_lst = [fasta_sequences_lst[i] for i in range(1, distinct_alleles_num*2, 2)]
+    only_sequences_lst = [fasta_sequences_lst[i][1] for i in range(distinct_alleles_num)]
     only_sequences_zip = zip(*only_sequences_lst)
     for index, locus in enumerate(only_sequences_zip):
         if not all(locus[0] == nucleotide for nucleotide in locus):
@@ -38,12 +38,18 @@ def snps_dict_to_lst(snps_dict: Dict[int, Tuple[str]]) -> List[SNP_Obj]:
             current_tuple = snps_dict[index]
             list_snps_nuc = [current_tuple.index(nuc) for nuc in current_tuple if nuc != most_common_nuc]
             snp = SNP_Obj(int(index), set(list_snps_nuc))
-            snps_lst += [snp]
+            if snp.position_in_sequence > 18:
+                snps_lst.append(snp)
     return snps_lst
 
 
-def get_snps(gene_sequences_dict: Dict, distinct_alleles_num: int):
+def get_snps(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], distinct_alleles_num: int) -> Dict[int, List[SNP_Obj]]:
+    """
 
+    :param gene_sequences_dict:
+    :param distinct_alleles_num:
+    :return:
+    """
     snps_dict = {}
     for exon_region in gene_sequences_dict:
         curr_exon_region_snps_dict = create_snps_dict(gene_sequences_dict[exon_region], distinct_alleles_num)
