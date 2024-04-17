@@ -4,7 +4,9 @@
 class SNP_Obj:
     """A class representing a Single Nucleotide Polymorphism site in a gene.
         a toy example:
+
         10234, {3}
+
         In this SNP object the polymorphisms occur at position 10234 of the aligned alleles. Allele 1 and 2  are
         similar in their nucleotides in that position, while allele 3 has a different nucleotide in the position.
         """

@@ -1,6 +1,8 @@
 """Extracting target sequences from upstream sites"""
 import regex
 from typing import List, Tuple, Dict
+
+from Amplicon_construction.Target_Obj import Target_Obj
 from Crispys import globals
 
 
@@ -25,7 +27,7 @@ def give_complementary(seq: str) -> str:
     return ''.join(complementary_seq_list)
 
 
-def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int, target_len: int) -> List[Tuple[str, int, int, str]]:
+def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int, target_len: int) -> List[Target_Obj]:
     """
     This function is used to find CRISPR target site sequences from an input DNA sequence. Using regex this
     function searches for all the patterns of 23 letters long strings with all the PAM sequences in 'pams' in their end,
@@ -61,12 +63,12 @@ def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, prim
         found_sense_targets = regex.finditer(compiled, allowed_exon_region_for_targets)
         found_antisense_targets = regex.finditer(compiled, complementary_strand)
 
-        found_targets += [(seq.group(0), target_allowed_start_idx + seq.start(), target_allowed_start_idx + seq.end(), "+") for seq in found_sense_targets if 'N' not in seq.group(0)]
-        found_targets += [(seq.group(0), exon_region_len - target_allowed_start_idx - seq.end(), exon_region_len - target_allowed_start_idx - seq.start(), "-") for seq in found_antisense_targets if 'N' not in seq.group(0)]
-    return sorted(found_targets, key=lambda x: x[1])
+        found_targets += [Target_Obj(seq.group(0), target_allowed_start_idx + seq.start(), target_allowed_start_idx + seq.end(), "+") for seq in found_sense_targets if 'N' not in seq.group(0)]
+        found_targets += [Target_Obj(seq.group(0), exon_region_len - target_allowed_start_idx - seq.end(), exon_region_len - target_allowed_start_idx - seq.start(), "-") for seq in found_antisense_targets if 'N' not in seq.group(0)]
+    return sorted(found_targets, key=lambda target: target.start_idx)
 
 
-def get_targets(gene_sequences_dict: Dict, pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int, target_len: int) -> Dict[int, List[Tuple[str, int, int, str]]]:
+def get_targets(gene_sequences_dict: Dict, pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int, target_len: int) -> Dict[int, List[Target_Obj]]:
     """
 
     :param gene_sequences_dict:
@@ -79,7 +81,7 @@ def get_targets(gene_sequences_dict: Dict, pams: Tuple, max_amplicon_len: int, p
     """
     targets_dict = {}
     for exon_region in gene_sequences_dict:
-        exon_region_seq = gene_sequences_dict[exon_region][1][1]
-        exon_targets_tuple = find_exon_targets(exon_region_seq, pams, max_amplicon_len, primer_length, cut_location, target_len)
-        targets_dict[exon_region] = exon_targets_tuple
+        exon_region_seq = gene_sequences_dict[exon_region][0][1]
+        exon_targets = find_exon_targets(exon_region_seq, pams, max_amplicon_len, primer_length, cut_location, target_len)
+        targets_dict[exon_region] = exon_targets
     return targets_dict

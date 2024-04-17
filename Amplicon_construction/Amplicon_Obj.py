@@ -1,7 +1,8 @@
 """Amplicon class file"""
 from typing import List
 
-from Crispys import globals
+from Amplicon_construction.Primers_Obj import Primers_Obj
+from Amplicon_construction.Target_Obj import Target_Obj
 from Amplicon_construction.SNP_Obj import SNP_Obj
 
 
@@ -12,18 +13,22 @@ class Amplicon_Obj:
 
         """
 
-    def __init__(self, chromosome: int, gene: str, size: int, sgrna: str, primer_length: int, snps: List[SNP_Obj]):
+    def __init__(self, start_idx: int, end_idx: int, snps_median: float, snps_mean: float, target: Target_Obj, snps: List[SNP_Obj], primers: Primers_Obj):
 
-        self.chromosome = chromosome
-        self.gene = gene
-        self.size = size
-        self.sgrna = sgrna
-        self.safety_padding_around_target = globals.safety_padding_around_target
-        self.primer_length = primer_length
+        self.start_idx = start_idx
+        self.end_idx = end_idx
+        self.snps_median = snps_median
+        self.snps_mean = snps_mean
+        self.size = end_idx - start_idx + 1
+        self.target = target
         self.snps = snps
+        self.primers = primers
 
     def __str__(self):
-        return f"{self.chromosome}, {self.gene}, {self.size}, {self.sgrna}, {self.snps}"
+        return f"size: {self.size}, target: <{self.target}>, SNPs: <{self.snps}>, primers: <{self.primers}>"
 
     def __repr__(self):
         return self.__str__()
+
+    def __len__(self):
+        return self.size
