@@ -158,13 +158,13 @@ def extract_exons_regions(max_amplicon_len: int, primer_length: int, cut_locatio
     """
 
     aligned_exons_regions_dict = {}
-    exon_regions_path = out_path + "/exons_regions.fasta"
-    aligned_exons_regions_path = out_path + "/aligned_exons_regions.fasta"
     # create list of DataFrames of every exon in the gene with annotations of their alleles
     exon_regions_lst_df = annotations_to_lst_df(max_amplicon_len, primer_length, cut_location, annotations_file_path,
                                                 distinct_alleles_num)
     sliced_exon_regions_lst_df = exon_regions_lst_df[:math.floor(len(exon_regions_lst_df)*2/3)]  # ###TAKE ONLY FIRST 2/3 EXONS###
     for exon_num, exon_region in enumerate(sliced_exon_regions_lst_df):
+        exon_regions_path = out_path + f"/exon_{exon_num + 1}_regions.fasta"
+        aligned_exons_regions_path = out_path + f"/aligned_exon_{exon_num + 1}_regions.fasta"
         genomic_sites_list = get_genomic_sites(out_path, genome_fasta_file,
                                                exon_region)  # extract exon regions from genome FASTA
         genomic_sites_list_to_fasta(genomic_sites_list, exon_regions_path)  # save exon regions in FASTA file

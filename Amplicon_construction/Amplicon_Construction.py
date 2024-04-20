@@ -2,6 +2,8 @@
 import statistics
 from typing import List, Tuple, Dict
 
+import pandas as pd
+
 from Amplicon_construction.Amplicon_Obj import Amplicon_Obj
 from Amplicon_construction.FindTargets import get_targets
 from Amplicon_construction.GetSequences import extract_exons_regions
@@ -123,8 +125,8 @@ def create_candidate_amplicon(snps_median: float, snps_mean: float, candidate_am
     min_amp_start_index = target.end_idx - max_range_from_target if target.end_idx > last_snp.position_in_sequence else last_snp.position_in_sequence - max_range_from_snp
     max_amp_end_index = target.start_idx + max_range_from_target if target.end_idx < first_snp.position_in_sequence else first_snp.position_in_sequence + max_range_from_snp
     if max_amp_end_index - min_amp_start_index < 200:
-        return Amplicon_Obj(0, 0, 0.0, 0.0, target, candidate_amplicon_snps_lst, None)
-    return Amplicon_Obj(min_amp_start_index, max_amp_end_index, snps_median, snps_mean, target, candidate_amplicon_snps_lst, None)
+        return Amplicon_Obj("", 0, 0, 0.0, 0.0, target, candidate_amplicon_snps_lst, None)
+    return Amplicon_Obj("", min_amp_start_index, max_amp_end_index, snps_median, snps_mean, target, candidate_amplicon_snps_lst, None)
 
 
 def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distinct_alleles_num: int,
@@ -195,6 +197,12 @@ def construct_amplicons(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, s
     return candidate_amplicons_list
 
 
+def save_results_to_csv(res_amplicons_lst, out_path):
+
+    df = pd.DataFrame([amplicon.to_dict() for amplicon in res_amplicons_lst]).reset_index()
+    df.to_csv(out_path + "/results.csv", index=False)
+
+
 def run_all(max_amplicon_len: int, primer_length: int, cut_location: int, annotations_file_path: str,
             out_path: str, genome_fasta_file: str, distinct_alleles_num: int, pams: Tuple, target_len: int,
             primer3_core_path: str, primer3_env_path: str, parameters_file_path: str, in_path: str, n: int):
@@ -231,4 +239,5 @@ def run_all(max_amplicon_len: int, primer_length: int, cut_location: int, annota
     sorted_candidate_amplicons = sorted(candidate_amplicons_list, key=lambda amplicon: (amplicon.snps_median, amplicon.snps_mean), reverse=True)
     amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, sorted_candidate_amplicons, in_path,
                                             primer3_env_path, primer3_core_path, parameters_file_path, n)
+    save_results_to_csv(amplicon_obj_with_primers, out_path)
     return amplicon_obj_with_primers

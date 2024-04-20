@@ -106,7 +106,7 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]], s
             snps_mean = candidate_amplicon.snps_mean
             target = candidate_amplicon.target
             snps = candidate_amplicon.snps
-            amplicon = Amplicon_Obj(start_idx, end_idx, snps_median, snps_mean, target, snps, primers)
+            amplicon = Amplicon_Obj("", start_idx, end_idx, snps_median, snps_mean, target, snps, primers)
             if len(amplicons) < n:
                 amplicons.append(amplicon)
             else:

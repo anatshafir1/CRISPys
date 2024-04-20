@@ -16,7 +16,7 @@ class SNP_Obj:
         self.different_alleles_set = different_alleles_set
 
     def __str__(self):
-        return f"{self.position_in_sequence}, {self.different_alleles_set}"
+        return f"{self.position_in_sequence},{self.different_alleles_set} "
 
     def __repr__(self):
         return self.__str__()
