@@ -13,8 +13,10 @@ class Amplicon_Obj:
 
         """
 
-    def __init__(self, sequence: str, start_idx: int, end_idx: int, snps_median: float, snps_mean: float, target: Target_Obj, snps: List[SNP_Obj], primers: Primers_Obj):
+    def __init__(self, exon_num: int, exon_id: str, sequence: str, start_idx: int, end_idx: int, snps_median: float, snps_mean: float, target: Target_Obj, snps: List[SNP_Obj], primers: Primers_Obj):
 
+        self.exon_num = exon_num
+        self.exon_id = exon_id
         self.sequence = sequence
         self.start_idx = start_idx
         self.end_idx = end_idx

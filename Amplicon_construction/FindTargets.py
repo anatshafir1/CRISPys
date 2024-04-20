@@ -63,8 +63,8 @@ def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, prim
         found_sense_targets = regex.finditer(compiled, allowed_exon_region_for_targets)
         found_antisense_targets = regex.finditer(compiled, complementary_strand)
 
-        found_targets += [Target_Obj(seq.group(0), target_allowed_start_idx + seq.start(), target_allowed_start_idx + seq.end(), "+") for seq in found_sense_targets if 'N' not in seq.group(0)]
-        found_targets += [Target_Obj(seq.group(0), exon_region_len - target_allowed_start_idx - seq.end(), exon_region_len - target_allowed_start_idx - seq.start(), "-") for seq in found_antisense_targets if 'N' not in seq.group(0)]
+        found_targets += [Target_Obj(seq.group(0), target_allowed_start_idx + seq.start(), target_allowed_start_idx + seq.end() - 1, "+") for seq in found_sense_targets if 'N' not in seq.group(0)]
+        found_targets += [Target_Obj(seq.group(0), exon_region_len - target_allowed_start_idx - seq.end(), exon_region_len - target_allowed_start_idx - seq.start() - 1, "-") for seq in found_antisense_targets if 'N' not in seq.group(0)]
     return sorted(found_targets, key=lambda target: target.start_idx)
 
 

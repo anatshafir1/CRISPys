@@ -1,11 +1,13 @@
 from Amplicon_construction.Amplicon_Construction import run_all
 
 
-max_amplicon_len = 300
+max_amplicon_len = 0
 min_primer_len = 18
 cut_location = 7  # number of nucleotides upstream to the PAM (depending on the PAM) sequence where the Cas should cut (negative number if downstream)
-annotations_path = "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/CONSTANS1/CONSTANS1_gene_annotations.txt"
-out_path = "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/CONSTANS1"
+# annotations_path = "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/CONSTANS1/CONSTANS1_gene_annotations.txt"
+annotations_path = "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/PDS/PDS_annotations.txt"
+# out_path = "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/CONSTANS1"
+out_path = "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/PDS"
 genome_fasta_path = "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Banana_GAL.Phased_Scaffolds.fasta"
 num_of_alleles = 3
 target_len = 23

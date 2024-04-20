@@ -107,7 +107,7 @@ def calculate_snps_statistics(valid_snps_for_target, distinct_alleles_num) -> Tu
 
 # noinspection PyTypeChecker
 def create_candidate_amplicon(snps_median: float, snps_mean: float, candidate_amplicon_snps_lst: List[SNP_Obj],
-                              target: Target_Obj, max_amplicon_len: int, primer_length: int) -> Amplicon_Obj:
+                              target: Target_Obj, max_amplicon_len: int, primer_length: int, exon_num: int, current_exon_region_id: str) -> Amplicon_Obj:
     """
 
     :param snps_median:
@@ -116,6 +116,8 @@ def create_candidate_amplicon(snps_median: float, snps_mean: float, candidate_am
     :param target:
     :param max_amplicon_len:
     :param primer_length:
+    :param exon_num:
+    :param current_exon_region_id:
     :return:
     """
     first_snp = candidate_amplicon_snps_lst[0]
@@ -125,13 +127,13 @@ def create_candidate_amplicon(snps_median: float, snps_mean: float, candidate_am
     min_amp_start_index = target.end_idx - max_range_from_target if target.end_idx > last_snp.position_in_sequence else last_snp.position_in_sequence - max_range_from_snp
     max_amp_end_index = target.start_idx + max_range_from_target if target.end_idx < first_snp.position_in_sequence else first_snp.position_in_sequence + max_range_from_snp
     if max_amp_end_index - min_amp_start_index < 200:
-        return Amplicon_Obj("", 0, 0, 0.0, 0.0, target, candidate_amplicon_snps_lst, None)
-    return Amplicon_Obj("", min_amp_start_index, max_amp_end_index, snps_median, snps_mean, target, candidate_amplicon_snps_lst, None)
+        return Amplicon_Obj(exon_num, current_exon_region_id, "", 0, 0, 0.0, 0.0, target, candidate_amplicon_snps_lst, None)
+    return Amplicon_Obj(exon_num, current_exon_region_id, "", min_amp_start_index, max_amp_end_index, snps_median, snps_mean, target, candidate_amplicon_snps_lst, None)
 
 
 def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distinct_alleles_num: int,
                             current_targets_lst: List[Target_Obj], max_amplicon_len: int,
-                            primer_length: int) -> List[Amplicon_Obj]:
+                            primer_length: int, exon_num: int, current_exon_region_id: str) -> List[Amplicon_Obj]:
     """
 
     :param i: index of current SNP
@@ -141,6 +143,8 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
     :param current_targets_lst:
     :param max_amplicon_len:
     :param primer_length:
+    :param exon_num:
+    :param current_exon_region_id:
     :return:
     """
 
@@ -152,7 +156,7 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
             candidate_amplicon_snps_lst = exon_snps_lst[i:j + 1]  # all the SNPs of the Amplicon Candidate
             snps_median, snps_mean = calculate_snps_statistics(valid_snps_for_target, distinct_alleles_num)
             candidate_amplicon = create_candidate_amplicon(snps_median, snps_mean, candidate_amplicon_snps_lst, target,
-                                                           max_amplicon_len, primer_length)
+                                                           max_amplicon_len, primer_length, exon_num, current_exon_region_id)
             if candidate_amplicon.snps_median != 0:
                 candidate_amplicons_list.append(candidate_amplicon)
 
@@ -181,6 +185,7 @@ def construct_amplicons(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, s
     for exon in gene_snps_dict:
         exon_targets_lst = gene_targets_dict[exon]
         current_exon_region = gene_exon_regions_seqs_dict[exon][0][1]
+        current_exon_region_id = gene_exon_regions_seqs_dict[exon][0][0]
         exon_snps_lst = gene_snps_dict[exon]
         max_range_from_snp = min(len(current_exon_region), max_dist_snp)
         for i in range(len(exon_snps_lst)):
@@ -190,7 +195,7 @@ def construct_amplicons(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, s
                 if valid_amplicon(i, j, exon_snps_lst, distinct_alleles_num):  # check if snps i to j are enough do distinct between different alleles
                     current_snp_candidate_amplicons = get_candidate_amplicons(i, j, exon_snps_lst,
                                                                               distinct_alleles_num, exon_targets_lst,
-                                                                              max_amplicon_len, primer_length)
+                                                                              max_amplicon_len, primer_length, exon, current_exon_region_id)
                     candidate_amplicons_list.extend(current_snp_candidate_amplicons)
                 j += 1
 
@@ -203,13 +208,13 @@ def save_results_to_csv(res_amplicons_lst, out_path):
     df.to_csv(out_path + "/results.csv", index=False)
 
 
-def run_all(max_amplicon_len: int, primer_length: int, cut_location: int, annotations_file_path: str,
+def run_all(max_amplicon_len_category: int, primer_length: int, cut_location: int, annotations_file_path: str,
             out_path: str, genome_fasta_file: str, distinct_alleles_num: int, pams: Tuple, target_len: int,
             primer3_core_path: str, primer3_env_path: str, parameters_file_path: str, in_path: str, n: int):
     """
 
 
-    :param max_amplicon_len: maximum length of the amplicon, defined by user
+    :param max_amplicon_len_category: category of maximum length of the amplicon, defined by user
     :param primer_length: minimum length of the primer sequence, defined by the user in the algorithm run
     :param cut_location: number of nucleotides upstream to the PAM sequence where the Cas should cut (negative number if downstream)
     :param annotations_file_path: path to GFF file with annotations of the genome
@@ -225,7 +230,8 @@ def run_all(max_amplicon_len: int, primer_length: int, cut_location: int, annota
     :param n: desired maximum number of amplicons to return
     :return:
     """
-
+    amplicon_ranges = [(200, 300), (300, 500), (500, 1000)]
+    max_amplicon_len = max(amplicon_ranges[max_amplicon_len_category])
     gene_exon_regions_seqs_dict = extract_exons_regions(max_amplicon_len, primer_length, cut_location,
                                                         annotations_file_path,
                                                         out_path, genome_fasta_file, distinct_alleles_num)
@@ -238,6 +244,14 @@ def run_all(max_amplicon_len: int, primer_length: int, cut_location: int, annota
                                                    distinct_alleles_num)
     sorted_candidate_amplicons = sorted(candidate_amplicons_list, key=lambda amplicon: (amplicon.snps_median, amplicon.snps_mean), reverse=True)
     amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, sorted_candidate_amplicons, in_path,
-                                            primer3_env_path, primer3_core_path, parameters_file_path, n)
-    save_results_to_csv(amplicon_obj_with_primers, out_path)
-    return amplicon_obj_with_primers
+                                            primer3_env_path, primer3_core_path, parameters_file_path, n, amplicon_ranges[max_amplicon_len_category])
+    if len(amplicon_obj_with_primers) > 0:
+        save_results_to_csv(amplicon_obj_with_primers, out_path)
+        return amplicon_obj_with_primers
+    else:
+        if max_amplicon_len_category < 2:
+            run_all(max_amplicon_len_category+1, primer_length, cut_location, annotations_file_path,
+            out_path, genome_fasta_file, distinct_alleles_num, pams, target_len,
+            primer3_core_path, primer3_env_path, parameters_file_path, in_path, n)
+        else:
+            print("No amplicons found")
