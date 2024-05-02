@@ -1,9 +1,9 @@
 """Amplicon class file"""
 from typing import List
 
-from Amplicon_construction.Primers_Obj import Primers_Obj
-from Amplicon_construction.Target_Obj import Target_Obj
-from Amplicon_construction.SNP_Obj import SNP_Obj
+from Primers_Obj import Primers_Obj
+from Target_Obj import Target_Obj
+from SNP_Obj import SNP_Obj
 
 
 class Amplicon_Obj:

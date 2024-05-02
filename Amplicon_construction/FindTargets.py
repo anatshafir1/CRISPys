@@ -2,8 +2,7 @@
 import regex
 from typing import List, Tuple, Dict
 
-from Amplicon_construction.Target_Obj import Target_Obj
-from Crispys import globals
+from Target_Obj import Target_Obj
 
 
 def give_complementary(seq: str) -> str:
@@ -47,7 +46,7 @@ def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, prim
 
     exon_region_len = len(exon_region)
     # calculate range of intron sites that are allowed be used to construct an amplicon, but where sgRNA target sites are now allowed
-    intron_region_added = max_amplicon_len - primer_length - cut_location - globals.safety_padding_around_target  # 255 by default
+    intron_region_added = max_amplicon_len - primer_length - cut_location - 20  # 255 by default
     target_allowed_start_idx = intron_region_added - target_len + cut_location  # 239 by default
     target_allowed_end_idx = exon_region_len - intron_region_added
     allowed_exon_region_for_targets = exon_region[target_allowed_start_idx: target_allowed_end_idx]

@@ -1,14 +1,14 @@
 import subprocess
 from typing import Tuple, List, Dict
-from Crispys import globals
-from Amplicon_construction.Amplicon_Obj import Amplicon_Obj
-from Amplicon_construction.Primers_Obj import Primers_Obj
+
+from Amplicon_Obj import Amplicon_Obj
+from Primers_Obj import Primers_Obj
 
 
 def run_primer3(env_name: str, primer3_core: str, parameters_file: str) -> str:
     try:
         # activate the primer3 environment and run primer3
-        result = subprocess.run(f"source activate {env_name} && {primer3_core} {parameters_file}", shell=True,
+        result = subprocess.run(f"{primer3_core} {parameters_file}", shell=True,
                                 capture_output=True, text=True, check=True)
         output = result.stdout
         return output
@@ -82,7 +82,7 @@ def modify_primer3_input(exon_region_seq: str, candidate_amplicon: Amplicon_Obj,
     """
     seq_id = "gene_id"
     seq = exon_region_seq[candidate_amplicon.start_idx:candidate_amplicon.end_idx + 1]
-    seg_target = f"{candidate_amplicon.target.start_idx - candidate_amplicon.start_idx - globals.safety_padding_around_target},{candidate_amplicon.target.length + 2*globals.safety_padding_around_target}"
+    seg_target = f"{candidate_amplicon.target.start_idx - candidate_amplicon.start_idx - 20},{candidate_amplicon.target.length + 2*20}"
     product_range = f"{amplicon_range[0]}-{amplicon_range[1]}"
     excluded_ranges = ""
     for snp in candidate_amplicon.snps:

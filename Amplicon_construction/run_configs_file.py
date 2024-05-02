@@ -2,7 +2,7 @@ import argparse
 
 import yaml
 
-from Amplicon_construction import AmpliconConstruction
+import AmpliconConstruction
 
 
 def main(configs_file):
@@ -16,7 +16,7 @@ def main(configs_file):
 
 
 def parse_arguments(parser_obj: argparse.ArgumentParser):
-    parser_obj.add_argument('configs_file', '-c', type=str, help='configurations file path')
+    parser_obj.add_argument('--configs_file', '-c', type=str, help='configurations file path')
     arguments = parser_obj.parse_args()
     return arguments
 

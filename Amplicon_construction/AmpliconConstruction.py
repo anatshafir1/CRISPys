@@ -4,14 +4,16 @@ from typing import List, Tuple, Dict
 
 import pandas as pd
 
-from Amplicon_construction.Amplicon_Obj import Amplicon_Obj
-from Amplicon_construction.FindTargets import get_targets
-from Amplicon_construction.GetSequences import extract_exons_regions
-from Amplicon_construction.Get_SNPs import get_snps
-from Amplicon_construction.SNP_Obj import SNP_Obj
-from Amplicon_construction.Target_Obj import Target_Obj
-from Amplicon_construction.primer3 import get_primers
-from Crispys import globals
+from Amplicon_Obj import Amplicon_Obj
+from FindTargets import get_targets
+from GetSequences import extract_exons_regions
+from Get_SNPs import get_snps
+from primer3 import get_primers
+from SNP_Obj import SNP_Obj
+from Target_Obj import Target_Obj
+
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def get_relevant_targets(gene_targets_dict: Dict[int, List[Target_Obj]], gene_snps_dict: Dict[int, List[SNP_Obj]]) -> Dict[int, List[Target_Obj]]:
@@ -77,8 +79,8 @@ def valid_sgrna_target(i: int, j: int, exon_snps_list: List[SNP_Obj], distinct_a
         return []
     # Create a list of SNPs that can be used to calculate the Amplicon statistics (SNPs that don't fall on the region around the target)
     for k in range(i, j + 1):
-        if not curr_target.start_idx - globals.safety_padding_around_target <= exon_snps_list[k].position_in_sequence <= \
-               curr_target.end_idx + globals.safety_padding_around_target:
+        if not curr_target.start_idx - 20 <= exon_snps_list[k].position_in_sequence <= \
+               curr_target.end_idx + 20:
             valid_snps_list.append(exon_snps_list[k])
     if len(valid_snps_list) == 0:
         return []
@@ -123,7 +125,7 @@ def create_candidate_amplicon(snps_median: float, snps_mean: float, candidate_am
     first_snp = candidate_amplicon_snps_lst[0]
     last_snp = candidate_amplicon_snps_lst[-1]
     max_range_from_snp = max_amplicon_len - primer_length - 1
-    max_range_from_target = max_amplicon_len - globals.safety_padding_around_target - primer_length
+    max_range_from_target = max_amplicon_len - 20 - primer_length
     min_amp_start_index = target.end_idx - max_range_from_target if target.end_idx > last_snp.position_in_sequence else last_snp.position_in_sequence - max_range_from_snp
     max_amp_end_index = target.start_idx + max_range_from_target if target.end_idx < first_snp.position_in_sequence else first_snp.position_in_sequence + max_range_from_snp
     if max_amp_end_index - min_amp_start_index < 200:

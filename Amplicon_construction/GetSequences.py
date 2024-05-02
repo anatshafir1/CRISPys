@@ -8,9 +8,10 @@ from Bio.Align.Applications import MafftCommandline
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from Crispys import globals
 import pandas as pd
 from pandas import DataFrame
+import warnings
+warnings.filterwarnings("ignore")
 
 
 # noinspection PyTypeChecker
@@ -73,7 +74,7 @@ def annotations_to_lst_df(max_amplicon_len: int, primer_length: int, cut_locatio
     filtered_by_exon = annotations_df[annotations_df['feature'] == 'exon']
     add_id_parent_columns(filtered_by_exon)  # add columns of ID and Parent
     # calculate the maximum range upstream and downstream the exon, which are intron sites that are allowed be used to construct an amplicon
-    exon_surrounding_seq_len = max_amplicon_len - cut_location - globals.safety_padding_around_target - primer_length
+    exon_surrounding_seq_len = max_amplicon_len - cut_location - 20 - primer_length
     # calculate the new start and end indexes of the sequence to extract from the genome fasta file
     filtered_by_exon['new_start'] = filtered_by_exon.apply(lambda x: x['start'] - exon_surrounding_seq_len - 1, axis=1)
     filtered_by_exon['new_end'] = filtered_by_exon.apply(lambda x: x['end'] + exon_surrounding_seq_len, axis=1)
@@ -109,7 +110,7 @@ def get_genomic_sites(out_path: str, fasta_file: str, filtered_gene_df) -> List[
                             header=False, index=False)
     bed_file = out_path + "/genomic_sites.bed"
     # run bedtools
-    seq = subprocess.run(['bedtools', 'getfasta', '-fi', fasta_file, '-bed', bed_file, '-nameOnly', '-s'],
+    seq = subprocess.run(['bedtools', 'getfasta', '-fi', fasta_file, '-bed', bed_file, '-name', '-s'],
                          stdout=subprocess.PIPE)
     sites_list = seq.stdout.decode().split()
     return sites_list

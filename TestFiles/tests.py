@@ -24,4 +24,4 @@ from Amplicon_construction.run_configs_file import main
 # whatever = get_amplicons(max_amplicon_len, min_primer_len, cut_location, annotations_path, out_path, genome_fasta_path,
 #                          num_of_alleles, pams, target_len, primer3_core_path, primer3_env_path, parameters_file_path, in_path, max_amplicons)
 
-main()
+main("/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/sgRNA_polyploids_design_code/Amplicon_construction/configs_file.yml")

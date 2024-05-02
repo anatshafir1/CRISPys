@@ -2,7 +2,7 @@
 from typing import List, Dict, Tuple
 from collections import Counter
 
-from Amplicon_construction.SNP_Obj import SNP_Obj
+from SNP_Obj import SNP_Obj
 
 
 def create_snps_dict(fasta_sequences_lst: List, distinct_alleles_num: int) -> Dict[int, Tuple[str]]:
