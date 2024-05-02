@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="681cba54-f7b4-4002-8eb6-731b611a6f00" name="Polyploids_sgRNA_design">
+        <fileTransfer rootFolder="/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/sgRNA_polyploids_design_code" accessType="SFTP" host="powerlogin.tau.ac.il" port="22" sshConfigId="05aa6090-247b-4f94-823a-0af62a0e203d" sshConfig="josefbrook@powerlogin.tau.ac.il:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

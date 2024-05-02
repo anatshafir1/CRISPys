@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="RemoteMappingsManager">
+    <list>
+      <list>
+        <remote-mappings server-id="python@sftp://josefbrook@powerlogin.tau.ac.il:22/groups/itay_mayrose/josefbrook/miniconda3/envs/sgRNA_Polyploids_Design/bin/python" />
+      </list>
+    </list>
+  </component>
+</project>
