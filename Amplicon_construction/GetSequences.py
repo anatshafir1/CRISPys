@@ -69,7 +69,7 @@ def annotations_to_lst_df(max_amplicon_len: int, primer_length: int, cut_locatio
     :return: a list of DataFrames, each with annotations of all the alleles of a single exon in the gene
     """
     annotations_df = pd.read_csv(annotations_file_path,
-                                 sep='\s{2,}')  # sep='\s{2,}' uses a regular expression to match two or more whitespace characters as the separator
+                                 sep='\s{2,}|\t')  # sep='\s{2,}' uses a regular expression to match two or more whitespace characters as the separator
     filtered_by_exon = annotations_df[annotations_df['feature'] == 'exon']
     add_id_parent_columns(filtered_by_exon)  # add columns of ID and Parent
     # calculate the maximum range upstream and downstream the exon, which are intron sites that are allowed be used to construct an amplicon

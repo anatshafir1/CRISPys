@@ -208,9 +208,9 @@ def save_results_to_csv(res_amplicons_lst, out_path):
     df.to_csv(out_path + "/results.csv", index=False)
 
 
-def run_all(max_amplicon_len_category: int, primer_length: int, cut_location: int, annotations_file_path: str,
-            out_path: str, genome_fasta_file: str, distinct_alleles_num: int, pams: Tuple, target_len: int,
-            primer3_core_path: str, primer3_env_path: str, parameters_file_path: str, in_path: str, n: int):
+def get_amplicons(max_amplicon_len_category: int, primer_length: int, cut_location: int, annotations_file_path: str,
+                  out_path: str, genome_fasta_file: str, distinct_alleles_num: int, pams: Tuple, target_len: int,
+                  primer3_core_path: str, primer3_env_path: str, n: int):
     """
 
 
@@ -223,15 +223,13 @@ def run_all(max_amplicon_len_category: int, primer_length: int, cut_location: in
     :param distinct_alleles_num: number of distinct alleles of the gene
     :param pams:
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer
-    :param parameters_file_path:
     :param primer3_env_path:
     :param primer3_core_path:
-    :param in_path:
     :param n: desired maximum number of amplicons to return
     :return:
     """
     amplicon_ranges = [(200, 300), (300, 500), (500, 1000)]
-    max_amplicon_len = max(amplicon_ranges[max_amplicon_len_category])
+    max_amplicon_len = max(amplicon_ranges[max_amplicon_len_category - 1])
     gene_exon_regions_seqs_dict = extract_exons_regions(max_amplicon_len, primer_length, cut_location,
                                                         annotations_file_path,
                                                         out_path, genome_fasta_file, distinct_alleles_num)
@@ -243,15 +241,15 @@ def run_all(max_amplicon_len_category: int, primer_length: int, cut_location: in
                                                    relevant_gene_targets_dict, max_amplicon_len, primer_length,
                                                    distinct_alleles_num)
     sorted_candidate_amplicons = sorted(candidate_amplicons_list, key=lambda amplicon: (amplicon.snps_median, amplicon.snps_mean), reverse=True)
-    amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, sorted_candidate_amplicons, in_path,
-                                            primer3_env_path, primer3_core_path, parameters_file_path, n, amplicon_ranges[max_amplicon_len_category])
+    amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, sorted_candidate_amplicons, out_path,
+                                            primer3_env_path, primer3_core_path, n, amplicon_ranges[max_amplicon_len_category])
     if len(amplicon_obj_with_primers) > 0:
         save_results_to_csv(amplicon_obj_with_primers, out_path)
         return amplicon_obj_with_primers
     else:
-        if max_amplicon_len_category < 2:
-            run_all(max_amplicon_len_category+1, primer_length, cut_location, annotations_file_path,
-            out_path, genome_fasta_file, distinct_alleles_num, pams, target_len,
-            primer3_core_path, primer3_env_path, parameters_file_path, in_path, n)
+        if max_amplicon_len_category < 3:
+            get_amplicons(max_amplicon_len_category + 1, primer_length, cut_location, annotations_file_path,
+                          out_path, genome_fasta_file, distinct_alleles_num, pams, target_len,
+                          primer3_core_path, primer3_env_path, n)
         else:
             print("No amplicons found")

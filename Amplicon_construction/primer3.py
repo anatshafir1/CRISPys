@@ -18,7 +18,7 @@ def run_primer3(env_name: str, primer3_core: str, parameters_file: str) -> str:
         print(e)
 
 
-def create_param_file(in_path: str, seq_id: str, seq: str, seg_target: str, product_range: str, excluded: str) -> None:
+def create_param_file(parameters_file_path: str, seq_id: str, seq: str, seg_target: str, product_range: str, excluded: str) -> None:
     params = [f"SEQUENCE_ID={seq_id}",
               f"SEQUENCE_TEMPLATE={seq}",
               f"SEQUENCE_TARGET={seg_target}",
@@ -31,7 +31,7 @@ def create_param_file(in_path: str, seq_id: str, seq: str, seg_target: str, prod
               f"PRIMER_EXPLAIN_FLAG=1",
               "="]
 
-    with open(in_path + "/param_primer1", "w") as param_file:
+    with open(parameters_file_path, "w") as param_file:
         params_str = '\n'.join(map(str, params))
         param_file.write(params_str)
 
@@ -91,17 +91,16 @@ def modify_primer3_input(exon_region_seq: str, candidate_amplicon: Amplicon_Obj,
 
 
 def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]], sorted_candidate_amplicons: List[Amplicon_Obj],
-                in_path: str, primer3_env_path: str, primer3_core_path: str, parameters_file_path: str, n: int, amplicon_range) -> \
+                out_path: str, primer3_env_path: str, primer3_core_path: str, n: int, amplicon_range) -> \
                 List[Amplicon_Obj]:
     """
 
 
     :param gene_exon_regions_seqs_dict:
     :param sorted_candidate_amplicons:
-    :param in_path:
+    :param out_path:
     :param primer3_env_path:
     :param primer3_core_path:
-    :param parameters_file_path:
     :param n:
     :param amplicon_range:
     :return:
@@ -109,8 +108,9 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]], s
     amplicons = []
     for candidate_amplicon in sorted_candidate_amplicons:
         exon_num = candidate_amplicon.exon_num
+        parameters_file_path = out_path + "/param_primer"
         seq_id, seq, seg_target, product_range, excluded_ranges = modify_primer3_input(gene_exon_regions_seqs_dict[exon_num][0][1], candidate_amplicon, amplicon_range)
-        create_param_file(in_path, seq_id, seq, seg_target, product_range, excluded_ranges)
+        create_param_file(parameters_file_path, seq_id, seq, seg_target, product_range, excluded_ranges)
         primer3_res = run_primer3(primer3_env_path, primer3_core_path, parameters_file_path)
         if "PRIMER_LEFT_0" in primer3_res:
             primers = handle_primer3_output(primer3_res, candidate_amplicon)
