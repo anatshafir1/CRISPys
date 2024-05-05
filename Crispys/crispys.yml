@@ -18,3 +18,4 @@ dependencies:
   - tensorflow=2.4.1
   - h5py=2.10.0
   - numpy=1.19.5
+  - bedtools=2.31.1

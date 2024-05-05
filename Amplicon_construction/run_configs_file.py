@@ -11,7 +11,7 @@ def main(configs_file):
 
     amps = AmpliconConstruction.get_amplicons(data["max_amplicon_len"], data["min_primer_len"], data["cut_location"], data["annotations_path"],
                   data["out_path"], data["genome_fasta_path"], data["num_of_alleles"], tuple(data["pams"].split(",")),
-                  data["target_len"], data["primer3_core_path"], data["primer3_env_path"], data["max_amplicons"])
+                  data["target_len"], data["primer3_core_path"], data["max_amplicons"])
     return amps
 
 

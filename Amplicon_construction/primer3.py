@@ -5,16 +5,16 @@ from Amplicon_Obj import Amplicon_Obj
 from Primers_Obj import Primers_Obj
 
 
-def run_primer3(env_name: str, primer3_core: str, parameters_file: str) -> str:
+def run_primer3(primer3_core: str, parameters_file: str) -> str:
     try:
-        # activate the primer3 environment and run primer3
+        # run primer3
         result = subprocess.run(f"{primer3_core} {parameters_file}", shell=True,
                                 capture_output=True, text=True, check=True)
         output = result.stdout
         return output
 
     except subprocess.CalledProcessError as e:
-        print(f"Error activating Conda environment: {env_name}")
+        print(f"Error running {primer3_core}")
         print(e)
 
 
@@ -84,14 +84,12 @@ def modify_primer3_input(exon_region_seq: str, candidate_amplicon: Amplicon_Obj,
     seq = exon_region_seq[candidate_amplicon.start_idx:candidate_amplicon.end_idx + 1]
     seg_target = f"{candidate_amplicon.target.start_idx - candidate_amplicon.start_idx - 20},{candidate_amplicon.target.length + 2*20}"
     product_range = f"{amplicon_range[0]}-{amplicon_range[1]}"
-    excluded_ranges = ""
-    for snp in candidate_amplicon.snps:
-        excluded_ranges += f"{snp.position_in_sequence - candidate_amplicon.start_idx},1 "
-    return seq_id, seq, seg_target, product_range, excluded_ranges[:-1]
+    excluded_ranges = f"{candidate_amplicon.snps[0].position_in_sequence},{candidate_amplicon.snps[-1].position_in_sequence-candidate_amplicon.snps[0].position_in_sequence+1}"
+    return seq_id, seq, seg_target, product_range, excluded_ranges
 
 
 def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]], sorted_candidate_amplicons: List[Amplicon_Obj],
-                out_path: str, primer3_env_path: str, primer3_core_path: str, n: int, amplicon_range) -> \
+                out_path: str, primer3_core_path: str, n: int, amplicon_range) -> \
                 List[Amplicon_Obj]:
     """
 
@@ -99,7 +97,6 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]], s
     :param gene_exon_regions_seqs_dict:
     :param sorted_candidate_amplicons:
     :param out_path:
-    :param primer3_env_path:
     :param primer3_core_path:
     :param n:
     :param amplicon_range:
@@ -111,7 +108,7 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]], s
         parameters_file_path = out_path + "/param_primer"
         seq_id, seq, seg_target, product_range, excluded_ranges = modify_primer3_input(gene_exon_regions_seqs_dict[exon_num][0][1], candidate_amplicon, amplicon_range)
         create_param_file(parameters_file_path, seq_id, seq, seg_target, product_range, excluded_ranges)
-        primer3_res = run_primer3(primer3_env_path, primer3_core_path, parameters_file_path)
+        primer3_res = run_primer3(primer3_core_path, parameters_file_path)
         if "PRIMER_LEFT_0" in primer3_res:
             primers = handle_primer3_output(primer3_res, candidate_amplicon)
             exon_id = candidate_amplicon.exon_id

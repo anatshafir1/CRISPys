@@ -1,14 +1,13 @@
 max_amplicon_len: 1
 min_primer_len: 18
 cut_location: 7  # number of nucleotides upstream to the PAM (depending on the PAM) sequence where the Cas should cut (negative number if downstream)
-annotations_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/MLO/MLO_annotations.txt"
-out_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/MLO"
+annotations_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/PDS/PDS_annotations.txt"
+out_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/PDS"
 genome_fasta_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Banana_GAL.Phased_Scaffolds.fasta"
 num_of_alleles: 3
 pams: "AGG,TGG,CGG,GGG"
 target_len: 23
 
 primer3_core_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/sgRNA_polyploids_design_code/Amplicon_construction/primer3/src/primer3_core"
-primer3_env_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/sgRNA_polyploids_design_code/Amplicon_construction/primer3/"
 
 max_amplicons: 5
