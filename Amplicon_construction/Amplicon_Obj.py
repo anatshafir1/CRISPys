@@ -13,22 +13,23 @@ class Amplicon_Obj:
 
         """
 
-    def __init__(self, exon_num: int, exon_id: str, sequence: str, start_idx: int, end_idx: int, snps_median: float, snps_mean: float, target: Target_Obj, snps: List[SNP_Obj], primers: Primers_Obj):
+    def __init__(self, exon_num: int, scaffold: str, strand: str, sequence: str, start_idx: int, end_idx: int, snps_median: float, snps_mean: float, target: Target_Obj, snps: List[SNP_Obj], primers: Primers_Obj):
 
+        self.scaffold = scaffold
+        self.strand = strand
         self.exon_num = exon_num
-        self.exon_id = exon_id
         self.sequence = sequence
         self.start_idx = start_idx
         self.end_idx = end_idx
+        self.size = end_idx - start_idx + 1
         self.snps_median = snps_median
         self.snps_mean = snps_mean
-        self.size = end_idx - start_idx + 1
         self.target = target
         self.snps = snps
         self.primers = primers
 
     def __str__(self):
-        return f"size: {self.size}, target: <{self.target}>, SNPs: <{self.snps}>, primers: <{self.primers}>"
+        return f"scaffold: {self.scaffold}, size: {self.size}, target: <{self.target}>, SNPs: <{self.snps}>, primers: <{self.primers}>"
 
     def __repr__(self):
         return self.__str__()
@@ -49,3 +50,7 @@ class Amplicon_Obj:
         self_dict.update(self.target.to_dict())
         self_dict.update(self.primers.to_dict())
         return self_dict
+
+    def update_snps_indices(self, length_to_subtract):
+        for snp in self.snps:
+            snp.update_snp_index(length_to_subtract)

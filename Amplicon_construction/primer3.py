@@ -2,6 +2,8 @@ import subprocess
 from typing import Tuple, List, Dict
 
 from Amplicon_Obj import Amplicon_Obj
+from Amplicon_construction.SNP_Obj import SNP_Obj
+from Amplicon_construction.Target_Obj import Target_Obj
 from Primers_Obj import Primers_Obj
 
 
@@ -36,11 +38,10 @@ def create_param_file(parameters_file_path: str, seq_id: str, seq: str, seg_targ
         param_file.write(params_str)
 
 
-def handle_primer3_output(output: str, candidate_amplicon: Amplicon_Obj) -> Primers_Obj:
+def handle_primer3_output(output: str) -> Primers_Obj:
     """
 
     :param output:
-    :param candidate_amplicon:
     :return:
     """
     primer_penalty = 0
@@ -48,8 +49,8 @@ def handle_primer3_output(output: str, candidate_amplicon: Amplicon_Obj) -> Prim
     right_sequence = ""
     left_start_idx = 0
     right_start_idx = 0
-    left_length = 0
-    right_length = 0
+    left_tm = 0.0
+    right_tm = 0.0
     output_lst = output.split("\n")
     for i in range(5):
         for line in output_lst:
@@ -61,36 +62,69 @@ def handle_primer3_output(output: str, candidate_amplicon: Amplicon_Obj) -> Prim
                 right_sequence = line.split("=")[1]
             elif line.startswith(f"PRIMER_LEFT_{i}="):
                 left_idx_len = line.split("=")[1]
-                left_start_idx = int(left_idx_len.split(",")[0]) + candidate_amplicon.start_idx
-                left_length = int(left_idx_len.split(",")[1])
+                left_start_idx = int(left_idx_len.split(",")[0])
             elif line.startswith(f"PRIMER_RIGHT_{i}="):
                 right_idx_len = line.split("=")[1]
-                right_start_idx = int(right_idx_len.split(",")[0]) + candidate_amplicon.start_idx
-                right_length = int(right_idx_len.split(",")[1])
-
-    primers = Primers_Obj(primer_penalty, left_sequence, right_sequence, left_start_idx, left_length, right_start_idx, right_length)
+                right_start_idx = int(right_idx_len.split(",")[0])
+            elif line.startswith(f"PRIMER_LEFT_{i}_TM="):
+                left_tm = line.split("=")[1]
+            elif line.startswith(f"PRIMER_RIGHT_{i}_TM="):
+                right_tm = line.split("=")[1]
+    primers = Primers_Obj(primer_penalty, left_sequence, right_sequence, left_start_idx, left_tm, right_start_idx, right_tm)
     return primers
 
 
-def modify_primer3_input(exon_region_seq: str, candidate_amplicon: Amplicon_Obj, amplicon_range) -> Tuple[str, str, str, str, str]:
+def modify_primer3_input(exon_region_seq: str, candidate_amplicon: Amplicon_Obj, amplicon_range, target_surrounding_region: int) -> Tuple[str, str, str, str, str]:
     """
 
     :param exon_region_seq:
     :param candidate_amplicon:
     :param amplicon_range:
+    :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :return:
     """
     seq_id = "gene_id"
     seq = exon_region_seq[candidate_amplicon.start_idx:candidate_amplicon.end_idx + 1]
-    seg_target = f"{candidate_amplicon.target.start_idx - candidate_amplicon.start_idx - 20},{candidate_amplicon.target.length + 2*20}"
+    seg_target = f"{candidate_amplicon.target.start_idx - candidate_amplicon.start_idx - target_surrounding_region},{len(candidate_amplicon.target) + 2*target_surrounding_region}"
     product_range = f"{amplicon_range[0]}-{amplicon_range[1]}"
     excluded_ranges = f"{candidate_amplicon.snps[0].position_in_sequence},{candidate_amplicon.snps[-1].position_in_sequence-candidate_amplicon.snps[0].position_in_sequence+1}"
     return seq_id, seq, seg_target, product_range, excluded_ranges
 
 
+def build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i: int, exon_num: int) -> Amplicon_Obj:
+    exon_region_params = gene_exon_regions_seqs_dict[exon_num][i][0].split(":")
+    scaffold = exon_region_params[0][1:]
+    scaffold_strand = exon_region_params[1][-2:-1]
+    original_exon_region_start_idx = int(exon_region_params[1][:-3].split("-")[0]) + 1
+    original_exon_region_end_idx = int(exon_region_params[1][:-3].split("-")[1])
+
+    if scaffold_strand == "+":  # Amplicon's allele on genome forward strand
+        amplicon_start_idx = primers.left_start_idx + candidate_amplicon.start_idx + original_exon_region_start_idx
+        amplicon_end_idx = primers.right_start_idx + candidate_amplicon.start_idx + original_exon_region_start_idx
+        target_start_idx = original_exon_region_start_idx + candidate_amplicon.target.start_idx
+        target_end_idx = original_exon_region_start_idx + candidate_amplicon.target.end_idx
+    else:  # scaffold_strand == "-". Amplicon's allele on genome reverse strand
+        amplicon_start_idx = original_exon_region_end_idx - candidate_amplicon.start_idx - primers.right_start_idx
+        amplicon_end_idx = original_exon_region_end_idx - candidate_amplicon.start_idx - primers.left_start_idx
+        target_start_idx = original_exon_region_end_idx - candidate_amplicon.target.end_idx
+        target_end_idx = original_exon_region_end_idx - candidate_amplicon.target.start_idx
+
+    sequence = gene_exon_regions_seqs_dict[exon_num][i][1][candidate_amplicon.start_idx + primers.left_start_idx: candidate_amplicon.start_idx + primers.right_start_idx + 1]
+    snps_median = candidate_amplicon.snps_median
+    snps_mean = candidate_amplicon.snps_mean
+    target_strand = "+" if candidate_amplicon.target.strand == scaffold_strand else "-"
+    new_target = Target_Obj(candidate_amplicon.target.seq, target_start_idx, target_end_idx, target_strand)
+    snps = [SNP_Obj(snp.position_in_sequence, snp.different_alleles_set) for snp in candidate_amplicon.snps]
+    amplicon = Amplicon_Obj(exon_num, scaffold, scaffold_strand, sequence, amplicon_start_idx, amplicon_end_idx, snps_median, snps_mean,
+                            new_target, snps, primers)
+    amplicon.update_snps_indices(candidate_amplicon.start_idx + primers.left_start_idx)
+
+    return amplicon
+
+
 def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]], sorted_candidate_amplicons: List[Amplicon_Obj],
-                out_path: str, primer3_core_path: str, n: int, amplicon_range) -> \
-                List[Amplicon_Obj]:
+                out_path: str, primer3_core_path: str, n: int, amplicon_range: Tuple[int, int], distinct_alleles_num: int,
+                target_surrounding_region: int) -> List[Amplicon_Obj]:
     """
 
 
@@ -100,27 +134,24 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]], s
     :param primer3_core_path:
     :param n:
     :param amplicon_range:
+    :param distinct_alleles_num:
+    :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :return:
     """
     amplicons = []
     for candidate_amplicon in sorted_candidate_amplicons:
         exon_num = candidate_amplicon.exon_num
         parameters_file_path = out_path + "/param_primer"
-        seq_id, seq, seg_target, product_range, excluded_ranges = modify_primer3_input(gene_exon_regions_seqs_dict[exon_num][0][1], candidate_amplicon, amplicon_range)
+        seq_id, seq, seg_target, product_range, excluded_ranges = modify_primer3_input(gene_exon_regions_seqs_dict[exon_num][0][1], candidate_amplicon, amplicon_range, target_surrounding_region)
         create_param_file(parameters_file_path, seq_id, seq, seg_target, product_range, excluded_ranges)
         primer3_res = run_primer3(primer3_core_path, parameters_file_path)
         if "PRIMER_LEFT_0" in primer3_res:
-            primers = handle_primer3_output(primer3_res, candidate_amplicon)
-            exon_id = candidate_amplicon.exon_id
-            start_idx = primers.left_start_idx
-            end_idx = primers.right_start_idx
-            snps_median = candidate_amplicon.snps_median
-            snps_mean = candidate_amplicon.snps_mean
-            target = candidate_amplicon.target
-            snps = candidate_amplicon.snps
-            amplicon = Amplicon_Obj(exon_num, exon_id, "", start_idx, end_idx, snps_median, snps_mean, target, snps, primers)
-            if len(amplicons) < n:
-                amplicons.append(amplicon)
-            else:
-                break
+            primers = handle_primer3_output(primer3_res)
+
+            for i in range(distinct_alleles_num):
+                amplicon = build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i, exon_num)
+                if len(amplicons) < n*distinct_alleles_num:
+                    amplicons.append(amplicon)
+                else:
+                    break
     return amplicons

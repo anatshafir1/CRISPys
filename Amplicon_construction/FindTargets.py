@@ -26,7 +26,8 @@ def give_complementary(seq: str) -> str:
     return ''.join(complementary_seq_list)
 
 
-def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int, target_len: int) -> List[Target_Obj]:
+def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int,
+                      target_surrounding_region: int, target_len: int) -> List[Target_Obj]:
     """
     This function is used to find CRISPR target site sequences from an input DNA sequence. Using regex this
     function searches for all the patterns of 23 letters long strings with all the PAM sequences in 'pams' in their end,
@@ -38,6 +39,7 @@ def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, prim
     :param primer_length:
     :param max_amplicon_len:
     :param pams: type of PAM
+    :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer
     :return: a list of targets sequences that CRISPR can target as tuples of target sequence, target start, target end, strand (relative to given exon_region sequence)
     """
@@ -46,7 +48,7 @@ def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, prim
 
     exon_region_len = len(exon_region)
     # calculate range of intron sites that are allowed be used to construct an amplicon, but where sgRNA target sites are now allowed
-    intron_region_added = max_amplicon_len - primer_length - cut_location - 20  # 255 by default
+    intron_region_added = max_amplicon_len - primer_length - cut_location - target_surrounding_region  # 255 by default
     target_allowed_start_idx = intron_region_added - target_len + cut_location  # 239 by default
     target_allowed_end_idx = exon_region_len - intron_region_added
     allowed_exon_region_for_targets = exon_region[target_allowed_start_idx: target_allowed_end_idx]
@@ -67,7 +69,8 @@ def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, prim
     return sorted(found_targets, key=lambda target: target.start_idx)
 
 
-def get_targets(gene_sequences_dict: Dict, pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int, target_len: int) -> Dict[int, List[Target_Obj]]:
+def get_targets(gene_sequences_dict: Dict, pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int,
+                target_surrounding_region: int, target_len: int) -> Dict[int, List[Target_Obj]]:
     """
 
     :param gene_sequences_dict:
@@ -75,12 +78,14 @@ def get_targets(gene_sequences_dict: Dict, pams: Tuple, max_amplicon_len: int, p
     :param max_amplicon_len: maximum length of the amplicon
     :param primer_length: minimum length of the primer sequence
     :param cut_location: number of nucleotides upstream to the PAM sequence where the Cas should cut (negative number if downstream)
+    :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer
     :return:
     """
     targets_dict = {}
     for exon_region in gene_sequences_dict:
         exon_region_seq = gene_sequences_dict[exon_region][0][1]
-        exon_targets = find_exon_targets(exon_region_seq, pams, max_amplicon_len, primer_length, cut_location, target_len)
+        exon_targets = find_exon_targets(exon_region_seq, pams, max_amplicon_len, primer_length, cut_location,
+                                         target_surrounding_region, target_len)
         targets_dict[exon_region] = exon_targets
     return targets_dict

@@ -56,7 +56,7 @@ def add_id_parent_columns(filtered_by_feature: DataFrame):
 
 
 def annotations_to_lst_df(max_amplicon_len: int, primer_length: int, cut_location: int,
-                          annotations_file_path: str, distinct_alleles_num: int) -> List[DataFrame]:
+                          annotations_file_path: str, distinct_alleles_num: int, target_surrounding_region: int) -> List[DataFrame]:
     """
     Given a gene annotations file path, construct a list of dataframes, with annotations of all the
     different alleles of a single exon. The start and end columns of each exon will include a region around the exon
@@ -67,6 +67,7 @@ def annotations_to_lst_df(max_amplicon_len: int, primer_length: int, cut_locatio
     :param cut_location: length of the sgRNA target sequence in the gene, defined by user, depending on the CAS used.
     :param annotations_file_path: path to GFF file with annotations of the genome
     :param distinct_alleles_num: number of copies of each chromosome in the genome
+    :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :return: a list of DataFrames, each with annotations of all the alleles of a single exon in the gene
     """
     annotations_df = pd.read_csv(annotations_file_path,
@@ -74,14 +75,14 @@ def annotations_to_lst_df(max_amplicon_len: int, primer_length: int, cut_locatio
     filtered_by_exon = annotations_df[annotations_df['feature'] == 'exon']
     add_id_parent_columns(filtered_by_exon)  # add columns of ID and Parent
     # calculate the maximum range upstream and downstream the exon, which are intron sites that are allowed be used to construct an amplicon
-    exon_surrounding_seq_len = max_amplicon_len - cut_location - 20 - primer_length
+    exon_surrounding_seq_len = max_amplicon_len - cut_location - target_surrounding_region - primer_length
     # calculate the new start and end indexes of the sequence to extract from the genome fasta file
-    filtered_by_exon['new_start'] = filtered_by_exon.apply(lambda x: x['start'] - exon_surrounding_seq_len - 1, axis=1)
+    filtered_by_exon['new_start'] = filtered_by_exon.apply(lambda x: x['start'] - exon_surrounding_seq_len - 1, axis=1)  # indices in genome fasta start from 1. getfasta calculates from 0. therefor "start" will be with -1
     filtered_by_exon['new_end'] = filtered_by_exon.apply(lambda x: x['end'] + exon_surrounding_seq_len, axis=1)
     filtered_by_exon.reset_index(drop=True, inplace=True)
     num_of_exons = int(len(filtered_by_exon) / distinct_alleles_num)  # calculate number of exons in the gene
     # Group exons by mRNA ID
-    exon_groups = filtered_by_exon[filtered_by_exon['feature'] == 'exon'].groupby('parent')
+    exon_groups = filtered_by_exon.groupby('parent')
     exons_dfs_list = [pd.DataFrame(columns=filtered_by_exon.columns) for _ in
                       range(num_of_exons)]  # a list of empty DataFrames with the columns for the annotations
 
@@ -110,7 +111,7 @@ def get_genomic_sites(out_path: str, fasta_file: str, filtered_gene_df) -> List[
                             header=False, index=False)
     bed_file = out_path + "/genomic_sites.bed"
     # run bedtools
-    seq = subprocess.run(['bedtools', 'getfasta', '-fi', fasta_file, '-bed', bed_file, '-name', '-s'],
+    seq = subprocess.run(['bedtools', 'getfasta', '-fi', fasta_file, '-bed', bed_file, '-s'],
                          stdout=subprocess.PIPE)
     sites_list = seq.stdout.decode().split()
     return sites_list
@@ -144,12 +145,13 @@ def genes_fasta_to_list(aligned_genes: str) -> List[Tuple[str, str]]:
     return gene_sequences
 
 
-def extract_exons_regions(max_amplicon_len: int, primer_length: int, cut_location: int, annotations_file_path,
+def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_surrounding_region: int, cut_location: int, annotations_file_path,
                           out_path: str, genome_fasta_file: str, distinct_alleles_num: int) -> Dict[int, List[Tuple[str, str]]]:
     """
 
     :param max_amplicon_len: maximum length of the amplicon, defined by user
     :param primer_length: length of the primer sequence, defined by the user in the algorithm run
+    :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :param cut_location: number of nucleotides upstream to the PAM sequence where the Cas should cut (negative number if downstream)
     :param annotations_file_path: path to GFF file with annotations of the genome
     :param out_path: path to output directory where algorithm results will be saved
@@ -161,7 +163,7 @@ def extract_exons_regions(max_amplicon_len: int, primer_length: int, cut_locatio
     aligned_exons_regions_dict = {}
     # create list of DataFrames of every exon in the gene with annotations of their alleles
     exon_regions_lst_df = annotations_to_lst_df(max_amplicon_len, primer_length, cut_location, annotations_file_path,
-                                                distinct_alleles_num)
+                                                distinct_alleles_num, target_surrounding_region)
     sliced_exon_regions_lst_df = exon_regions_lst_df[:math.floor(len(exon_regions_lst_df)*2/3)]  # ###TAKE ONLY FIRST 2/3 EXONS###
     for exon_num, exon_region in enumerate(sliced_exon_regions_lst_df):
         exon_regions_path = out_path + f"/exon_{exon_num + 1}_regions.fasta"

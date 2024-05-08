@@ -20,3 +20,6 @@ class SNP_Obj:
 
     def __repr__(self):
         return self.__str__()
+
+    def update_snp_index(self, length_to_subtract):
+        self.position_in_sequence = self.position_in_sequence - length_to_subtract

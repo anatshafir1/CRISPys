@@ -14,7 +14,6 @@ class Target_Obj:
         self.start_idx = start_idx
         self.end_idx = end_idx
         self.strand = strand
-        self.length = end_idx - start_idx + 1
 
     def __str__(self):
         return f"{self.seq}, {self.start_idx}, {self.end_idx}, {self.strand}"
@@ -22,6 +21,9 @@ class Target_Obj:
     def __repr__(self):
         return self.__str__()
 
+    def __len__(self):
+        return self.end_idx - self.start_idx + 1
+
     def to_dict(self):
-        return {"target_seq": self.seq, "target_start_idx": self.start_idx, "target_end_idx": self.end_idx,
-                "target_strand": self.strand, "target_len": self.length}
+        return {"gRNA+PAM": self.seq, "gRNA_start": self.start_idx, "gRNA_end": self.end_idx,
+                "gRNA_strand": self.strand}
