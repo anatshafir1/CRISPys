@@ -6,7 +6,7 @@ import pandas as pd
 
 from Amplicon_Obj import Amplicon_Obj
 from FindTargets import get_targets
-from GetSequences import extract_exons_regions
+from alleles_similarity_evaluation import extract_exons_regions
 from Get_SNPs import get_snps
 from primer3 import get_primers
 from SNP_Obj import SNP_Obj
@@ -242,8 +242,7 @@ def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_sur
     max_amplicon_len = max(amplicon_ranges[max_amplicon_len_category - 1])
     min_amplicon_len = min(amplicon_ranges[max_amplicon_len_category - 1])
     gene_exon_regions_seqs_dict = extract_exons_regions(max_amplicon_len, primer_length, target_surrounding_region, cut_location,
-                                                        annotations_file_path,
-                                                        out_path, genome_fasta_file, distinct_alleles_num)
+                                                        annotations_file_path, out_path, genome_fasta_file)
     gene_snps_dict = get_snps(gene_exon_regions_seqs_dict, distinct_alleles_num)
     gene_targets_dict = get_targets(gene_exon_regions_seqs_dict, pams, max_amplicon_len, primer_length, cut_location,
                                     target_surrounding_region, target_len)

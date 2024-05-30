@@ -168,8 +168,7 @@ def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_surr
     for exon_num, exon_region in enumerate(sliced_exon_regions_lst_df):
         exon_regions_path = out_path + f"/exon_{exon_num + 1}_regions.fasta"
         aligned_exons_regions_path = out_path + f"/aligned_exon_{exon_num + 1}_regions.fasta"
-        genomic_sites_list = get_genomic_sites(out_path, genome_fasta_file,
-                                               exon_region)  # extract exon regions from genome FASTA
+        genomic_sites_list = get_genomic_sites(out_path, genome_fasta_file, exon_region)  # extract exon regions from genome FASTA
         genomic_sites_list_to_fasta(genomic_sites_list, exon_regions_path)  # save exon regions in FASTA file
         call_mafft(exon_regions_path, aligned_exons_regions_path)  # create an MSA of the alleles of the exon
         exon_region_aligned_lst = genes_fasta_to_list(aligned_exons_regions_path)  # save the aligned exon regions in a list
