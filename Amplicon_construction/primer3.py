@@ -87,7 +87,7 @@ def modify_primer3_input(exon_region_seq: str, candidate_amplicon: Amplicon_Obj,
     seq = exon_region_seq[candidate_amplicon.start_idx:candidate_amplicon.end_idx + 1]
     seg_target = f"{candidate_amplicon.target.start_idx - candidate_amplicon.start_idx - target_surrounding_region},{len(candidate_amplicon.target) + 2*target_surrounding_region}"
     product_range = f"{amplicon_range[0]}-{amplicon_range[1]}"
-    excluded_ranges = f"{candidate_amplicon.snps[0].position_in_sequence},{candidate_amplicon.snps[-1].position_in_sequence-candidate_amplicon.snps[0].position_in_sequence+1}"
+    excluded_ranges = f"{candidate_amplicon.snps[0].position_in_sequence - candidate_amplicon.start_idx},{candidate_amplicon.snps[-1].position_in_sequence-candidate_amplicon.snps[0].position_in_sequence+1}"
     return seq_id, seq, seg_target, product_range, excluded_ranges
 
 
@@ -139,6 +139,7 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]], s
     :return:
     """
     amplicons = []
+    search_end = False
     for candidate_amplicon in sorted_candidate_amplicons:
         exon_num = candidate_amplicon.exon_num
         parameters_file_path = out_path + "/param_primer"
@@ -150,8 +151,11 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]], s
 
             for i in range(distinct_alleles_num):
                 amplicon = build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i, exon_num)
-                if len(amplicons) < n*distinct_alleles_num:
+                if len(amplicons) < n*distinct_alleles_num:  # up to 'n' amplicons with 'distinct_alleles_num' alleles each
                     amplicons.append(amplicon)
                 else:
+                    search_end = True
                     break
+        if search_end is True:
+            break
     return amplicons
