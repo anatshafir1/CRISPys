@@ -220,7 +220,7 @@ def save_results_to_csv(res_amplicons_lst, out_path):
 
 def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_surrounding_region: int, cut_location: int, annotations_file_path: str,
                   out_path: str, genome_fasta_file: str, distinct_alleles_num: int, pams: Tuple, target_len: int,
-                  primer3_core_path: str, n: int):
+                  primer3_core_path: str, n: int, genome_chroms_path: str, filter_off_targets: int):
     """
 
 
@@ -236,6 +236,9 @@ def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_sur
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer
     :param primer3_core_path:
     :param n: desired maximum number of amplicons to return
+    :param genome_chroms_path: path to the directory in which the genome separated by scaffold fasta files are.
+    :param filter_off_targets: choose whether to filter amplicons with 'strong' off-targets for their gRNAs, or return
+    them in the results.
     :return:
     """
     amplicon_ranges = [(200, 300), (300, 500), (500, 1000)]
@@ -253,7 +256,7 @@ def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_sur
     sorted_candidate_amplicons = sorted(candidate_amplicons_list, key=lambda amplicon: (amplicon.snps_median, amplicon.snps_mean), reverse=True)
     amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, sorted_candidate_amplicons, out_path,
                                             primer3_core_path, n, amplicon_ranges[max_amplicon_len_category - 1],
-                                            distinct_alleles_num, target_surrounding_region)
+                                            distinct_alleles_num, target_surrounding_region, filter_off_targets, genome_chroms_path)
     if len(amplicon_obj_with_primers) > 0:
         save_results_to_csv(amplicon_obj_with_primers, out_path)
         return amplicon_obj_with_primers
@@ -261,6 +264,6 @@ def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_sur
         if max_amplicon_len_category < 3:
             get_amplicons(max_amplicon_len_category + 1, primer_length, target_surrounding_region, cut_location, annotations_file_path,
                           out_path, genome_fasta_file, distinct_alleles_num, pams, target_len,
-                          primer3_core_path, n)
+                          primer3_core_path, n, genome_chroms_path, filter_off_targets)
         else:
             print("No amplicons found")

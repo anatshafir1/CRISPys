@@ -2,7 +2,7 @@ import argparse
 
 import yaml
 
-import AmpliconConstruction
+from Amplicon_construction import AmpliconConstruction
 
 
 def main(configs_file):
@@ -14,7 +14,8 @@ def main(configs_file):
                                               data["annotations_path"], data["out_path"],
                                               data["genome_fasta_path"], data["num_of_alleles"],
                                               tuple(data["pams"].split(",")), data["target_len"],
-                                              data["primer3_core_path"], data["max_amplicons"])
+                                              data["primer3_core_path"], data["max_amplicons"], data["genome_chroms_path"],
+                                              data["filter_off_targets"])
     return amps
 
 
