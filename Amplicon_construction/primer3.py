@@ -2,7 +2,7 @@ import subprocess
 from typing import Tuple, List, Dict
 
 from Amplicon_Obj import Amplicon_Obj
-from Amplicon_construction.FindOffTargets import get_off_targets
+from FindOffTargets import get_off_targets
 from SNP_Obj import SNP_Obj
 from Target_Obj import Target_Obj
 from Primers_Obj import Primers_Obj

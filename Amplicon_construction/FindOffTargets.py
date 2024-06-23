@@ -6,10 +6,10 @@ import time
 import pandas as pd
 from typing import Dict, List
 
-from Amplicon_construction.Amplicon_Obj import Amplicon_Obj, OffTarget
+from Amplicon_Obj import Amplicon_Obj, OffTarget
 
-from Crispys.MOFF.MOFF_prediction import MOFF_score
-from Crispys.MOFF.MoffLoad import mtx1, mtx2, model
+from MOFF.MOFF_prediction import MOFF_score
+from MOFF.MoffLoad import mtx1, mtx2, model
 
 
 def create_crispritz_input_file(candidate_amplicons_list: List[Amplicon_Obj], crispritz_path: str) -> str:

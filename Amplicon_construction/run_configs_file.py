@@ -2,7 +2,7 @@ import argparse
 
 import yaml
 
-from Amplicon_construction import AmpliconConstruction
+import AmpliconConstruction
 
 
 def main(configs_file):
