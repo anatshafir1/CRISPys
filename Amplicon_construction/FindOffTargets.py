@@ -62,7 +62,10 @@ def run_crispritz(candidate_amplicons_list: List[Amplicon_Obj], output_path: str
     pam_file_path = output_path + "/pams"
     pam_file = create_pam_file(pam_file_path)
     # run crispritz
-    os.system(f"python {sys.exec_prefix}/bin/crispritz.py search {genome_by_chr_path}/ {pam_file} {crispritz_infile} {crispritz_path}/crispritz -mm 4 -r")
+    t0 = time.perf_counter()
+    os.system(f"python {sys.exec_prefix}/bin/crispritz.py search {genome_by_chr_path}/ {pam_file} {crispritz_infile} {crispritz_path}/crispritz -mm 4 -r > /dev/null 2>&1")
+    t1 = time.perf_counter()
+    print(f"crispritz ran in {t1-t0} seconds")
     # get results
     crispritz_results = pd.read_csv(f"{crispritz_path}/crispritz.targets.txt", sep="\t")
     print(f"Number of off-targets: {crispritz_results.shape[0]}")

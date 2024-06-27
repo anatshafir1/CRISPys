@@ -59,8 +59,8 @@ class Amplicon_Obj:
         self_dict["snps"] = snps_str
         self_dict.update(self.target.to_dict())
         self_dict.update(self.primers.to_dict())
-        self_dict.update(self.off_targets[0].to_dict(1))
-        self_dict.update(self.off_targets[1].to_dict(2))
+        # self_dict.update(self.off_targets[0].to_dict(1))
+        # self_dict.update(self.off_targets[1].to_dict(2))
         return self_dict
 
     def update_snps_indices(self, length_to_subtract):

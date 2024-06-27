@@ -160,38 +160,43 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
         :return:
         """
     amplicons = []
-    search_end = False
+
     for candidate_amplicon in sorted_candidate_amplicons:
+        search_end = False
         exon_num = candidate_amplicon.exon_num
         parameters_file_path = out_path + "/param_primer"
         seq_id, seq, seg_target, product_range, excluded_ranges = modify_primer3_input(
             gene_exon_regions_seqs_dict[exon_num][0][1], candidate_amplicon, amplicon_range, target_surrounding_region)
         create_param_file(parameters_file_path, seq_id, seq, seg_target, product_range, excluded_ranges)
         primer3_res = run_primer3(primer3_core_path, parameters_file_path)
-        if "PRIMER_LEFT_0" in primer3_res:
+        if "PRIMER_LEFT_0" in primer3_res:  # PRIMERS FOUND
             primers = handle_primer3_output(primer3_res)
 
             for i in range(distinct_alleles_num):
                 amplicon = build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i, exon_num)
-                if len(amplicons) < n * distinct_alleles_num:  # up to 'n' amplicons with 'distinct_alleles_num' alleles each
+                if len(amplicons) < n * distinct_alleles_num:  # 50:  # up to 'n' amplicons with 'distinct_alleles_num' alleles each
                     amplicons.append(amplicon)
                 else:
                     search_end = True
                     break
+        else:  # NO PRIMERS FOUND
+            continue
 
         if search_end is True:
 
-            get_off_targets(amplicons, genome_chroms_path, out_path)
-
-            if filter_off_targets:  # filter amplicons with 'strong' off targets
-                new_amplicons_lst = []
-                for amplicon in amplicons:
-                    if len(amplicon.off_targets) > 0:
-                        if amplicon.off_targets[0].score < 0.15:
-                            new_amplicons_lst.append(amplicon)
-                if len(new_amplicons_lst) >= n * distinct_alleles_num:
-                    return new_amplicons_lst
-
-            else:  # Do not filter amplicons
-                get_off_targets(amplicons, genome_chroms_path, out_path)
-                return amplicons
+            return amplicons
+            # get_off_targets(amplicons, genome_chroms_path, out_path)
+            #
+            # if filter_off_targets:  # filter amplicons with 'strong' off targets
+            #     new_amplicons_lst = []
+            #     for amplicon in amplicons:
+            #         if len(amplicon.off_targets) > 0:
+            #             if amplicon.off_targets[0].score < 0.15:
+            #                 new_amplicons_lst.append(amplicon)
+            #     if len(new_amplicons_lst) >= n * distinct_alleles_num:
+            #         return new_amplicons_lst[:n * distinct_alleles_num]
+            #     else:
+            #         amplicons = new_amplicons_lst
+            #
+            # else:  # Do not filter amplicons
+            #     return amplicons
