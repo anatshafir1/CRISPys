@@ -132,6 +132,7 @@ def build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i: 
     amplicon = Amplicon_Obj(exon_num, scaffold, scaffold_strand, sequence, amplicon_start_idx, amplicon_end_idx,
                             snps_median, snps_mean,
                             new_target, snps, primers)
+    amplicon.off_targets = candidate_amplicon.off_targets
     amplicon.update_snps_indices(candidate_amplicon.start_idx + primers.left_start_idx)
 
     return amplicon
@@ -141,7 +142,8 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
                 sorted_candidate_amplicons: List[Amplicon_Obj],
                 out_path: str, primer3_core_path: str, n: int, amplicon_range: Tuple[int, int],
                 distinct_alleles_num: int,
-                target_surrounding_region: int, filter_off_targets: int, genome_chroms_path: str) -> List[Amplicon_Obj]:
+                target_surrounding_region: int, filter_off_targets: int, genome_fasta_path: str, pams: Tuple,
+                candidates_scaffold_positions: Dict) -> List[Amplicon_Obj]:
     # noinspection GrazieInspection
     """
 
@@ -156,7 +158,9 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
         :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
         :param filter_off_targets: choose whether to filter amplicons with 'strong' off-targets for their gRNAs, or return them
         in the results.
-        :param genome_chroms_path: path to the directory in which the genome separated by scaffold fasta files are.
+        :param genome_fasta_path: path to the directory in which the genome fasta file.
+        :param pams:
+        :param candidates_scaffold_positions:
         :return:
         """
     amplicons = []
@@ -174,7 +178,7 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
 
             for i in range(distinct_alleles_num):
                 amplicon = build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i, exon_num)
-                if len(amplicons) < n * distinct_alleles_num:  # 50:  # up to 'n' amplicons with 'distinct_alleles_num' alleles each
+                if len(amplicons) < n * distinct_alleles_num:  # up to 'n' amplicons with 'distinct_alleles_num' alleles each
                     amplicons.append(amplicon)
                 else:
                     search_end = True
@@ -184,19 +188,8 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
 
         if search_end is True:
 
-            return amplicons
-            # get_off_targets(amplicons, genome_chroms_path, out_path)
-            #
-            # if filter_off_targets:  # filter amplicons with 'strong' off targets
-            #     new_amplicons_lst = []
-            #     for amplicon in amplicons:
-            #         if len(amplicon.off_targets) > 0:
-            #             if amplicon.off_targets[0].score < 0.15:
-            #                 new_amplicons_lst.append(amplicon)
-            #     if len(new_amplicons_lst) >= n * distinct_alleles_num:
-            #         return new_amplicons_lst[:n * distinct_alleles_num]
-            #     else:
-            #         amplicons = new_amplicons_lst
-            #
-            # else:  # Do not filter amplicons
-            #     return amplicons
+            if not filter_off_targets:  # search for off targets
+                get_off_targets(amplicons, genome_fasta_path, out_path, pams, candidates_scaffold_positions)
+                return amplicons
+            else:
+                return amplicons

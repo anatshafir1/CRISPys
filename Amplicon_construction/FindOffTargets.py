@@ -1,75 +1,18 @@
 """Module for finding off-targets"""
 import os
-import sys
 import time
-
+import re
 import pandas as pd
-from typing import Dict, List
+from typing import Dict, List, Tuple
+
+import subprocess
+from Bio import SeqIO
+from pandas import DataFrame
 
 from Amplicon_Obj import Amplicon_Obj, OffTarget
 
 from MOFF.MOFF_prediction import MOFF_score
 from MOFF.MoffLoad import mtx1, mtx2, model
-
-
-def create_crispritz_input_file(candidate_amplicons_list: List[Amplicon_Obj], crispritz_path: str) -> str:
-    """
-    :param candidate_amplicons_list: A list of CandidateWithOffTargets objects
-    :param crispritz_path: A path to the crispys result folder where a folder for crispritz will be created
-    :return: A path to the input for xxx and will write the input file to xxx
-    """
-    crispritz_infile = os.path.join(crispritz_path, 'crispritz_infile.txt')
-    out = ""
-
-    for candidate in candidate_amplicons_list:  # go over each candidate and get the guide sequence
-        out += f"{candidate.target.seq[:-3]}NNN\n"
-    with open(crispritz_infile, 'w') as f:
-        f.write(out)
-    return crispritz_infile
-
-
-def create_pam_file(pam_file_path: str) -> str:
-    """
-    create the pam file for crispritz (for NGG pam)
-
-    :param pam_file_path: path to folder location
-    :return: pam file path
-    """
-    pam_file = f"{pam_file_path}/pamNGG.txt"
-    if not os.path.exists(pam_file_path):
-        os.makedirs(pam_file_path)
-        with open(pam_file, "w") as f:
-            f.write("NNNNNNNNNNNNNNNNNNNNNGG 3")
-        return pam_file
-    else:
-        return pam_file
-
-
-def run_crispritz(candidate_amplicons_list: List[Amplicon_Obj], output_path: str, genome_by_chr_path: str) -> pd.DataFrame:
-    """
-    This function runs crispritz and returns its output
-    nucleotide codes (e.g. 'NRG' matches both NGG and NAG).
-
-    :param candidate_amplicons_list: A list of CandidateWithOffTargets objects
-    :param output_path: A path containing the output of CRISPys
-    :param genome_by_chr_path: path to the folder where the files of each chromosome fasta file.
-    :return: The output of crispritz as pd.DataFrame, where each row is a potential offtarget.
-    """
-    crispritz_path = f"{output_path}/crispritz"
-    os.makedirs(crispritz_path, exist_ok=True)
-    # create crispritz input file
-    crispritz_infile = create_crispritz_input_file(candidate_amplicons_list, crispritz_path)
-    pam_file_path = output_path + "/pams"
-    pam_file = create_pam_file(pam_file_path)
-    # run crispritz
-    t0 = time.perf_counter()
-    os.system(f"python {sys.exec_prefix}/bin/crispritz.py search {genome_by_chr_path}/ {pam_file} {crispritz_infile} {crispritz_path}/crispritz -mm 4 -r > /dev/null 2>&1")
-    t1 = time.perf_counter()
-    print(f"crispritz ran in {t1-t0} seconds")
-    # get results
-    crispritz_results = pd.read_csv(f"{crispritz_path}/crispritz.targets.txt", sep="\t")
-    print(f"Number of off-targets: {crispritz_results.shape[0]}")
-    return crispritz_results
 
 
 # create dictionary of sequence:candidate
@@ -90,15 +33,15 @@ def create_sequence_to_candidate_dict(candidate_amplicons_list: List[Amplicon_Ob
 
 
 # add to each "Candidate" its off-targets
-def add_crispritz_off_targets(crispritz_results, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]]):
+def add_off_targets(off_targets_df, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]]):
     """
     This function adds all found off-targets to each CandidateWithOffTargets using the crispritz results.
 
-    :param crispritz_results: The output of crispritz as a pd datatable, where each row is a potential offtarget.
+    :param off_targets_df: The output of crispritz as a pd datatable, where each row is a potential offtarget.
     :param sequence_to_candidate_dict: sequence -> a CandidateWithOffTargets object with the proper sequence
     """
     # apply the 'get_off_target' function on each row in the crispritz table results
-    crispritz_results.apply(get_off_target, args=(sequence_to_candidate_dict,), axis=1)
+    off_targets_df.apply(get_off_target, args=(sequence_to_candidate_dict,), axis=1)
     return
 
 
@@ -122,7 +65,8 @@ def get_off_target(x, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]])
     if legit_letters:
         for candidate in candidates_list:
             if off_target not in candidate.off_targets:
-                candidate.off_targets.append(off_target)
+                if len(off_target.seq) == len(candidate.target.seq):
+                    candidate.off_targets.append(off_target)
     return
 
 
@@ -165,34 +109,239 @@ def calculate_scores(candidate_amplicons_list: List[Amplicon_Obj]):
             candidate.sort_off_targets()
 
 
-def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_chroms_path: str, out_path: str):
+def create_bwa_input(candidate_amplicons_list: List[Amplicon_Obj], grnas_fasta: str) -> str:
+    """
+    :param candidate_amplicons_list: A list of CandidateWithOffTargets objects
+    :param grnas_fasta: A path to the crispys result folder where a folder for crispritz will be created
+    :return: A path to the input for xxx and will write the input file to xxx
+    """
+    out = ""
+    unique_grnas = []
+
+    for candidate in candidate_amplicons_list:  # go over each candidate and get the guide sequence
+        grna_seq_no_pam = candidate.target.seq[:-3]  # get gRNA target sequence
+        if grna_seq_no_pam not in unique_grnas:
+            unique_grnas.append(grna_seq_no_pam)
+    for grna in unique_grnas:
+        out += f">{grna}\n{grna}\n"
+    with open(grnas_fasta, 'w') as f:
+        f.write(out)
+    return grnas_fasta
+
+
+def check_bwa_index_files(genome_fasta: str) -> bool:
+    """
+    Check if the BWA index files for the given genome FASTA file exist.
+
+    Parameters:
+    genome_fasta (str): Path to the genome FASTA file.
+
+    Returns:
+    bool: True if all BWA index files exist, False otherwise.
+    """
+    index_files = [genome_fasta + ext for ext in ['.amb', '.ann', '.bwt', '.pac', '.sa']]
+
+    return all(os.path.isfile(f) for f in index_files)
+
+
+def index_genome(genome_fasta: str):
+    """
+    Index the genome FASTA file using BWA.
+
+    Parameters:
+    genome_fasta (str): Path to the genome FASTA file.
+    """
+    try:
+        subprocess.run(['bwa', 'index', genome_fasta], check=True)
+        print(f"Indexing of {genome_fasta} completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred while indexing the genome: {e}")
+
+
+def run_bwa(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta: str, out_path: str) -> str:
+    """run off-target search with BWA and return path to result SAM file
+
+    :param candidate_amplicons_list:
+    :param genome_fasta:
+    :param out_path:
+    :return:
+    """
+    print("Searching for gRNA off-targets with BWA")
+    grna_input_fasta_path = out_path + "/gRNA_input.fasta"
+    # create a gRNA input file for search
+    grnas_fasta = create_bwa_input(candidate_amplicons_list, grna_input_fasta_path)
+    # check if the genome is indexed. index if not
+    if check_bwa_index_files(genome_fasta):
+        print(f"BWA index files for {genome_fasta} already exist.")
+    else:
+        print(f"BWA index files for {genome_fasta} do not exist. Indexing the genome...")
+        index_genome(genome_fasta)
+
+    # run bwa alignment for gNRA off-target search
+    alignment_sai = out_path + "/alignment.sai"
+    bwa_aln_cmd = ["bwa", "aln", "-N", "-n", "4", "-o", "0", "-l", "20", "-k", "4", genome_fasta, grnas_fasta]
+    with open(alignment_sai, "w") as out:
+        result = subprocess.run(bwa_aln_cmd, stdout=out, stderr=subprocess.PIPE)
+        # Check for errors
+        if result.returncode != 0:
+            print(f"Error: {result.stderr.decode('utf-8')}")
+        else:
+            print("alignment executed successfully.")
+
+    # create, sort and index alignment SAM file
+    alignment_sam = out_path + "/alignment.sam"
+    bwa_samse_cmd = ['bwa', 'samse', '-n', '10000000', '-f', alignment_sam, genome_fasta, alignment_sai, grnas_fasta]
+    with open(alignment_sam, "w") as out:
+        result = subprocess.run(bwa_samse_cmd, stdout=out, stderr=subprocess.PIPE)
+        # Check for errors
+        if result.returncode != 0:
+            print(f"Error: {result.stderr.decode('utf-8')}")
+        else:
+            print("SAM created successfully.")
+
+    return alignment_sam
+
+
+def extract_off_targets(sam_file: str, genome_fasta: str, pams: Tuple) -> DataFrame:
+    """
+
+    :param sam_file:
+    :param genome_fasta:
+    :param pams:
+    :return:
+    """
+    off_targets = {'crRNA': [], 'DNA': [], 'Chromosome': [], 'Position': [], 'Direction': [], 'Mismatches': []}
+    reference_genome = SeqIO.to_dict(SeqIO.parse(genome_fasta, "fasta"))
+    with open(sam_file, 'r') as file:
+        for line in file:
+            if line.startswith('@'):
+                continue  # Skip header lines
+
+            columns = line.split('\t')
+            grna = columns[0]
+
+            # handle first match:
+            scaffold = columns[2]
+            position = columns[3]
+            cigar = columns[5]
+            strand = "-" if int(columns[1]) & 0x10 != 0 else "+"   # inferring strand from the FLAG's 5th bit
+            start = int(position) - 1  # Convert to 0-based indexing
+            ref_seq = reference_genome[scaffold].seq
+            off_target_len = sum(int(length) for length, op in re.findall(r'(\d+)([MID])', cigar) if op != 'D')
+            if not off_target_len < len(grna):
+                end = start + off_target_len
+                if strand == "-":
+                    sequence = ref_seq[start - 3:end]
+                    sequence = sequence.reverse_complement()
+                else:
+                    sequence = ref_seq[start:end + 3]
+                # check if PAM:
+                if sequence[-3:] in pams:
+                    off_targets['crRNA'].append(grna)
+                    off_targets['DNA'].append(str(sequence))
+                    off_targets['Chromosome'].append(scaffold)
+                    off_targets['Position'].append(position)
+                    off_targets['Direction'].append(strand)
+                    off_targets['Mismatches'].append(columns[12].split(":")[-1])
+
+            # handle rest of the matches:
+            xa_tag = next((col for col in columns if col.startswith('XA:Z:')), None)  # skip to the column where the off-targets are
+            if xa_tag:
+                # Extract the off-target alignments from the XA:Z: tag
+                off_target_entries = xa_tag[5:].split(';')[:-1]  # Remove the trailing empty entry
+
+                for entry in off_target_entries:
+                    scaffold, strand_position, cigar, mismatch = entry.split(',')
+                    strand = strand_position[0]
+                    position = strand_position[1:]
+                    # Extract sequence from the reference genome
+                    ref_seq = reference_genome[scaffold].seq
+                    start = int(position) - 1  # Convert to 0-based indexing
+                    off_target_len = sum(int(length) for length, op in re.findall(r'(\d+)([MID])', cigar) if op != 'D')
+                    if not off_target_len < len(grna):
+                        end = start + off_target_len
+                        # Handle strand orientation
+                        if strand == "-":
+                            sequence = ref_seq[start-3:end]
+                            sequence = sequence.reverse_complement()
+                        else:
+                            sequence = ref_seq[start:end+3]
+                        # check if PAM:
+                        if sequence[-3:] in pams:
+                            off_targets['crRNA'].append(grna)
+                            off_targets['DNA'].append(str(sequence))
+                            off_targets['Chromosome'].append(scaffold)
+                            off_targets['Position'].append(position)
+                            off_targets['Direction'].append(strand)
+                            off_targets['Mismatches'].append(mismatch)
+
+        #  create a dataframe from the dictionary
+        off_targets_df = pd.DataFrame.from_dict(off_targets)
+
+    return off_targets_df
+
+
+def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_file: str, out_path: str, pams: Tuple,
+                    candidates_scaffold_positions: Dict[str, Tuple]):
     """
     Find the off-targets for each candidate using crispritz, store them in the candidate's off_targets_list attribute
     as a list of OffTarget objects. Then calculates the off-target scores for each off-target of each candidate and
     store the scores in each off-target's score attribute.
 
-    :param candidate_amplicons_list: a list of sgRNA candidates
-    :param genome_chroms_path: path to directory in which the chromosome FASTA files are stored
+    :param candidate_amplicons_list: a list of amplicon candidates
     :param out_path: output path for the algorithm results
+    :param genome_fasta_file: path to input FASTA format file of the genome
+    :param pams: tuple of PAM sequences of the Cas protein in use
+    :param candidates_scaffold_positions: dictionary of allele scaffold -> gene allele start,end indices
     """
-    # run crispritz
-    off_targets_pd = run_crispritz(candidate_amplicons_list, out_path, genome_chroms_path)
+
+    # run off target search
+    off_targets_sam = run_bwa(candidate_amplicons_list, genome_fasta_file, out_path)
+    # off_targets_pd = run_crispritz(candidate_amplicons_list, out_path, genome_chroms_path)
+    off_targets_pd = extract_off_targets(off_targets_sam, genome_fasta_file, pams)
     # create a dictionary of sequence -> candidate
     sequence_to_candidate_dict = create_sequence_to_candidate_dict(candidate_amplicons_list)
     # add the found off-targets of each candidate to the candidate's off_targets_list
-    add_crispritz_off_targets(off_targets_pd, sequence_to_candidate_dict)
+    add_off_targets(off_targets_pd, sequence_to_candidate_dict)
     # remove on-targets
     for candidate_amplicon in candidate_amplicons_list:
-        scaffold = candidate_amplicon.scaffold
-        amplicon_range_start = candidate_amplicon.start_idx
-        amplicon_range_end = candidate_amplicon.end_idx
         new_off_targets_lst = []
         for off in candidate_amplicon.off_targets:
             if off.number_of_mismatches == 0:
-                if off.chromosome == scaffold and (off.start_position in range(amplicon_range_start, amplicon_range_end)):
-                    continue
+                off_target_scaffold = off.chromosome
+                if off_target_scaffold in candidates_scaffold_positions:
+                    cand_amp_start = candidates_scaffold_positions[off_target_scaffold][0]
+                    cand_amp_end = candidates_scaffold_positions[off_target_scaffold][1]
+                    if off.start_position in range(cand_amp_start, cand_amp_end):
+                        continue
+                else:
+                    if off not in new_off_targets_lst:
+                        new_off_targets_lst.append(off)
             else:
-                new_off_targets_lst.append(off)
+                if off not in new_off_targets_lst:
+                    new_off_targets_lst.append(off)
         candidate_amplicon.off_targets = new_off_targets_lst
     # calculate the off-target scores for each off_target of each candidate
     calculate_scores(candidate_amplicons_list)
+
+
+def filt_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_file: str, out_path: str, pams: Tuple,
+                    candidates_scaffold_positions: Dict[str, Tuple]) -> List[Amplicon_Obj]:
+    """
+
+    :param candidate_amplicons_list: a list of amplicon candidates
+    :param genome_fasta_file: path to input FASTA format file of the genome
+    :param out_path: output path for the algorithm results
+    :param pams: tuple of PAM sequences of the Cas protein in use
+    :param candidates_scaffold_positions: dictionary of allele scaffold -> gene allele start,end indices
+    :return:
+    """
+
+    filtered_sorted_candidate_amplicons = []
+    get_off_targets(candidate_amplicons_list, genome_fasta_file, out_path, pams, candidates_scaffold_positions)
+
+    for candidate in candidate_amplicons_list:
+        if candidate.off_targets[0].score < 0.15:
+            filtered_sorted_candidate_amplicons.append(candidate)
+
+    return filtered_sorted_candidate_amplicons

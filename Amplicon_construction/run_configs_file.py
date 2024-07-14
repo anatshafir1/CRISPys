@@ -14,7 +14,7 @@ def main(configs_file):
                                               data["annotations_path"], data["out_path"],
                                               data["genome_fasta_path"], data["num_of_alleles"],
                                               tuple(data["pams"].split(",")), data["target_len"],
-                                              data["primer3_core_path"], data["max_amplicons"], data["genome_chroms_path"],
+                                              data["primer3_core_path"], data["max_amplicons"],
                                               data["filter_off_targets"])
     return amps
 

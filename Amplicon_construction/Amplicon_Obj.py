@@ -59,8 +59,10 @@ class Amplicon_Obj:
         self_dict["snps"] = snps_str
         self_dict.update(self.target.to_dict())
         self_dict.update(self.primers.to_dict())
-        # self_dict.update(self.off_targets[0].to_dict(1))
-        # self_dict.update(self.off_targets[1].to_dict(2))
+        if len(self.off_targets) > 0:
+            self_dict.update(self.off_targets[0].to_dict(1))
+        if len(self.off_targets) > 1:
+            self_dict.update(self.off_targets[1].to_dict(2))
         return self_dict
 
     def update_snps_indices(self, length_to_subtract):
@@ -88,7 +90,7 @@ class OffTarget:
         self.score = -1
 
     def __eq__(self, other):
-        return self.__dict__ == other.__dict__
+        return self.chromosome == other.chromosome and self.start_position == other.start_position
 
     def __repr__(self):
         return f"{self.seq}, {str(self.chromosome)}, {self.start_position}, {self.strand}, {self.number_of_mismatches}, {round(float(self.score), 4)}"
