@@ -19,3 +19,4 @@ dependencies:
   - h5py=2.10.0
   - numpy=1.19.5
   - bedtools=2.31.1
+  - bwa=0.7.18

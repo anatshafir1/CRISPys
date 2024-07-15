@@ -326,7 +326,7 @@ def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_f
 
 
 def filt_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_file: str, out_path: str, pams: Tuple,
-                    candidates_scaffold_positions: Dict[str, Tuple]) -> List[Amplicon_Obj]:
+                    candidates_scaffold_positions: Dict[str, Tuple[int, int]]) -> List[Amplicon_Obj]:
     """
 
     :param candidate_amplicons_list: a list of amplicon candidates

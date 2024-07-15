@@ -224,7 +224,7 @@ def save_results_to_csv(res_amplicons_lst: List[Amplicon_Obj], out_path: str):
     df.to_csv(out_path + "/results.csv", index=False)
 
 
-def get_candidates_scaffold_positions(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]]) -> Dict[int, Tuple[int, int]]:
+def get_candidates_scaffold_positions(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]]) -> Dict[str, Tuple[int, int]]:
     """
     Create a dictionary of allele scaffold: start,end indices.
 
