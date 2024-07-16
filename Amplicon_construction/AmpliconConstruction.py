@@ -6,7 +6,7 @@ from typing import List, Tuple, Dict
 import pandas as pd
 
 from Amplicon_Obj import Amplicon_Obj
-from Amplicon_construction.FindOffTargets import filt_off_targets
+from FindOffTargets import filt_off_targets
 from FindTargets import get_targets
 from GetSequences import extract_exons_regions
 from Get_SNPs import get_snps
