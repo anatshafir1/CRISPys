@@ -1,0 +1,1 @@
+REGION_OF_GENE_TO_CUT = 2 / 3

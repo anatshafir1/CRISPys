@@ -1,6 +1,7 @@
+import math
 import subprocess
 import sys
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Any
 
 from Bio import SeqIO
 from Bio.Align.Applications import MafftCommandline
@@ -10,6 +11,8 @@ from Bio.SeqRecord import SeqRecord
 import pandas as pd
 from pandas import DataFrame
 import warnings
+
+from globals import REGION_OF_GENE_TO_CUT
 
 warnings.filterwarnings("ignore")
 
@@ -194,8 +197,18 @@ def get_overlapping_exons(exon_indices_dict: Dict[str, List[Tuple[int, int]]], a
     return aligned_overlapping_exons_dict, num_of_exons
 
 
+def get_original_indices_dict(aligned_overlapping_exons_dict, exon_indices_dict) -> Dict[str, Dict[int, int]]:
+    original_exon_indices_dict = {allele: {} for allele in aligned_overlapping_exons_dict}
+    for allele in aligned_overlapping_exons_dict:
+        for exon_positions in aligned_overlapping_exons_dict[allele]:
+            exon_pos_new_idx = aligned_overlapping_exons_dict[allele].index(exon_positions) + 1
+            exon_pos_orig_idx = exon_indices_dict[allele].index(exon_positions) + 1
+            original_exon_indices_dict[allele][exon_pos_new_idx] = exon_pos_orig_idx
+    return original_exon_indices_dict
+
+
 def get_legit_exons_regions(annotations_file_path: str, out_path: str, genome_fasta_file: str, min_nucs_for_amplicon: int) -> \
-        Tuple[Dict[str, List[Tuple[int, int]]], int, Dict[str, str]]:
+        Tuple[Dict[str, List[Tuple[int, int]]], int, Dict[Any, Any], Dict[str, Dict[int, int]]]:
     """
 
     :param annotations_file_path: path to GFF file with annotations of the genome
@@ -227,7 +240,8 @@ def get_legit_exons_regions(annotations_file_path: str, out_path: str, genome_fa
     call_mafft(concat_CDSs_path, aligned_concat_CDSs_path)  # create an MSA of the alleles of the gene
     alleles_exons_aligned_dict, alignment_len = genes_fasta_to_dict(aligned_concat_CDSs_path)  # save the aligned CDSs to a dict
     aligned_overlapping_exons_dict, num_of_exons = get_overlapping_exons(exon_indices_dict, alleles_exons_aligned_dict, alignment_len, min_nucs_for_amplicon)
-    return aligned_overlapping_exons_dict, num_of_exons, allele_strand_dict
+    original_exon_indices_dict = get_original_indices_dict(aligned_overlapping_exons_dict, exon_indices_dict)
+    return aligned_overlapping_exons_dict, num_of_exons, allele_strand_dict, original_exon_indices_dict
 
 
 def get_exon_dict(aligned_overlapping_exons_dict: Dict[str, List[Tuple[int, int]]], exon_num: int,
@@ -255,7 +269,7 @@ def get_exon_dict(aligned_overlapping_exons_dict: Dict[str, List[Tuple[int, int]
 
 def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_surrounding_region: int, cut_location: int,
                           annotations_file_path,
-                          out_path: str, genome_fasta_file: str) -> Dict[int, List[Tuple[str, str]]]:
+                          out_path: str, genome_fasta_file: str) -> Tuple[Dict[int, List[Tuple[str, str]]], Dict[str, Dict[int, int]]]:
     """
 
     :param max_amplicon_len: maximum length of the amplicon, defined by user
@@ -268,13 +282,13 @@ def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_surr
     :return: dictionary of exon number -> list of tuples of allele IDs and their sequences
     """
     min_nucs_for_amplicon = primer_length + target_surrounding_region + cut_location
-    aligned_overlapping_exons_dict, num_of_exons, allele_strand_dict = get_legit_exons_regions(annotations_file_path,
+    aligned_overlapping_exons_dict, num_of_exons, allele_strand_dict, original_exon_indices_dict = get_legit_exons_regions(annotations_file_path,
                                                                                                out_path,
                                                                                                genome_fasta_file, min_nucs_for_amplicon)
     exon_surrounding_seq_len = max_amplicon_len - cut_location - target_surrounding_region - primer_length
     aligned_exons_regions_dict = {}
-
-    for exon_num in range(num_of_exons):
+    num_of_wanted_exons = math.floor(num_of_exons*REGION_OF_GENE_TO_CUT)
+    for exon_num in range(num_of_wanted_exons):
         exon_regions_path = out_path + f"/exon_{exon_num + 1}_regions.fasta"
         aligned_exons_regions_path = out_path + f"/aligned_exon_{exon_num + 1}_regions.fasta"
         exon_dict = get_exon_dict(aligned_overlapping_exons_dict, exon_num, exon_surrounding_seq_len, allele_strand_dict)
@@ -284,4 +298,4 @@ def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_surr
         call_mafft(exon_regions_path, aligned_exons_regions_path)  # create an MSA of the alleles of the exon
         exon_region_aligned_lst = genes_fasta_to_list(aligned_exons_regions_path)  # save the aligned exon regions in a list
         aligned_exons_regions_dict[exon_num + 1] = exon_region_aligned_lst  # add the list of aligned exon regions to a dictionary
-    return aligned_exons_regions_dict
+    return aligned_exons_regions_dict, original_exon_indices_dict

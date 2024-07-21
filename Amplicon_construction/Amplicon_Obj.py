@@ -21,11 +21,12 @@ class Amplicon_Obj:
 
         """
 
-    def __init__(self, exon_num: int, scaffold: str, strand: str, sequence: str, start_idx: int, end_idx: int, snps_median: float, snps_mean: float, target: Target_Obj, snps: List[SNP_Obj], primers: Primers_Obj):
+    def __init__(self, exon_num: int, scaffold: str, strand: str, sequence: str, start_idx: int, end_idx: int, snps_median: float, snps_mean: float, target: Target_Obj, snps: List[SNP_Obj], primers: Primers_Obj, orig_exon_num: int = 0):
 
         self.scaffold = scaffold
         self.strand = strand
         self.exon_num = exon_num
+        self.orig_exon_num = orig_exon_num
         self.sequence = sequence
         self.start_idx = start_idx
         self.end_idx = end_idx

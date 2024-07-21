@@ -95,7 +95,7 @@ def modify_primer3_input(exon_region_seq: str, candidate_amplicon: Amplicon_Obj,
     return seq_id, seq, seg_target, product_range, excluded_ranges
 
 
-def build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i: int, exon_num: int) -> Amplicon_Obj:
+def build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i: int, exon_num: int, original_exon_indices_dict: Dict) -> Amplicon_Obj:
     """
 
     :param primers:
@@ -103,6 +103,7 @@ def build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i: 
     :param candidate_amplicon:
     :param i:
     :param exon_num:
+    :param original_exon_indices_dict:
     :return:
     """
     exon_region_params = gene_exon_regions_seqs_dict[exon_num][i][0].split(":")
@@ -129,9 +130,10 @@ def build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i: 
     target_strand = "+" if candidate_amplicon.target.strand == scaffold_strand else "-"
     new_target = Target_Obj(candidate_amplicon.target.seq, target_start_idx, target_end_idx, target_strand)
     snps = [SNP_Obj(snp.position_in_sequence, snp.different_alleles_set) for snp in candidate_amplicon.snps]
+    orig_exon_num = original_exon_indices_dict[scaffold][exon_num]
     amplicon = Amplicon_Obj(exon_num, scaffold, scaffold_strand, sequence, amplicon_start_idx, amplicon_end_idx,
                             snps_median, snps_mean,
-                            new_target, snps, primers)
+                            new_target, snps, primers, orig_exon_num)
     amplicon.off_targets = candidate_amplicon.off_targets
     amplicon.update_snps_indices(candidate_amplicon.start_idx + primers.left_start_idx)
 
@@ -143,7 +145,7 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
                 out_path: str, primer3_core_path: str, n: int, amplicon_range: Tuple[int, int],
                 distinct_alleles_num: int,
                 target_surrounding_region: int, filter_off_targets: int, genome_fasta_path: str, pams: Tuple,
-                candidates_scaffold_positions: Dict) -> List[Amplicon_Obj]:
+                candidates_scaffold_positions: Dict, original_exon_indices_dict) -> List[Amplicon_Obj]:
     # noinspection GrazieInspection
     """
 
@@ -161,6 +163,7 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
         :param genome_fasta_path: path to the directory in which the genome fasta file.
         :param pams:
         :param candidates_scaffold_positions:
+        :param original_exon_indices_dict:
         :return:
         """
     amplicons = []
@@ -177,7 +180,7 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
             primers = handle_primer3_output(primer3_res)
 
             for i in range(distinct_alleles_num):
-                amplicon = build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i, exon_num)
+                amplicon = build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i, exon_num, original_exon_indices_dict)
                 if len(amplicons) < n * distinct_alleles_num:  # up to 'n' amplicons with 'distinct_alleles_num' alleles each
                     amplicons.append(amplicon)
                 else:
