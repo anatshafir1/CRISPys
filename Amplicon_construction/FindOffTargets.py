@@ -56,7 +56,8 @@ def get_off_target(x, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]])
     :param sequence_to_candidate_dict: a dictionary of sequence:candidate
     """
     candidates_list = sequence_to_candidate_dict[x['crRNA'][:20]]
-    off_target = OffTarget(x['DNA'].upper(), x['Chromosome'].split(" ")[0], int(x['Position']), x['Direction'], int(x['Mismatches']))
+    off_target = OffTarget(x['DNA'].upper(), x['Chromosome'].split(" ")[0], int(x['Position']), x['Direction'],
+                           int(x['Mismatches']))
     legit_letters = True
     for char in off_target.seq:
         if char not in {"A", "C", "T", "G"}:
@@ -224,7 +225,7 @@ def extract_off_targets(sam_file: str, genome_fasta: str, pams: Tuple) -> DataFr
             scaffold = columns[2]
             position = columns[3]
             cigar = columns[5]
-            strand = "-" if int(columns[1]) & 0x10 != 0 else "+"   # inferring strand from the FLAG's 5th bit
+            strand = "-" if int(columns[1]) & 0x10 != 0 else "+"  # inferring strand from the FLAG's 5th bit
             start = int(position) - 1  # Convert to 0-based indexing
             ref_seq = reference_genome[scaffold].seq
             off_target_len = sum(int(length) for length, op in re.findall(r'(\d+)([MID])', cigar) if op != 'D')
@@ -245,7 +246,8 @@ def extract_off_targets(sam_file: str, genome_fasta: str, pams: Tuple) -> DataFr
                     off_targets['Mismatches'].append(columns[12].split(":")[-1])
 
             # handle rest of the matches:
-            xa_tag = next((col for col in columns if col.startswith('XA:Z:')), None)  # skip to the column where the off-targets are
+            xa_tag = next((col for col in columns if col.startswith('XA:Z:')),
+                          None)  # skip to the column where the off-targets are
             if xa_tag:
                 # Extract the off-target alignments from the XA:Z: tag
                 off_target_entries = xa_tag[5:].split(';')[:-1]  # Remove the trailing empty entry
@@ -262,10 +264,10 @@ def extract_off_targets(sam_file: str, genome_fasta: str, pams: Tuple) -> DataFr
                         end = start + off_target_len
                         # Handle strand orientation
                         if strand == "-":
-                            sequence = ref_seq[start-3:end]
+                            sequence = ref_seq[start - 3:end]
                             sequence = sequence.reverse_complement()
                         else:
-                            sequence = ref_seq[start:end+3]
+                            sequence = ref_seq[start:end + 3]
                         # check if PAM:
                         if sequence[-3:] in pams:
                             off_targets['crRNA'].append(grna)
@@ -282,9 +284,9 @@ def extract_off_targets(sam_file: str, genome_fasta: str, pams: Tuple) -> DataFr
 
 
 def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_file: str, out_path: str, pams: Tuple,
-                    candidates_scaffold_positions: Dict[str, Tuple]):
+                    candidates_scaffold_positions: Dict[str, Tuple[int, int]]):
     """
-    Find the off-targets for each candidate using crispritz, store them in the candidate's off_targets_list attribute
+    Find the off-targets for each candidate using BWA, store them in the candidate's off_targets_list attribute
     as a list of OffTarget objects. Then calculates the off-target scores for each off-target of each candidate and
     store the scores in each off-target's score attribute.
 
@@ -297,7 +299,7 @@ def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_f
 
     # run off target search
     off_targets_sam = run_bwa(candidate_amplicons_list, genome_fasta_file, out_path)
-    # off_targets_pd = run_crispritz(candidate_amplicons_list, out_path, genome_chroms_path)
+    # extract off-targets from SAM file to pandas DataFrame
     off_targets_pd = extract_off_targets(off_targets_sam, genome_fasta_file, pams)
     # create a dictionary of sequence -> candidate
     sequence_to_candidate_dict = create_sequence_to_candidate_dict(candidate_amplicons_list)
@@ -326,7 +328,7 @@ def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_f
 
 
 def filt_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_file: str, out_path: str, pams: Tuple,
-                    candidates_scaffold_positions: Dict[str, Tuple[int, int]]) -> List[Amplicon_Obj]:
+                     candidates_scaffold_positions: Dict[str, Tuple[int, int]]) -> List[Amplicon_Obj]:
     """
 
     :param candidate_amplicons_list: a list of amplicon candidates

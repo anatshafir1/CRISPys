@@ -5,6 +5,7 @@ from json import loads
 import keras
 import tensorflow.python
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 

@@ -2,6 +2,7 @@ import subprocess
 from typing import Tuple, List, Dict
 
 from Amplicon_Obj import Amplicon_Obj
+from FindPrimerOffTargets import get_primers_off_targets
 from FindOffTargets import get_off_targets
 from SNP_Obj import SNP_Obj
 from Target_Obj import Target_Obj
@@ -145,27 +146,27 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
                 out_path: str, primer3_core_path: str, n: int, amplicon_range: Tuple[int, int],
                 distinct_alleles_num: int,
                 target_surrounding_region: int, filter_off_targets: int, genome_fasta_path: str, pams: Tuple,
-                candidates_scaffold_positions: Dict, original_exon_indices_dict) -> List[Amplicon_Obj]:
+                candidates_scaffold_positions: Dict, original_exon_indices_dict, max_amplicon_len: int) -> List[Amplicon_Obj]:
     # noinspection GrazieInspection
     """
 
 
-        :param gene_exon_regions_seqs_dict:
-        :param sorted_candidate_amplicons:
-        :param out_path: path to output directory where algorithm results will be saved
-        :param primer3_core_path:
-        :param n: maximum number of Amplicons to return in the results
-        :param amplicon_range:
-        :param distinct_alleles_num:
-        :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
-        :param filter_off_targets: choose whether to filter amplicons with 'strong' off-targets for their gRNAs, or return them
-        in the results.
-        :param genome_fasta_path: path to the directory in which the genome fasta file.
-        :param pams:
-        :param candidates_scaffold_positions:
-        :param original_exon_indices_dict:
-        :return:
-        """
+    :param gene_exon_regions_seqs_dict:
+    :param sorted_candidate_amplicons:
+    :param out_path: path to output directory where algorithm results will be saved
+    :param primer3_core_path:
+    :param n: maximum number of Amplicons to return in the results
+    :param amplicon_range:
+    :param distinct_alleles_num:
+    :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
+    :param filter_off_targets: choose whether to filter amplicons with 'strong' off-targets for their gRNAs, or return them
+    in the results.
+    :param genome_fasta_path: path to the directory in which the genome fasta file.
+    :param pams:
+    :param candidates_scaffold_positions:
+    :param original_exon_indices_dict:
+    :return:
+    """
     amplicons = []
 
     for candidate_amplicon in sorted_candidate_amplicons:
@@ -193,6 +194,7 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
 
             if not filter_off_targets:  # search for off targets
                 get_off_targets(amplicons, genome_fasta_path, out_path, pams, candidates_scaffold_positions)
+                get_primers_off_targets(amplicons, genome_fasta_path, out_path, candidates_scaffold_positions, max_amplicon_len)
                 return amplicons
             else:
                 return amplicons

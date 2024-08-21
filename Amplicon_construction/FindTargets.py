@@ -69,11 +69,12 @@ def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, prim
     return sorted(found_targets, key=lambda target: target.start_idx)
 
 
-def get_targets(gene_sequences_dict: Dict, pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int,
-                target_surrounding_region: int, target_len: int) -> Dict[int, List[Target_Obj]]:
+def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int,
+                target_surrounding_region: int, target_len: int, k: int) -> Dict[int, List[Target_Obj]]:
     """
 
-    :param gene_sequences_dict:
+    :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name 
+    (example format: ">scaffold10132:437703-438762(+)") and tuple[1] is allele sequence.
     :param pams:
     :param max_amplicon_len: maximum length of the amplicon
     :param primer_length: minimum length of the primer sequence
