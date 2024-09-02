@@ -5,57 +5,78 @@ from collections import Counter
 from SNP_Obj import SNP_Obj
 
 
-def create_snps_dict(fasta_sequences_lst: List, distinct_alleles_num: int) -> Dict[int, Tuple[str]]:
+def create_snps_dict(exon_sequences_lst: List[Tuple[str, str]], distinct_alleles_num: int, primer_length: int) -> List[SNP_Obj]:
     """
 
-    :param fasta_sequences_lst:
-    :param distinct_alleles_num:
-    :return:
-    """
-    snps_dict = {}
-    only_sequences_lst = [fasta_sequences_lst[i][1] for i in range(distinct_alleles_num)]
-    only_sequences_zip = zip(*only_sequences_lst)
-    for index, locus in enumerate(only_sequences_zip):
-        if not all(locus[0] == nucleotide for nucleotide in locus):
-            snps_dict[index] = locus  # the indices of nucleotides in the tuple are the alleles numbers
-
-    return snps_dict
-
-
-def snps_dict_to_lst(snps_dict: Dict[int, Tuple[str]], primer_length: int) -> List[SNP_Obj]:
-    """
-
-    :param snps_dict:
+    :param exon_sequences_lst: list of current exon's alleles sequences as tuples of (allele_ID, sequence)
+    :param distinct_alleles_num: number of distinct alleles of the gene
     :param primer_length: minimum length of the primer sequence, defined by the user in the algorithm run
     :return:
     """
-    snps_lst = []
-    for index in snps_dict:
-        counter = Counter(snps_dict[index])
-        most_common_nuc = counter.most_common(1)[0][0]
-        if most_common_nuc == "-":
-            continue
-        else:
-            current_tuple = snps_dict[index]
-            list_snps_nuc = [current_tuple.index(nuc) for nuc in current_tuple if nuc != most_common_nuc]
-            snp = SNP_Obj(int(index), set(list_snps_nuc))
-            if snp.position_in_sequence > primer_length:
-                snps_lst.append(snp)
-    return snps_lst
+    snps_list = []
+    number_to_scaffold_dict = {i: seq_tup[0].split(":")[0][1:] for i, seq_tup in enumerate(exon_sequences_lst)}
+    all_alleles_set = set(seq_tup[0].split(":")[0][1:] for seq_tup in exon_sequences_lst)
+    only_sequences_lst = [exon_sequences_lst[i][1] for i in range(distinct_alleles_num)]
+    index = 0
+    while index < len(only_sequences_lst[0]):
+        curr_index_nuc_list = [only_sequences_lst[allele][index] for allele in range(distinct_alleles_num)]
+        if all(curr_index_nuc_list[0] == allele for allele in curr_index_nuc_list):  # no SNP in current index
+            index += 1
+        elif all(allele != "-" for allele in curr_index_nuc_list):  # no indel in current index
+            counts = Counter(curr_index_nuc_list)
+            unique_alleles = {number_to_scaffold_dict[i] for i, val in enumerate(curr_index_nuc_list) if counts[val] == 1}
+            snp = SNP_Obj(index, unique_alleles)
+            if snp.position > primer_length:
+                snps_list.append(snp)
+            index += 1
+        else:  # at least one indel in an allele at current index
+            allele_set = set()
+            index_run = index + 1
+            gap_length = 1
+            for j in range(distinct_alleles_num):  # find which allele starts with an indel
+                if only_sequences_lst[j][index] == "-":
+                    while index_run < len(only_sequences_lst[0]) and only_sequences_lst[j][index_run] == "-":  # calculate gap length
+                        index_run += 1
+                        gap_length += 1
+                    if gap_length > 1:
+                        break
+            if gap_length > 1:
+                for j in range(distinct_alleles_num):
+                    if only_sequences_lst[j][index: index_run].count("-") == gap_length:
+                        allele_set.add(number_to_scaffold_dict[j])
+                if len(allele_set) > 1:
+                    distinct_allele = all_alleles_set.difference(allele_set)
+                    snp = SNP_Obj(index, distinct_allele, gap_length)
+                    if snp.position > primer_length:
+                        snps_list.append(snp)
+                    index += gap_length
+                else:
+                    snp = SNP_Obj(index, allele_set, gap_length)
+                    if snp.position > primer_length:
+                        snps_list.append(snp)
+                    index += gap_length
+            else:
+                counts = Counter(curr_index_nuc_list)
+                unique_alleles = {number_to_scaffold_dict[i] for i, val in enumerate(curr_index_nuc_list) if
+                                  counts[val] == 1}
+                snp = SNP_Obj(index, unique_alleles)
+                if snp.position > primer_length:
+                    snps_list.append(snp)
+                index += 1
+    return snps_list
 
 
 def get_snps(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], distinct_alleles_num: int,
              primer_length: int) -> Dict[int, List[SNP_Obj]]:
     """
 
-    :param gene_sequences_dict:
-    :param distinct_alleles_num:
+    :param gene_sequences_dict: dictionary of exon number to list of exon's alleles sequences as tuples of (allele_ID, sequence)
+    :param distinct_alleles_num: number of distinct alleles of the gene
     :param primer_length: minimum length of the primer sequence, defined by the user in the algorithm run
     :return:
     """
     snps_dict = {}
     for exon_region in gene_sequences_dict:
-        curr_exon_region_snps_dict = create_snps_dict(gene_sequences_dict[exon_region], distinct_alleles_num)
-        curr_exon_region_snps_list = snps_dict_to_lst(curr_exon_region_snps_dict, primer_length)
+        curr_exon_region_snps_list = create_snps_dict(gene_sequences_dict[exon_region], distinct_alleles_num, primer_length)
         snps_dict[exon_region] = curr_exon_region_snps_list
     return snps_dict

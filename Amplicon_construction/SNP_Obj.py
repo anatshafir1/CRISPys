@@ -11,15 +11,16 @@ class SNP_Obj:
         similar in their nucleotides in that position, while allele 3 has a different nucleotide in the position.
         """
 
-    def __init__(self, position_in_sequence: int, different_alleles_set: set):
-        self.position_in_sequence = position_in_sequence
+    def __init__(self, position: int, different_alleles_set: set, gap_length: int = 1):
+        self.position = position
         self.different_alleles_set = different_alleles_set
+        self.gap_length = gap_length
 
     def __str__(self):
-        return f"{self.position_in_sequence},{self.different_alleles_set} "
+        return f"{self.position},{self.different_alleles_set} "
 
     def __repr__(self):
         return self.__str__()
 
     def update_snp_index(self, length_to_subtract):
-        self.position_in_sequence = self.position_in_sequence - length_to_subtract
+        self.position = self.position - length_to_subtract

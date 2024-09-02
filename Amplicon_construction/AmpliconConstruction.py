@@ -27,11 +27,24 @@ def get_relevant_targets(gene_targets_dict: Dict[int, List[Target_Obj]], gene_sn
     :param gene_snps_dict:
     :return:
     """
+
+    def ranges_overlap(range1, range2):
+        start1, end1 = range1
+        start2, end2 = range2
+        return start1 <= end2 and start2 <= end1
+
     new_targets_dict = {}
     for exon in gene_snps_dict:
         new_exon_targets_lst = []
         for target in gene_targets_dict[exon]:
-            if all(snp.position_in_sequence not in range(target.start_idx, target.end_idx) for snp in gene_snps_dict[exon]):
+            valid_target = True
+            target_range = target.start_idx, target.end_idx
+            for snp in gene_snps_dict[exon]:
+                snp_range = snp.position, snp.position+snp.gap_length
+                if ranges_overlap(target_range, snp_range):
+                    valid_target = False
+                    break
+            if valid_target:
                 new_exon_targets_lst.append(target)
         new_targets_dict[exon] = new_exon_targets_lst
 
@@ -78,12 +91,12 @@ def valid_sgrna_target(i: int, j: int, exon_snps_list: List[SNP_Obj], distinct_a
     max_range_from_snp = max_amplicon_len - primer_length * 2 - 1
     first_snp = exon_snps_list[i]
     last_snp = exon_snps_list[j]
-    if not (curr_target.end_idx < first_snp.position_in_sequence + max_range_from_snp and curr_target.start_idx >
-            last_snp.position_in_sequence - max_range_from_snp):
+    if not (curr_target.end_idx < first_snp.position + max_range_from_snp and curr_target.start_idx >
+            last_snp.position - max_range_from_snp):
         return []
     # Create a list of SNPs that can be used to calculate the Amplicon statistics (SNPs that don't fall on the region around the target)
     for k in range(i, j + 1):
-        if not curr_target.start_idx - target_surrounding_region <= exon_snps_list[k].position_in_sequence <= \
+        if not curr_target.start_idx - target_surrounding_region <= exon_snps_list[k].position <= \
                curr_target.end_idx + target_surrounding_region:
             valid_snps_list.append(exon_snps_list[k])
     if len(valid_snps_list) == 0:
@@ -94,19 +107,19 @@ def valid_sgrna_target(i: int, j: int, exon_snps_list: List[SNP_Obj], distinct_a
     return []
 
 
-def calculate_snps_statistics(valid_snps_for_target, distinct_alleles_num) -> Tuple[float, float]:
+def calculate_snps_statistics(valid_snps_for_target: List[SNP_Obj], all_alleles_set: set) -> Tuple[float, float]:
     """
 
     :param valid_snps_for_target:
-    :param distinct_alleles_num:
+    :param all_alleles_set:
     :return:
     """
-    counts_lst = [0 for _ in range(distinct_alleles_num)]
+    counts_dict = {allele: 0 for allele in all_alleles_set}
     for snp in valid_snps_for_target:
-        for allele_num in snp.different_alleles_set:
-            counts_lst[allele_num] += 1
-    snps_median = statistics.median(counts_lst)
-    snps_mean = statistics.mean(counts_lst)
+        for allele in snp.different_alleles_set:
+            counts_dict[allele] += 1
+    snps_median = statistics.median(list(counts_dict.values()))
+    snps_mean = statistics.mean(list(counts_dict.values()))
 
     return snps_median, snps_mean
 
@@ -133,8 +146,8 @@ def create_candidate_amplicon(snps_median: float, snps_mean: float, candidate_am
     last_snp = candidate_amplicon_snps_lst[-1]
     max_range_from_snp = max_amplicon_len - primer_length - 1
     max_range_from_target = max_amplicon_len - target_surrounding_region - primer_length
-    min_amp_start_index = target.end_idx - max_range_from_target if target.end_idx > last_snp.position_in_sequence else last_snp.position_in_sequence - max_range_from_snp
-    max_amp_end_index = target.start_idx + max_range_from_target if target.end_idx < first_snp.position_in_sequence else first_snp.position_in_sequence + max_range_from_snp
+    min_amp_start_index = target.end_idx - max_range_from_target if target.end_idx > last_snp.position else last_snp.position - max_range_from_snp
+    max_amp_end_index = target.start_idx + max_range_from_target if target.end_idx < first_snp.position else first_snp.position + max_range_from_snp
     if max_amp_end_index - min_amp_start_index < min_amplicon_len:
         return Amplicon_Obj(exon_num, current_exon_region_id, "", "", 0, 0, 0.0, 0.0, target, candidate_amplicon_snps_lst, None)
     return Amplicon_Obj(exon_num, current_exon_region_id, "", "", min_amp_start_index, max_amp_end_index, snps_median, snps_mean, target, candidate_amplicon_snps_lst, None)
@@ -143,7 +156,7 @@ def create_candidate_amplicon(snps_median: float, snps_mean: float, candidate_am
 def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distinct_alleles_num: int,
                             current_targets_lst: List[Target_Obj], max_amplicon_len: int,
                             primer_length: int, exon_num: int, current_exon_region_id: str,
-                            target_surrounding_region: int, min_amplicon_len: int) -> List[Amplicon_Obj]:
+                            target_surrounding_region: int, min_amplicon_len: int, all_alleles_set: set) -> List[Amplicon_Obj]:
     """
 
     :param i: index of current SNP
@@ -157,6 +170,7 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
     :param current_exon_region_id:
     :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :param min_amplicon_len: minimum length of the amplicon, defined by user
+    :param all_alleles_set:
     :return:
     """
 
@@ -166,7 +180,7 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
                                                    max_amplicon_len, primer_length, target_surrounding_region)  # SNPs for Amplicon statistics
         if len(valid_snps_for_target) > 0:
             candidate_amplicon_snps_lst = exon_snps_lst[i:j + 1]  # all the SNPs of the Amplicon Candidate
-            snps_median, snps_mean = calculate_snps_statistics(valid_snps_for_target, distinct_alleles_num)
+            snps_median, snps_mean = calculate_snps_statistics(valid_snps_for_target, all_alleles_set)  # statistics are counted for SNPs that are not located near the target (target surrounding region)
             candidate_amplicon = create_candidate_amplicon(snps_median, snps_mean, candidate_amplicon_snps_lst, target,
                                                            max_amplicon_len, primer_length, exon_num, current_exon_region_id, target_surrounding_region, min_amplicon_len)
             if candidate_amplicon.snps_median != 0:
@@ -193,6 +207,7 @@ def construct_amplicons(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, s
     :param min_amplicon_len: minimum length of the amplicon, defined by user
     :return: list of candidate amplicons
     """
+    all_alleles_set = set(seq_tup[0].split(":")[0][1:] for seq_tup in gene_exon_regions_seqs_dict[1])
     candidate_amplicons_list = []
     max_dist_snp = max_amplicon_len - primer_length * 2 - 1
     for exon in gene_snps_dict:
@@ -204,11 +219,11 @@ def construct_amplicons(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, s
         for i in range(len(exon_snps_lst)):
             j = i + 1
             current_snp = exon_snps_lst[i]
-            while j < len(exon_snps_lst) and exon_snps_lst[j].position_in_sequence < current_snp.position_in_sequence + max_range_from_snp:
+            while j < len(exon_snps_lst) and exon_snps_lst[j].position < current_snp.position + max_range_from_snp:
                 if valid_amplicon(i, j, exon_snps_lst, distinct_alleles_num):  # check if snps i to j are enough do distinct between different alleles
-                    current_snp_candidate_amplicons = get_candidate_amplicons(i, j, exon_snps_lst,
-                                                                              distinct_alleles_num, exon_targets_lst,
-                                                                              max_amplicon_len, primer_length, exon, current_exon_region_id, target_surrounding_region, min_amplicon_len)
+                    current_snp_candidate_amplicons = get_candidate_amplicons(i, j, exon_snps_lst, distinct_alleles_num, exon_targets_lst,
+                                                                              max_amplicon_len, primer_length, exon, current_exon_region_id,
+                                                                              target_surrounding_region, min_amplicon_len, all_alleles_set)
                     candidate_amplicons_list.extend(current_snp_candidate_amplicons)
                 j += 1
 
@@ -294,13 +309,13 @@ def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_sur
                                             primer3_core_path, n, amplicon_ranges[max_amplicon_len_category - 1],
                                             distinct_alleles_num, target_surrounding_region, filter_off_targets,
                                                 genome_fasta_file, pams, candidates_scaffold_positions,
-                                                original_exon_indices_dict, max_amplicon_len)
+                                                original_exon_indices_dict, max_amplicon_len, gene_snps_dict)
     else:  # Get primers, then find gRNA off-targets.
         amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, sorted_candidate_amplicons, out_path,
                                                 primer3_core_path, n, amplicon_ranges[max_amplicon_len_category - 1],
                                                 distinct_alleles_num, target_surrounding_region, filter_off_targets,
                                                 genome_fasta_file, pams, candidates_scaffold_positions,
-                                                original_exon_indices_dict, max_amplicon_len)
+                                                original_exon_indices_dict, max_amplicon_len, gene_snps_dict)
     if len(amplicon_obj_with_primers) > 0:
         save_results_to_csv(amplicon_obj_with_primers, out_path)
         return amplicon_obj_with_primers
