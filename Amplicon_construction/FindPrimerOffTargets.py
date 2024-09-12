@@ -264,11 +264,12 @@ def get_primers_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome
     as a list of OffTarget objects. Then calculates the off-target scores for each off-target of each candidate and
     store the scores in each off-target's score attribute.
 
-    :param candidate_amplicons_list: a list of amplicon candidates
+    :param candidate_amplicons_list: A list of amplicon candidates
     :param out_path: output path for the algorithm results
     :param genome_fasta_file: path to input FASTA format file of the genome
     :param candidates_scaffold_positions: dictionary of allele scaffold -> gene allele start,end indices
     :param max_amplicon_len: maximum length of the amplicon, defined by user
+    :return
     """
 
     # run off target search

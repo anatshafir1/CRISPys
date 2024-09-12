@@ -1,5 +1,5 @@
 """sgRNA target class file"""
-from typing import List, Dict
+from typing import List, Dict, Set
 
 
 class Target_Obj:
@@ -33,7 +33,7 @@ class Target_Obj:
 
 class Combined_Target_Obj:
 
-    def __init__(self, start_idx: int, targets_list: List[Target_Obj] = [], snp_dict: Dict[int, Dict[str, List]] = {}, k_alleles_list: List[str] = []):
+    def __init__(self, start_idx: int, targets_list: List[Target_Obj] = [], snp_dict: Dict[int, Dict[str, Set]] = {}, k_alleles_list: List[str] = []):
 
         self.start_idx = start_idx
         self.targets_list = targets_list
