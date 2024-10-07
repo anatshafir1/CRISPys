@@ -3,6 +3,7 @@ import regex
 from typing import List, Tuple, Dict
 
 from Target_Obj import Target_Obj
+from FindSNPTargets import get_snp_targets
 
 
 def give_complementary(seq: str) -> str:
@@ -26,8 +27,8 @@ def give_complementary(seq: str) -> str:
     return ''.join(complementary_seq_list)
 
 
-def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int,
-                      target_surrounding_region: int, target_len: int) -> List[Target_Obj]:
+def find_targets_in_sequence(exon_region: str, pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int,
+                             target_surrounding_region: int, target_len: int) -> List[Target_Obj]:
     """
     This function is used to find CRISPR target site sequences from an input DNA sequence. Using regex this
     function searches for all the patterns of 23 letters long strings with all the PAM sequences in 'pams' in their end,
@@ -69,8 +70,13 @@ def find_exon_targets(exon_region: str, pams: Tuple, max_amplicon_len: int, prim
     return sorted(found_targets, key=lambda target: target.start_idx)
 
 
+def filter_duplicates(exon_targets):
+    target_pos_dict = {target.start_idx: target for target in exon_targets}
+    return sorted(list(target_pos_dict.values()), key=lambda target: target.start_idx)
+
+
 def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tuple, max_amplicon_len: int, primer_length: int, cut_location: int,
-                target_surrounding_region: int, target_len: int, k: int) -> Dict[int, List[Target_Obj]]:
+                target_surrounding_region: int, target_len: int, k: int) -> Dict[int, List]:
     """
 
     :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name 
@@ -81,12 +87,18 @@ def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tup
     :param cut_location: number of nucleotides upstream to the PAM sequence where the Cas should cut (negative number if downstream)
     :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer
+    :param k:
     :return:
     """
     targets_dict = {}
-    for exon_region in gene_sequences_dict:
-        exon_region_seq = gene_sequences_dict[exon_region][0][1]
-        exon_targets = find_exon_targets(exon_region_seq, pams, max_amplicon_len, primer_length, cut_location,
-                                         target_surrounding_region, target_len)
-        targets_dict[exon_region] = exon_targets
-    return targets_dict
+    if k > 0:
+        targets_dict = get_snp_targets(gene_sequences_dict, pams, max_amplicon_len, primer_length, cut_location, target_surrounding_region, target_len, k)
+        return targets_dict
+    else:
+        for exon_region in gene_sequences_dict:
+            exon_region_seq = gene_sequences_dict[exon_region][0][1]
+            exon_targets = find_targets_in_sequence(exon_region_seq, pams, max_amplicon_len, primer_length, cut_location,
+                                                    target_surrounding_region, target_len)
+            unique_exon_targets = filter_duplicates(exon_targets)
+            targets_dict[exon_region] = unique_exon_targets
+        return targets_dict
