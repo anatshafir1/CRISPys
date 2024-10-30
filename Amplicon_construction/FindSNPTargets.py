@@ -1,8 +1,8 @@
 from typing import List, Dict, Tuple, Set
 
+from Amplicon_construction.FindTargets import find_targets_in_sequence, give_complementary
 from Target_Obj import Target_Obj, Combined_Target_Obj
 from FindOffTargets import moff
-from FindTargets import find_targets_in_sequence, give_complementary
 
 
 def get_all_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tuple, max_amplicon_len: int,
@@ -33,8 +33,7 @@ def get_all_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
                                                       target_len)  # get list of all targets (as Target_Obj) for current allele
             for target in allele_targets_list:  # iterate over all targets found on current allele to save them and their parallels (on the other alleles) to a dictionary
                 position_targets_lst = []
-                for i in range(
-                        len(exon_alleles_lst)):  # iterate over every allele (scaffold) of the exon to get all the current target's parallels
+                for i in range(len(exon_alleles_lst)):  # iterate over every allele (scaffold) of the exon to get all the current target's parallels
                     scaffold = exon_alleles_lst[i][0].split(":")[0][1:]
                     if target.strand == "+":
                         cur_allele_target_seq = exon_alleles_lst[i][1][target.start_idx:target.end_idx + 1]
@@ -112,13 +111,14 @@ def get_k_scaffolds(position_targets_snps_dict: Dict[int, Dict[str, Set[str]]], 
     return k_scaffolds_list
 
 
-def find_relevant_targets(targets_dict: Dict[int, Dict[int, List[Target_Obj]]], k: int, all_scaffolds_set: Set[str]) -> \
+def find_relevant_targets(targets_dict: Dict[int, Dict[int, List[Target_Obj]]], k: int, all_scaffolds_set: Set[str], target_len: int) -> \
                         Dict[int, List[Combined_Target_Obj]]:
     """
 
     :param targets_dict:
     :param k: number of alleles to target with a single gRNA
     :param all_scaffolds_set:
+    :param target_len:
     :return:
     """
     relevant_targets_dict = {}
@@ -133,8 +133,8 @@ def find_relevant_targets(targets_dict: Dict[int, Dict[int, List[Target_Obj]]], 
             else:
                 k_scaffolds_list = get_k_scaffolds(position_targets_snps_dict, k, all_scaffolds_set)
                 if len(k_scaffolds_list) > 0:
-                    combined_target = Combined_Target_Obj(pos_target, position_targets_lst, position_targets_snps_dict,
-                                                          k_scaffolds_list)
+                    combined_target = Combined_Target_Obj(pos_target, pos_target+target_len, position_targets_lst,
+                                                          position_targets_snps_dict, k_scaffolds_list)
                     exon_comb_targets.append(combined_target)
 
         sorted_targets = sorted(exon_comb_targets, key=lambda target: target.start_idx)
@@ -233,6 +233,6 @@ def get_snp_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
     all_scaffolds_set = {gene_sequences_dict[1][i][0].split(":")[0][1:] for i in range(len(gene_sequences_dict[1]))}
     all_targets_dict = get_all_targets(gene_sequences_dict, pams, max_amplicon_len, primer_length, cut_location,
                                        target_surrounding_region, target_len)
-    relevant_targets_dict = find_relevant_targets(all_targets_dict, k, all_scaffolds_set)
+    relevant_targets_dict = find_relevant_targets(all_targets_dict, k, all_scaffolds_set, target_len)
     calculate_off_scores(relevant_targets_dict)
     return relevant_targets_dict

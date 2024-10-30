@@ -2,8 +2,8 @@
 import regex
 from typing import List, Tuple, Dict
 
-from Target_Obj import Target_Obj
-from FindSNPTargets import get_snp_targets
+from Amplicon_construction import FindSNPTargets_v2
+from Amplicon_construction.Target_Obj import Target_Obj
 
 
 def give_complementary(seq: str) -> str:
@@ -92,7 +92,7 @@ def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tup
     """
     targets_dict = {}
     if k > 0:
-        targets_dict = get_snp_targets(gene_sequences_dict, pams, max_amplicon_len, primer_length, cut_location, target_surrounding_region, target_len, k)
+        targets_dict = FindSNPTargets_v2.get_snp_targets(gene_sequences_dict, pams, max_amplicon_len, primer_length, cut_location, target_surrounding_region, target_len, k)
         return targets_dict
     else:
         for exon_region in gene_sequences_dict:

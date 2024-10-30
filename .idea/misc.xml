@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="Remote Python 3.8.18 (sftp://josefbrook@powerlogin.tau.ac.il:22/groups/itay_mayrose/josefbrook/miniconda3/envs/sgRNA_Polyploids_Design/bin/python)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Remote Python 3.8.18 (sftp://josefbrook@powerlogin.tau.ac.il:22/groups/itay_mayrose/josefbrook/miniconda3/envs/sgRNA_Polyploids_Design/bin/python)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Remote Python 3.8.18 (sftp://josefbrook@powergw.tau.ac.il:22/groups/itay_mayrose/josefbrook/miniconda3/envs/sgRNA_Polyploids_Design/bin/python)" project-jdk-type="Python SDK" />
 </project>

@@ -1,9 +1,9 @@
 """Amplicon class file"""
 from typing import List
 
-from Primers_Obj import Primers_Obj
-from Target_Obj import Target_Obj
-from SNP_Obj import SNP_Obj
+from Amplicon_construction.Primers_Obj import Primers_Obj
+from Amplicon_construction.Target_Obj import Target_Obj
+from Amplicon_construction.SNP_Obj import SNP_Obj
 
 
 def calc_amplicon_size(seq):
@@ -21,7 +21,7 @@ class Amplicon_Obj:
 
         """
 
-    def __init__(self, exon_num: int, scaffold: str, strand: str, sequence: str, start_idx: int, end_idx: int, snps_median: float, snps_mean: float, target: Target_Obj, snps: List[SNP_Obj], primers: Primers_Obj, orig_exon_num: int = 0):
+    def __init__(self, exon_num: int, scaffold: str, strand: str, sequence: str, start_idx: int, end_idx: int, snps_median: float, snps_mean: float, target, snps: List[SNP_Obj], primers: Primers_Obj, orig_exon_num: int = 0):
 
         self.scaffold = scaffold
         self.strand = strand
