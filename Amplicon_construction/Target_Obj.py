@@ -49,6 +49,15 @@ class Combined_Target_Obj:
         self.chosen_sg = chosen_sg
         self.chosen_sg_score = chosen_sg_score
 
+    def to_dict(self):
+        pam = ""
+        for target in self.targets_list:
+            if target.scaffold == list(self.cut_alleles)[0]:
+                pam = target.seq[20:23]
+                break
+        return {"gRNA+PAM": self.chosen_sg + pam, "gRNA_start": self.start_idx,
+                "gRNA_end": self.end_idx, "gRNA_strand": ""}
+
     def __str__(self):
         return f"{self.start_idx}, {self.chosen_sg}, {self.cut_alleles}"
 
