@@ -2,8 +2,8 @@ max_amplicon_len: 1
 min_primer_len: 18
 target_surrounding_region: 20
 cut_location: 7
-annotations_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/PDS/PDS_annotations.txt"
-out_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/PDS"
+annotations_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/MLO/MLO_annotations.txt"
+out_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/MLO"
 genome_fasta_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Banana_GAL.Phased_Scaffolds.fasta"
 num_of_alleles: 3
 pams: "AGG,TGG,CGG,GGG"
@@ -15,4 +15,4 @@ max_amplicons: 50
 
 filter_off_targets: 0
 
-k_alleles: 1
+k_alleles: 2

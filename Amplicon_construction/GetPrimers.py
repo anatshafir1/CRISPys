@@ -152,7 +152,7 @@ def build_amplicon(primers, gene_exon_regions_seqs_dict, candidate_amplicon, i: 
     snps_mean = candidate_amplicon.snps_mean
     if k > 0:  # Tool 2 in use
         new_target = Combined_Target_Obj(target_start_idx, target_end_idx, candidate_amplicon.target.targets_list,
-                                         candidate_amplicon.target.snp_dict,  candidate_amplicon.target.sg_perm,
+                                         candidate_amplicon.target.sg_perm,
                                          candidate_amplicon.target.offscores_dict, candidate_amplicon.target.cut_alleles,
                                          candidate_amplicon.target.chosen_sg,  candidate_amplicon.target.chosen_sg_score
                                          )

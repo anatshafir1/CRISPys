@@ -47,6 +47,9 @@ def get_all_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
                     primer_length: int, cut_location: int, target_surrounding_region: int,
                     target_len: int) -> Dict[int, Dict[int, List[Target_Obj]]]:
     """
+    For every allele sequence find all targets (by searching PAM sequences). For every found target get sequences in the
+    same indices from the other alleles. Save the targets in a Target_Obj and save the Target_Obj that start at the same
+    indices in dictionary of start_index: list of Target_Obj.
 
     :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name
     (example format: ">scaffold10132:437703-438762(+)") and tuple[1] is allele sequence.
@@ -99,14 +102,113 @@ def filter_relevant_targets(targets_dict: Dict[int, Dict[int, List[Target_Obj]]]
             zipped_seqs = zip(*[target.seq for target in position_targets_lst])
             for i, nucs in enumerate(zipped_seqs):
                 if not all(nucs[0] == nuc for nuc in nucs):
-                    combined_target = Combined_Target_Obj(target_position, target_position+target_len, position_targets_lst)
-                    exon_comb_targets.append(combined_target)
-                    break
+                    if i != 20:  # the 'N' in the 'NGG' PAM
+                        combined_target = Combined_Target_Obj(target_position, target_position+target_len, position_targets_lst)
+                        exon_comb_targets.append(combined_target)
+                        break
 
         sorted_targets = sorted(exon_comb_targets, key=lambda target: target.start_idx)
         relevant_targets_dict[exon_num] = sorted_targets
 
     return relevant_targets_dict
+
+
+def all_perms(initial_seq: str, list_of_seqs: List[str], list_of_differences: List[Tuple[int, List[str]]]) -> List[str]:
+    """Given an initial sequence and a list of possible polymorphisms and their indices in that sequence, this function
+    creates a list of all the possible permutations of the initial sequence.
+    list_of_seqs is initialized on the first call of the function. each recursive call adds to list_of_seqs the
+    permutations produced with the next index from list_of_differences, and advances the next call to start from the
+    next index in list_of_differences. the recursion stops when len(list_of_differences) = 0.
+    e.g. all_perms("ACTG", list(), [(0, [T,G]), (3, [A,T])]) will return ['TCTA', 'TCTT', 'GCTA', 'GCTT']
+
+    :param initial_seq: a sequence to create permutations for
+    :param list_of_seqs: list of permutations. Initially None. The function creates it during the recursion.
+    :param list_of_differences: list of tuples of polymorphisms and their locations: (index, set of nucleotides)
+    :return: list of permutations of the initial sequence
+    """
+    if len(list_of_differences) == 0:  # the stopping condition
+        if list_of_seqs:
+            return list_of_seqs
+        elif initial_seq:
+            return [initial_seq[:20]]
+        else:
+            return []
+    else:
+        new_list_of_seqs = []
+        if not list_of_seqs:  # initialising the list of sequences
+            list_of_seqs = [initial_seq[:list_of_differences[0][0]]]
+        for seq in list_of_seqs:
+            for letter in list_of_differences[0][1]:
+                if len(list_of_differences) > 1:
+                    new_list_of_seqs.append(seq + letter + initial_seq[len(seq) + 1:list_of_differences[1][0]])
+                    # the place of the next versatile letter place
+                else:
+                    new_list_of_seqs.append(seq + letter + initial_seq[len(seq) + 1:20])
+        del list_of_seqs
+        return all_perms(initial_seq, new_list_of_seqs, list_of_differences[1:])
+
+
+def get_initial_seq(comb_target: Combined_Target_Obj, strange_target_scaffolds: List[str]):
+    for target in comb_target.targets_list:
+        if target.scaffold not in strange_target_scaffolds:
+            return target.seq
+
+
+def get_list_of_differences(comb_target_snps_dict: Dict[int, Dict[str, List[str]]],
+                            strange_target_scaffolds: List[str]) -> List[Tuple[int, List[str]]]:
+    list_of_differences = []
+    for index in comb_target_snps_dict:
+        pos_nucs = [nuc for nuc in comb_target_snps_dict[index] if not (len(comb_target_snps_dict[index][nuc]) == 1 and
+                                                                        comb_target_snps_dict[index][nuc][0] in strange_target_scaffolds)]
+        list_of_differences.append((index, pos_nucs))
+
+    return list_of_differences
+
+
+def create_sgrna_permutations(relevant_targets_dict: Dict[int, List[Combined_Target_Obj]], pam_idxs: Tuple[int] = (22, 23)):
+    """
+
+    :param relevant_targets_dict:
+    :param pam_idxs:
+    """
+    for exon_num in relevant_targets_dict:
+        comb_target_lst = relevant_targets_dict[exon_num]
+        for comb_target in comb_target_lst:
+            scaffold_to_num_polymorphic_sites = {target.scaffold: 0 for target in comb_target.targets_list}
+            number_to_scaffold_dict = {i: target.scaffold for i, target in enumerate(comb_target.targets_list)}
+            zipped_seqs = zip(*[target.ungapped_seq for target in comb_target.targets_list])
+            comb_target_snps_dict = {}  # {snp_position: {nucleotide: list of scaffold_IDs}}
+            for index, nucs in enumerate(zipped_seqs):
+                if not all(nucs[0] == nucleotide for nucleotide in nucs):  # SNP at current index
+                    pos_target_dict = {}  # {nucleotide: list of scaffold_IDs}
+                    for i in range(len(nucs)):
+                        if nucs[i].upper() not in pos_target_dict:
+                            pos_target_dict[nucs[i].upper()] = [number_to_scaffold_dict[i]]
+                        else:
+                            pos_target_dict[nucs[i].upper()].append(number_to_scaffold_dict[i])
+                    for nuc in pos_target_dict:
+                        if len(pos_target_dict[nuc]) == 1:
+                            scaffold_to_num_polymorphic_sites[pos_target_dict[nuc][0]] += 1
+                    comb_target_snps_dict[index] = pos_target_dict
+                if index == pam_idxs[0] - 3:
+                    break
+            strange_target_scaffolds = []
+            if len(comb_target_snps_dict) > max_polymorphic_sites:
+                for scaffold in scaffold_to_num_polymorphic_sites:
+                    if scaffold_to_num_polymorphic_sites[scaffold] >= len(comb_target_snps_dict)/2:  # check if any of the targets is "accountable" for more than half of the SNPs
+                        strange_target_scaffolds.append(scaffold)
+                if len(strange_target_scaffolds) < 1:  # none of the targets is "accountable" for more than half of the SNPs. Target will not be used.
+                    comb_target.sg_perm = []
+                    continue
+                else:
+                    list_of_differences = get_list_of_differences(comb_target_snps_dict, strange_target_scaffolds)
+                    initial_seq = get_initial_seq(comb_target, strange_target_scaffolds)
+                    comb_target.sg_perm = all_perms(initial_seq, [], list_of_differences)
+            else:
+                list_of_differences = get_list_of_differences(comb_target_snps_dict, strange_target_scaffolds)
+                initial_seq = get_initial_seq(comb_target, strange_target_scaffolds)
+                comb_target.sg_perm = all_perms(initial_seq, [], list_of_differences)
+    print("Combined targets sgRNA permutations created")
 
 
 def create_scores_dict(on_targets_list, off_targets_list, moff_scores):
@@ -159,145 +261,39 @@ def calculate_off_scores(relevant_targets_dict: [Dict[int, List[Combined_Target_
     print("Combined targets MOFF scores updated")
 
 
-def all_perms(initial_seq: str, list_of_seqs: List[str], list_of_differences: List[Tuple[int, List[str]]]) -> List[str]:
-    """Given an initial sequence and a list of possible polymorphisms and their indices in that sequence, this function
-    creates a list of all the possible permutations of the initial sequence.
-    list_of_seqs is initialized on the first call of the function. each recursive call adds to list_of_seqs the
-    permutations produced with the next index from list_of_differences, and advances the next call to start from the
-    next index in list_of_differences. the recursion stops when len(list_of_differences) = 0.
-    e.g. all_perms("ACTG", list(), [(0, [T,G]), (3, [A,T])]) will return ['TCTA', 'TCTT', 'GCTA', 'GCTT']
-
-    :param initial_seq: a sequence to create permutations for
-    :param list_of_seqs: list of permutations. Initially None. The function creates it during the recursion.
-    :param list_of_differences: list of tuples of polymorphisms and their locations: (index, set of nucleotides)
-    :return: list of permutations of the initial sequence
-    """
-    if len(list_of_differences) == 0:  # the stopping condition
-        if list_of_seqs:
-            return list_of_seqs
-        elif initial_seq:
-            return [initial_seq[:20]]
-        else:
-            return []
-    else:
-        new_list_of_seqs = []
-        if not list_of_seqs:  # initialising the list of sequences
-            list_of_seqs = [initial_seq[:list_of_differences[0][0]]]
-        for seq in list_of_seqs:
-            for letter in list_of_differences[0][1]:
-                if len(list_of_differences) > 1:
-                    new_list_of_seqs.append(seq + letter + initial_seq[len(seq) + 1:list_of_differences[1][0]])
-                    # the place of the next versatile letter place
-                else:
-                    new_list_of_seqs.append(seq + letter + initial_seq[len(seq) + 1:20])
-        del list_of_seqs
-        return all_perms(initial_seq, new_list_of_seqs, list_of_differences[1:])
-
-
-def get_initial_seq(comb_target, strange_target_scaffolds):
-    for target in comb_target.targets_list:
-        if target.scaffold not in strange_target_scaffolds:
-            return target.seq
-
-
-def get_list_of_differences(comb_target_snps_dict, strange_target_scaffolds):
-    list_of_differences = []
-    for index in comb_target_snps_dict:
-        pos_nucs = [nuc for nuc in comb_target_snps_dict[index] if not (len(comb_target_snps_dict[index][nuc]) == 1 and
-                                                                        comb_target_snps_dict[index][nuc][0] in strange_target_scaffolds)]
-        list_of_differences.append((index, pos_nucs))
-
-    return list_of_differences
-
-
-def create_sgrna_permutations(relevant_targets_dict: Dict[int, List[Combined_Target_Obj]], pam_idxs: Tuple[int] = (22, 23)):
+def calculate_sg_rank_scores(relevant_targets_dict: Dict[int, List[Combined_Target_Obj]], k: int):
     """
 
     :param relevant_targets_dict:
-    :param pam_idxs:
-    """
-    for exon_num in relevant_targets_dict:
-        comb_target_lst = relevant_targets_dict[exon_num]
-        for comb_target in comb_target_lst:
-            scaffold_to_num_polymorphic_sites = {target.scaffold: 0 for target in comb_target.targets_list}
-            number_to_scaffold_dict = {i: target.scaffold for i, target in enumerate(comb_target.targets_list)}
-            zipped_seqs = zip(*[target.ungapped_seq for target in comb_target.targets_list])
-            comb_target_snps_dict = {}  # {snp_position: {nucleotide: list of scaffold_IDs}}
-            for index, nucs in enumerate(zipped_seqs):
-                if not all(nucs[0] == nucleotide for nucleotide in nucs):  # SNP at current index
-                    pos_target_dict = {}  # {nucleotide: list of scaffold_IDs}
-                    for i in range(len(nucs)):
-                        if nucs[i].upper() not in pos_target_dict:
-                            pos_target_dict[nucs[i].upper()] = [number_to_scaffold_dict[i]]
-                        else:
-                            pos_target_dict[nucs[i].upper()].append(number_to_scaffold_dict[i])
-                    for nuc in pos_target_dict:
-                        if len(pos_target_dict[nuc]) == 1:
-                            scaffold_to_num_polymorphic_sites[pos_target_dict[nuc][0]] += 1
-                    comb_target_snps_dict[index] = pos_target_dict
-                if index == pam_idxs[0] - 2:
-                    break
-            strange_target_scaffolds = []
-            if len(comb_target_snps_dict) > max_polymorphic_sites:
-                for scaffold in scaffold_to_num_polymorphic_sites:
-                    if scaffold_to_num_polymorphic_sites[scaffold] >= len(comb_target_snps_dict)/2:  # check if any of the targets is "accountable" for more than half of the SNPs
-                        strange_target_scaffolds.append(scaffold)
-                if len(strange_target_scaffolds) < 1:  # none of the targets is "accountable" for more than half of the SNPs. Target will not be used.
-                    comb_target.sg_perm = []
-                    continue
-                else:
-                    list_of_differences = get_list_of_differences(comb_target_snps_dict, strange_target_scaffolds)
-                    initial_seq = get_initial_seq(comb_target, strange_target_scaffolds)
-                    comb_target.sg_perm = all_perms(initial_seq, [], list_of_differences)
-            else:
-                list_of_differences = get_list_of_differences(comb_target_snps_dict, strange_target_scaffolds)
-                initial_seq = get_initial_seq(comb_target, strange_target_scaffolds)
-                comb_target.sg_perm = all_perms(initial_seq, [], list_of_differences)
-    print("Combined targets sgRNA permutations created")
-
-
-def generate_combinations(lst, k):
-    """
-    given
-    :param lst:
     :param k:
     :return:
     """
-    # Base case: if k is 0, return an empty list inside a list (one valid combination)
-    if k == 0:
-        return [[]]
-    # If the list is shorter than k, no combinations are possible
-    if len(lst) < k:
-        return []
-    # Recursively find combinations that include the first element
-    include_first = [[lst[0]] + comb for comb in generate_combinations(lst[1:], k - 1)]
-    # Recursively find combinations that exclude the first element
-    exclude_first = generate_combinations(lst[1:], k)
-    # Combine both results
-    return include_first + exclude_first
-
-
-def calculate_sg_rank_scores(relevant_targets_dict: Dict[int, List[Combined_Target_Obj]], k: int):
+    new_relevant_targets_dict = {}
     for exon_num in relevant_targets_dict:
+        new_relevant_targets_dict[exon_num] = []
         comb_target_lst = relevant_targets_dict[exon_num]
         for comb_target in comb_target_lst:
             max_sg_score = 0.0
             chosen_sg = ""
             cut_alleles = set()
             for sg in comb_target.offscores_dict:
-                combs_of_k = combinations(list(comb_target.offscores_dict[sg].items()), k)
+                combs_of_k = combinations(list(comb_target.offscores_dict[sg].items()), k)  # all combinations of size k of {target scaffold: score} for current sg
                 for combo in combs_of_k:
-                    product_k = prod(pair[1] for pair in combo)
+                    product_k = prod(pair[1] for pair in combo)  # product of k "on" target scores
                     n_minus_k_lst = [pair for pair in list(comb_target.offscores_dict[sg].items()) if pair not in combo]
-                    product_n_minus_k = prod((1-pair[1]) for pair in n_minus_k_lst)
+                    product_n_minus_k = prod((1-pair[1]) for pair in n_minus_k_lst)  # product of n-k 1 minus "off" target scores
                     tot_score = product_k * product_n_minus_k
                     if tot_score > max_sg_score:
                         max_sg_score = tot_score
                         chosen_sg = sg
                         cut_alleles = {pair[0] for pair in combo}
-            comb_target.chosen_sg = chosen_sg
+            comb_target.chosen_sg = chosen_sg  # without PAM
             comb_target.chosen_sg_score = max_sg_score
             comb_target.cut_alleles = cut_alleles
+            if len(cut_alleles) > 0:
+                new_relevant_targets_dict[exon_num].append(comb_target)
+
+    return new_relevant_targets_dict
 
 
 def get_snp_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tuple, max_amplicon_len: int,
@@ -321,5 +317,5 @@ def get_snp_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
     relevant_targets_dict = filter_relevant_targets(all_targets_dict, target_len)
     create_sgrna_permutations(relevant_targets_dict)
     calculate_off_scores(relevant_targets_dict)
-    calculate_sg_rank_scores(relevant_targets_dict, k)
-    return relevant_targets_dict
+    new_relevant_targets_dict = calculate_sg_rank_scores(relevant_targets_dict, k)
+    return new_relevant_targets_dict

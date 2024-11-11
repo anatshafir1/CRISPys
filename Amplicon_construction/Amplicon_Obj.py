@@ -2,7 +2,6 @@
 from typing import List
 
 from Amplicon_construction.Primers_Obj import Primers_Obj
-from Amplicon_construction.Target_Obj import Target_Obj
 from Amplicon_construction.SNP_Obj import SNP_Obj
 
 
@@ -58,7 +57,7 @@ class Amplicon_Obj:
         for snp in self.snps:
             snps_str += f"{snp}"
         self_dict["snps"] = snps_str
-        self_dict.update(self.target.to_dict())
+        self_dict.update(self.target.to_dict(self.scaffold))
         self_dict.update(self.primers.to_dict())
         if len(self.off_targets) > 0:
             self_dict.update(self.off_targets[0].to_dict(1))

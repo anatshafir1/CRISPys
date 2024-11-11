@@ -61,15 +61,15 @@ def get_off_target(x, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]])
     :param x: a row in crispritz results table
     :param sequence_to_candidate_dict: a dictionary of sequence:candidate
     """
-    candidates_list = sequence_to_candidate_dict[x['crRNA'][:20]]
+    candidates_list = sequence_to_candidate_dict[x['crRNA'][:20]]  # get list of candidate amplicons with current on-target (chosen_sg)
     off_target = OffTarget(x['DNA'].upper(), x['Chromosome'].split(" ")[0], int(x['Position']), x['Direction'],
-                           int(x['Mismatches']))
+                           int(x['Mismatches']))  # create off-target object
     legit_letters = True
-    for char in off_target.seq:
+    for char in off_target.seq:  # allow only nucleotide letters in off-target sequence
         if char not in {"A", "C", "T", "G"}:
             legit_letters = False
             break
-    if legit_letters:
+    if legit_letters:  # add current off-target to all amplicons with matching on target (candidates_list)
         for candidate in candidates_list:
             if off_target not in candidate.off_targets:
                 candidate.off_targets.append(off_target)
@@ -101,7 +101,6 @@ def calculate_scores(candidate_amplicons_list: List[Amplicon_Obj], k: int):
     batch_candidates_list = []
     for candidate in candidate_amplicons_list:
         batch_candidates_list += [candidate.target.chosen_sg if k > 0 else candidate.target.seq for _ in range(len(candidate.off_targets))]
-
         batch_off_targets_list += [off_target.seq for off_target in candidate.off_targets]
     t0 = time.perf_counter()
     scores = moff(batch_candidates_list, batch_off_targets_list)
@@ -119,10 +118,12 @@ def calculate_scores(candidate_amplicons_list: List[Amplicon_Obj], k: int):
 
 def create_bwa_input(candidate_amplicons_list: List[Amplicon_Obj], grnas_fasta: str, k: int) -> str:
     """
-    :param candidate_amplicons_list: A list of CandidateWithOffTargets objects
-    :param grnas_fasta: A path to the crispys result folder where a folder for crispritz will be created
-    :return: A path to the input for xxx and will write the input file to xxx
+    create input fasta file for BWA for all the gRNAs of the candidate amplicons
+
+    :param candidate_amplicons_list: A list of candidate amplicons objects
+    :param grnas_fasta: output path where the BWA input gRNAs fasta will be created
     :param k: number of alleles to target with a single gRNA
+    :return: path of the BWA input gRNAs fasta
     """
     out = ""
     unique_grnas = []
@@ -239,7 +240,7 @@ def extract_off_targets(sam_file: str, genome_fasta: str, pams: Tuple) -> DataFr
             cigar = columns[5]
             strand = "-" if int(columns[1]) & 0x10 != 0 else "+"  # inferring strand from the FLAG's 5th bit
             start = int(position) - 1  # Convert to 0-based indexing
-            ref_seq = reference_genome[scaffold].seq
+            ref_seq = reference_genome[scaffold].seq  # sequence of scaffold where the off-target was found
             off_target_len = sum(int(length) for length, op in re.findall(r'(\d+)([MID])', cigar) if op != 'D')
             if not off_target_len < len(grna):
                 end = start + off_target_len
@@ -248,14 +249,16 @@ def extract_off_targets(sam_file: str, genome_fasta: str, pams: Tuple) -> DataFr
                     sequence = sequence.reverse_complement()
                 else:
                     sequence = ref_seq[start:end + 3]
-                # check if PAM:
-                if sequence[-3:] in pams:
-                    off_targets['crRNA'].append(grna)
-                    off_targets['DNA'].append(str(sequence))
-                    off_targets['Chromosome'].append(scaffold)
-                    off_targets['Position'].append(position)
-                    off_targets['Direction'].append(strand)
-                    off_targets['Mismatches'].append(columns[12].split(":")[-1])
+                # check if PAM exists - otherwise it's not an off-target:
+                str_seq = str(sequence)
+                if len(str_seq) == 23:
+                    if sequence[-3:] in pams:
+                        off_targets['crRNA'].append(grna)
+                        off_targets['DNA'].append(str(sequence))
+                        off_targets['Chromosome'].append(scaffold)
+                        off_targets['Position'].append(position)
+                        off_targets['Direction'].append(strand)
+                        off_targets['Mismatches'].append(columns[12].split(":")[-1])
 
             # handle rest of the matches:
             xa_tag = next((col for col in columns if col.startswith('XA:Z:')),
@@ -280,14 +283,16 @@ def extract_off_targets(sam_file: str, genome_fasta: str, pams: Tuple) -> DataFr
                             sequence = sequence.reverse_complement()
                         else:
                             sequence = ref_seq[start:end + 3]
-                        # check if PAM:
-                        if sequence[-3:] in pams:
-                            off_targets['crRNA'].append(grna)
-                            off_targets['DNA'].append(str(sequence))
-                            off_targets['Chromosome'].append(scaffold)
-                            off_targets['Position'].append(position)
-                            off_targets['Direction'].append(strand)
-                            off_targets['Mismatches'].append(mismatch)
+                        # check if PAM exist - otherwise it's not an off-target:
+                        str_seq = str(sequence)
+                        if len(str_seq) == 23:  # TODO check why some sequences are not 23
+                            if sequence[-3:] in pams:
+                                off_targets['crRNA'].append(grna)
+                                off_targets['DNA'].append(str(sequence))
+                                off_targets['Chromosome'].append(scaffold)
+                                off_targets['Position'].append(position)
+                                off_targets['Direction'].append(strand)
+                                off_targets['Mismatches'].append(mismatch)
 
         #  create a dataframe from the dictionary
         off_targets_df = pd.DataFrame.from_dict(off_targets)
