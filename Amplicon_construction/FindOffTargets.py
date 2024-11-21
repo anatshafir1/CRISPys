@@ -9,10 +9,10 @@ import subprocess
 from Bio import SeqIO
 from pandas import DataFrame
 
-from Amplicon_construction.Amplicon_Obj import Amplicon_Obj, OffTarget
+from Amplicon_Obj import Amplicon_Obj, OffTarget
 
-from Amplicon_construction.MOFF.MOFF_prediction import MOFF_score
-from Amplicon_construction.MOFF.MoffLoad import mtx1, mtx2, model
+from MOFF.MOFF_prediction import MOFF_score
+from MOFF.MoffLoad import mtx1, mtx2, model
 
 
 # create dictionary of sequence:candidate
@@ -341,6 +341,9 @@ def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_f
                 if off not in new_off_targets_lst:
                     new_off_targets_lst.append(off)
         candidate_amplicon.off_targets = new_off_targets_lst
+        if k > 0:
+            for scaffold_amplicon in candidate_amplicon.scaffold_amplicons:
+                candidate_amplicon.scaffold_amplicons[scaffold_amplicon].off_targets = new_off_targets_lst
     # calculate the off-target scores for each off_target of each candidate
     calculate_scores(candidate_amplicons_list, k)
 

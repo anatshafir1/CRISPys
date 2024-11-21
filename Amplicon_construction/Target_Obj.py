@@ -34,7 +34,7 @@ class Target_Obj:
 
 class Combined_Target_Obj:
 
-    def __init__(self, start_idx: int, end_idx: int, targets_list: List[Target_Obj] = [], sg_perm: List[str] =[],
+    def __init__(self, start_idx: int, end_idx: int, targets_list: List[Target_Obj] = [], sg_perm: List[str] = [],
                  offscores_dict: Dict[str, Dict[str, float]] = {}, cut_alleles: Set[str] = set(), chosen_sg: str = "",
                  chosen_sg_score: float = 0.0):
 
@@ -47,16 +47,19 @@ class Combined_Target_Obj:
         self.chosen_sg = chosen_sg
         self.chosen_sg_score = chosen_sg_score
 
-    def to_dict(self, scaffold):
+    def to_dict(self, scaffold: str, strand: str):
         pam = ""
+        target_scaffold = ""
         for target in self.targets_list:
             if target.scaffold == list(self.cut_alleles)[0]:
                 pam = target.seq[20:23]
-                break
+            if target.scaffold == scaffold:
+                target_scaffold = "+" if target.strand == strand else "-"
+
         score = self.offscores_dict[self.chosen_sg][scaffold]
         sgandpam = self.chosen_sg + pam if scaffold in self.cut_alleles else "NA"
         return {"gRNA+PAM": sgandpam, "MOFF-score": score, "gRNA_start": self.start_idx,
-                "gRNA_end": self.end_idx, "gRNA_strand": ""}
+                "gRNA_end": self.end_idx, "gRNA_strand": target_scaffold}
 
     def __str__(self):
         return f"{self.start_idx}, {self.chosen_sg}, {self.cut_alleles}"
