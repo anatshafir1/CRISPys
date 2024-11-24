@@ -51,6 +51,14 @@ class Amplicon_Obj:
     def __repr__(self):
         return self.__str__()
 
+    def __eq__(self, other):
+        same_primers = self.primers == other.primers
+        same_target = self.target == other.target
+        self_snps_set = set(self.snps)
+        other_snps_set = set(other.snps)
+        snps_eq_or_subset = self_snps_set.issubset(other_snps_set) or self_snps_set.issuperset(other_snps_set)
+        return same_primers and same_target and snps_eq_or_subset
+
     def update_snps_indices(self, length_to_subtract):
         for snp in self.snps:
             snp.update_snp_index(length_to_subtract)

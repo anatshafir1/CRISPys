@@ -1,4 +1,5 @@
 """SNP class file"""
+from symbol import and_expr
 
 
 class SNP_Obj:
@@ -21,6 +22,13 @@ class SNP_Obj:
 
     def __repr__(self):
         return self.__str__()
+
+    def __eq__(self, other):
+        return (self.position == other.position and self.different_alleles_set == other.different_alleles_set and
+                self.gap_length == other.gap_length)
+
+    def __hash__(self):
+        return hash(self.__str__())
 
     def update_snp_index(self, length_to_subtract):
         self.position = self.position - length_to_subtract

@@ -27,6 +27,9 @@ class Target_Obj:
     def __len__(self):
         return self.end_idx - self.start_idx + 1
 
+    def __eq__(self, other):
+        return self.seq == other.seq and self.start_idx == other.start_idx and self.scaffold == other.scaffold
+
     def to_dict(self):
         return {"gRNA+PAM": self.seq, "gRNA_start": self.start_idx, "gRNA_end": self.end_idx,
                 "gRNA_strand": self.strand}
@@ -47,6 +50,15 @@ class Combined_Target_Obj:
         self.chosen_sg = chosen_sg
         self.chosen_sg_score = chosen_sg_score
 
+    def __str__(self):
+        return f"{self.start_idx}, {self.chosen_sg}, {self.cut_alleles}"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        return self.chosen_sg == other.chosen_sg and self.start_idx == other.start_idx
+
     def to_dict(self, scaffold: str, strand: str):
         pam = ""
         target_scaffold = ""
@@ -60,9 +72,3 @@ class Combined_Target_Obj:
         sgandpam = self.chosen_sg + pam if scaffold in self.cut_alleles else "NA"
         return {"gRNA+PAM": sgandpam, "MOFF-score": score, "gRNA_start": self.start_idx,
                 "gRNA_end": self.end_idx, "gRNA_strand": target_scaffold}
-
-    def __str__(self):
-        return f"{self.start_idx}, {self.chosen_sg}, {self.cut_alleles}"
-
-    def __repr__(self):
-        return self.__str__()

@@ -221,7 +221,8 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
                 scaffold_amplicon = build_amplicon(primers, allele_seq_tup, candidate_amplicon, original_exon_indices_dict, k)
                 candidate_amplicon.scaffold_amplicons[scaffold_amplicon.scaffold] = scaffold_amplicon
             if len(amplicons) < n:  # up to 'n' amplicons
-                amplicons.append(candidate_amplicon)
+                if candidate_amplicon not in amplicons:
+                    amplicons.append(candidate_amplicon)
             else:
                 break
         else:  # NO PRIMERS FOUND

@@ -132,7 +132,7 @@ def calculate_snps_statistics(valid_snps_for_target: List[SNP_Obj], all_alleles_
     snps_median = statistics.median(list(counts_dict.values()))
     snps_mean = statistics.mean(list(counts_dict.values()))
 
-    return snps_median, snps_mean
+    return round(snps_median, 4), round(snps_mean, 4)
 
 
 # noinspection PyTypeChecker

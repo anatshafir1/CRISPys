@@ -23,6 +23,10 @@ class Primers_Obj:
     def __repr__(self):
         return self.__str__()
 
+    def __eq__(self, other):
+        return (self.left_sequence == other.left_sequence and self.right_sequence == other.right_sequence and
+                self.left_start_idx == other.left_start_idx and self.right_start_idx == other.right_start_idx)
+
     def to_dict(self):
         return {"penalty": self.primer_penalty, "primer_left": self.left_sequence, "tm_left": self.left_tm,
                 "primer_right": self.right_sequence, "tm_right": self.right_tm}
