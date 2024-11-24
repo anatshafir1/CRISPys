@@ -15,4 +15,4 @@ max_amplicons: 50
 
 filter_off_targets: 0
 
-k_alleles: 0
+k_alleles: 1

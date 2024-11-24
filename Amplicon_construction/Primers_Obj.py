@@ -25,7 +25,7 @@ class Primers_Obj:
 
     def __eq__(self, other):
         return (self.left_sequence == other.left_sequence and self.right_sequence == other.right_sequence and
-                self.left_start_idx == other.left_start_idx and self.right_start_idx == other.right_start_idx)
+                self.primer_penalty == other.primer_penalty)
 
     def to_dict(self):
         return {"penalty": self.primer_penalty, "primer_left": self.left_sequence, "tm_left": self.left_tm,
