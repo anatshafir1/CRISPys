@@ -178,12 +178,12 @@ def filer_amplicons(amplicons: List[Amplicon_Obj]) -> List[Amplicon_Obj]:
     :param amplicons:
     :return:
     """
-    filtered_set = set()
+    filtered_lst = []
     sorted_by_snps = sorted(amplicons, key=lambda amp: len(amp.snps), reverse=True)
     for amplicon in sorted_by_snps:
-        if amplicon not in filtered_set:
-            filtered_set.add(amplicon)
-    return list(filtered_set)
+        if amplicon not in filtered_lst:
+            filtered_lst.append(amplicon)
+    return filtered_lst
 
 
 def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],

@@ -341,11 +341,12 @@ def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_f
                 if off not in new_off_targets_lst:
                     new_off_targets_lst.append(off)
         candidate_amplicon.off_targets = new_off_targets_lst
-        if k > 0:
-            for scaffold_amplicon in candidate_amplicon.scaffold_amplicons:
-                candidate_amplicon.scaffold_amplicons[scaffold_amplicon].off_targets = new_off_targets_lst
+
     # calculate the off-target scores for each off_target of each candidate
     calculate_scores(candidate_amplicons_list, k)
+    for candidate_amplicon in candidate_amplicons_list:
+        for scaffold_amplicon in candidate_amplicon.scaffold_amplicons:
+            candidate_amplicon.scaffold_amplicons[scaffold_amplicon].off_targets = candidate_amplicon.off_targets
 
 
 def filt_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_file: str, out_path: str, pams: Tuple,
