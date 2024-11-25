@@ -216,8 +216,8 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
     :return: list of results amplicons with primers.
     """
     amplicons = []
-
-    for index, candidate_amplicon in enumerate(sorted_candidate_amplicons):
+    sorted_by_snps = sorted(sorted_candidate_amplicons, key=lambda amp: len(amp.snps), reverse=True)
+    for index, candidate_amplicon in enumerate(sorted_by_snps):
         exon_num = candidate_amplicon.exon_num
         exon_region_seqs = gene_exon_regions_seqs_dict[exon_num]
         parameters_file_path = out_path + "/param_primer"
@@ -235,15 +235,16 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
                 scaffold_amplicon = build_amplicon(primers, allele_seq_tup, candidate_amplicon, original_exon_indices_dict, k)
                 candidate_amplicon.scaffold_amplicons[scaffold_amplicon.scaffold] = scaffold_amplicon
             if len(amplicons) < n:  # up to 'n' amplicons
-                amplicons.append(candidate_amplicon)
+                if candidate_amplicon not in amplicons:
+                    amplicons.append(candidate_amplicon)
             else:
                 break
         else:  # NO PRIMERS FOUND
             continue
-    filtered_amplicons = filer_amplicons(amplicons)
+    # filtered_amplicons = filer_amplicons(amplicons)
     if not filter_off_targets:  # search for off targets
-        get_off_targets(filtered_amplicons, genome_fasta_path, out_path, pams, candidates_scaffold_positions, k)
-        get_primers_off_targets(filtered_amplicons, genome_fasta_path, out_path, candidates_scaffold_positions, max_amplicon_len)
-        return filtered_amplicons
+        get_off_targets(amplicons, genome_fasta_path, out_path, pams, candidates_scaffold_positions, k)
+        get_primers_off_targets(amplicons, genome_fasta_path, out_path, candidates_scaffold_positions, max_amplicon_len)
+        return amplicons
     else:
-        return filtered_amplicons
+        return amplicons
