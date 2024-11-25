@@ -172,6 +172,20 @@ def build_amplicon(primers: Primers_Obj, allele_seq_tup: Tuple[str, str], candid
     return scaffold_amplicon
 
 
+def filer_amplicons(amplicons: List[Amplicon_Obj]) -> List[Amplicon_Obj]:
+    """
+    filter amplicons with the same primers and target, and return amplicons only with longest snps list
+    :param amplicons:
+    :return:
+    """
+    filtered_set = set()
+    sorted_by_snps = sorted(amplicons, key=lambda amp: len(amp.snps), reverse=True)
+    for amplicon in sorted_by_snps:
+        if amplicon not in filtered_set:
+            filtered_set.add(amplicon)
+    return list(filtered_set)
+
+
 def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
                 sorted_candidate_amplicons: List[Amplicon_Obj], out_path: str, primer3_core_path: str, n: int,
                 amplicon_range: Tuple[int, int], distinct_alleles_num: int, target_surrounding_region: int,
@@ -221,16 +235,15 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
                 scaffold_amplicon = build_amplicon(primers, allele_seq_tup, candidate_amplicon, original_exon_indices_dict, k)
                 candidate_amplicon.scaffold_amplicons[scaffold_amplicon.scaffold] = scaffold_amplicon
             if len(amplicons) < n:  # up to 'n' amplicons
-                if candidate_amplicon not in amplicons:
-                    amplicons.append(candidate_amplicon)
+                amplicons.append(candidate_amplicon)
             else:
                 break
         else:  # NO PRIMERS FOUND
             continue
-
+    filtered_amplicons = filer_amplicons(amplicons)
     if not filter_off_targets:  # search for off targets
-        get_off_targets(amplicons, genome_fasta_path, out_path, pams, candidates_scaffold_positions, k)
-        get_primers_off_targets(amplicons, genome_fasta_path, out_path, candidates_scaffold_positions, max_amplicon_len)
-        return amplicons
+        get_off_targets(filtered_amplicons, genome_fasta_path, out_path, pams, candidates_scaffold_positions, k)
+        get_primers_off_targets(filtered_amplicons, genome_fasta_path, out_path, candidates_scaffold_positions, max_amplicon_len)
+        return filtered_amplicons
     else:
-        return amplicons
+        return filtered_amplicons
