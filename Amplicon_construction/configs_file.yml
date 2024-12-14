@@ -2,10 +2,10 @@ max_amplicon_len: 1
 min_primer_len: 18
 target_surrounding_region: 20
 cut_location: 7
-annotations_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/ADH1/ADH1_annotations.txt"
-out_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/ADH1"
+annotations_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/MLO/MLO_annotations.txt"
+out_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/MLO"
 genome_fasta_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Banana_GAL.Phased_Scaffolds.fasta"
-num_of_alleles: 2
+num_of_alleles: 3
 pams: "AGG,TGG,CGG,GGG"
 target_len: 23
 
@@ -13,6 +13,8 @@ primer3_core_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_De
 
 max_amplicons: 5
 
-filter_off_targets: 1
+filter_off_targets: 0
 
-k_alleles: 1
+k_alleles: 0
+
+multiplex: 1

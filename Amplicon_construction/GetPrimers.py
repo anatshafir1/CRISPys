@@ -2,6 +2,7 @@ import subprocess
 from typing import Tuple, List, Dict
 
 from Amplicon_Obj import Amplicon_Obj, ScaffoldAmplicon
+from Amplicon_construction.Target_Obj import MultiplexTarget
 from Target_Obj import Combined_Target_Obj, Target_Obj
 from FindPrimerOffTargets import get_primers_off_targets
 from FindOffTargets import get_off_targets
@@ -78,7 +79,8 @@ def handle_primer3_output(output: str) -> Primers_Obj:
 
 
 def modify_primer3_input(exon_region_seq: str, candidate_amplicon: Amplicon_Obj, amplicon_range: Tuple[int, int],
-                         target_surrounding_region: int, gene_snps_dict: Dict[int, List[SNP_Obj]]) -> Tuple[str, str, str, str, str]:
+                         target_surrounding_region: int, gene_snps_dict: Dict[int, List[SNP_Obj]],
+                         multiplex: int) -> Tuple[str, str, str, str, str]:
     """
 
     :param exon_region_seq:
@@ -86,13 +88,20 @@ def modify_primer3_input(exon_region_seq: str, candidate_amplicon: Amplicon_Obj,
     :param amplicon_range:
     :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :param gene_snps_dict:
+    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :return:
     """
     # calculate target start and end indices. target here is the area of the sequence around which Primer3 should search for primers.
-    target_start_idx = min(candidate_amplicon.snps[0].position,
-                           candidate_amplicon.target.start_idx - target_surrounding_region) - candidate_amplicon.start_idx
-    target_end_idx = max(candidate_amplicon.snps[-1].position + candidate_amplicon.snps[-1].gap_length,
-                         candidate_amplicon.target.end_idx + target_surrounding_region) - candidate_amplicon.start_idx
+    if multiplex:
+        target_start_idx = min(candidate_amplicon.snps[0].position,
+                               candidate_amplicon.target.up_start - target_surrounding_region) - candidate_amplicon.start_idx
+        target_end_idx = max(candidate_amplicon.snps[-1].position + candidate_amplicon.snps[-1].gap_length,
+                             candidate_amplicon.target.down_end + target_surrounding_region) - candidate_amplicon.start_idx
+    else:
+        target_start_idx = min(candidate_amplicon.snps[0].position,
+                               candidate_amplicon.target.start_idx - target_surrounding_region) - candidate_amplicon.start_idx
+        target_end_idx = max(candidate_amplicon.snps[-1].position + candidate_amplicon.snps[-1].gap_length,
+                             candidate_amplicon.target.end_idx + target_surrounding_region) - candidate_amplicon.start_idx
     target_len = target_end_idx - target_start_idx
 
     seq_id = "gene_id"
@@ -112,16 +121,17 @@ def modify_primer3_input(exon_region_seq: str, candidate_amplicon: Amplicon_Obj,
 
 
 def build_amplicon(primers: Primers_Obj, allele_seq_tup: Tuple[str, str], candidate_amplicon: Amplicon_Obj,
-                   original_exon_indices_dict: Dict[str, Dict[int, int]], k: int) -> ScaffoldAmplicon:
+                   original_exon_indices_dict: Dict[str, Dict[int, int]], k: int, multiplex: int) -> ScaffoldAmplicon:
     """
     calculate amplicon parameters of current scaffold and create a ScaffoldAmplicon object.
 
     :param primers: pair of primers and their parameters of the current candidate amplicons, as Primers_Obj object.
     :param allele_seq_tup: tuple of scaffold_ID, allele sequence of current allele.
     :param candidate_amplicon:
-    :param original_exon_indices_dict: Dictionary of scaffold ID -> dictionary of exon numbers after filtering -> exon
+    :param original_exon_indices_dict: Dictionary of scaffold ID -> dictionary of exon numbers after filtering -> exon.
     original numbers in the annotations file.
     :param k: number of alleles to target with a single gRNA.
+    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :return:
     """
     exon_num = candidate_amplicon.exon_num
@@ -133,22 +143,49 @@ def build_amplicon(primers: Primers_Obj, allele_seq_tup: Tuple[str, str], candid
     original_exon_region_end_idx = int(exon_region_params[1][:-3].split("-")[1])
     # Extract sequence parts for current allele
     allele_seq = allele_seq_tup[1]
+    gaps_to_up_target = 0
+    gaps_to_down_target = 0
+    gaps_to_target = 0
+    target_start_idx = 0
+    target_end_idx = 0
+    up_target_start_idx = 0
+    up_target_end_idx = 0
+    down_target_start_idx = 0
+    down_target_end_idx = 0
+    if multiplex:
+        seq_to_up_target = allele_seq[:candidate_amplicon.target.up_start + 1]
+        seq_to_down_target = allele_seq[:candidate_amplicon.target.down_start + 1]
+        gaps_to_up_target = seq_to_up_target.count("-")
+        gaps_to_down_target = seq_to_down_target.count("-")
+    else:
+        seq_to_target = allele_seq[:candidate_amplicon.target.start_idx + 1]
+        gaps_to_target = seq_to_target.count("-")
     seq_to_amp_start = allele_seq[:candidate_amplicon.start_idx + primers.left_start_idx + 1]
-    seq_to_target = allele_seq[:candidate_amplicon.target.start_idx + 1]
     seq_to_amp_end = allele_seq[:candidate_amplicon.start_idx + primers.right_start_idx + 1]
     gaps_to_amp_start = seq_to_amp_start.count("-")
-    gaps_to_target = seq_to_target.count("-")
     gaps_to_amp_end = seq_to_amp_end.count("-")
     if scaffold_strand == "+":  # Amplicon's allele on genome forward strand
         amplicon_start_idx = original_exon_region_start_idx + candidate_amplicon.start_idx + primers.left_start_idx - gaps_to_amp_end
         amplicon_end_idx = original_exon_region_start_idx + candidate_amplicon.start_idx + primers.right_start_idx - gaps_to_amp_start
-        target_start_idx = original_exon_region_start_idx + candidate_amplicon.target.start_idx - gaps_to_target
-        target_end_idx = original_exon_region_start_idx + candidate_amplicon.target.end_idx - gaps_to_target
+        if multiplex:
+            up_target_start_idx = original_exon_region_start_idx + candidate_amplicon.target.up_start - gaps_to_up_target
+            up_target_end_idx = original_exon_region_start_idx + candidate_amplicon.target.up_end - gaps_to_up_target
+            down_target_start_idx = original_exon_region_start_idx + candidate_amplicon.target.down_start - gaps_to_down_target
+            down_target_end_idx = original_exon_region_start_idx + candidate_amplicon.target.down_end - gaps_to_down_target
+        else:
+            target_start_idx = original_exon_region_start_idx + candidate_amplicon.target.start_idx - gaps_to_target
+            target_end_idx = original_exon_region_start_idx + candidate_amplicon.target.end_idx - gaps_to_target
     else:  # scaffold_strand == "-". Amplicon's allele on genome reverse strand
         amplicon_start_idx = original_exon_region_end_idx - candidate_amplicon.start_idx - primers.right_start_idx + gaps_to_amp_end
         amplicon_end_idx = original_exon_region_end_idx - candidate_amplicon.start_idx - primers.left_start_idx + gaps_to_amp_start
-        target_start_idx = original_exon_region_end_idx - candidate_amplicon.target.end_idx + gaps_to_target
-        target_end_idx = original_exon_region_end_idx - candidate_amplicon.target.start_idx + gaps_to_target
+        if multiplex:
+            up_target_start_idx = original_exon_region_end_idx - candidate_amplicon.target.up_end + gaps_to_up_target
+            up_target_end_idx = original_exon_region_end_idx - candidate_amplicon.target.up_start + gaps_to_up_target
+            down_target_start_idx = original_exon_region_end_idx - candidate_amplicon.target.down_end + gaps_to_down_target
+            down_target_end_idx = original_exon_region_end_idx - candidate_amplicon.target.down_start + gaps_to_down_target
+        else:
+            target_start_idx = original_exon_region_end_idx - candidate_amplicon.target.end_idx + gaps_to_target
+            target_end_idx = original_exon_region_end_idx - candidate_amplicon.target.start_idx + gaps_to_target
 
     sequence = allele_seq[candidate_amplicon.start_idx + primers.left_start_idx: candidate_amplicon.start_idx + primers.right_start_idx + 1]
     snps_median = candidate_amplicon.snps_median
@@ -159,6 +196,11 @@ def build_amplicon(primers: Primers_Obj, allele_seq_tup: Tuple[str, str], candid
                                          candidate_amplicon.target.offscores_dict, candidate_amplicon.target.cut_alleles,
                                          candidate_amplicon.target.chosen_sg,  candidate_amplicon.target.chosen_sg_score
                                          )
+    elif multiplex:
+        new_target = MultiplexTarget(up_target_start_idx, up_target_end_idx, candidate_amplicon.target.up_seq,
+                                     down_target_start_idx, down_target_end_idx, candidate_amplicon.target.down_seq,
+                                     candidate_amplicon.target.multiplex_score, candidate_amplicon.target.up_targets_list,
+                                     candidate_amplicon.target.down_targets_list)
     else:
         target_strand = "+" if candidate_amplicon.target.strand == scaffold_strand else "-"
         new_target = Target_Obj(candidate_amplicon.target.seq, target_start_idx, target_end_idx, target_strand)
@@ -190,13 +232,14 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
                 sorted_candidate_amplicons: List[Amplicon_Obj], out_path: str, primer3_core_path: str, n: int,
                 amplicon_range: Tuple[int, int], distinct_alleles_num: int, target_surrounding_region: int,
                 filter_off_targets: int, genome_fasta_path: str, pams: Tuple, candidates_scaffold_positions: Dict[str, Tuple[int, int]],
-                original_exon_indices_dict: Dict[str, Dict[int, int]], max_amplicon_len: int, gene_snps_dict: Dict[int, List[SNP_Obj]], k: int) -> List[Amplicon_Obj]:
+                original_exon_indices_dict: Dict[str, Dict[int, int]], max_amplicon_len: int,
+                gene_snps_dict: Dict[int, List[SNP_Obj]], k: int, multiplex: int) -> List[Amplicon_Obj]:
     # noinspection GrazieInspection
     """
 
 
     :param gene_exon_regions_seqs_dict: Dictionary of exon number -> list tuples of (scaffold_ID, allele sequence).
-    :param sorted_candidate_amplicons: list of potential amplicons, sorted by median number of SNPs per allele.
+    :param sorted_candidate_amplicons: list of potential amplicons, sorted number of SNPs.
     :param out_path: path to output directory where algorithm results will be saved.
     :param primer3_core_path: A string of the full path of the primer3 core file.
     :param n: maximum number of Amplicons to return in the results.
@@ -213,17 +256,20 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
     :param max_amplicon_len: maximum length of the amplicon.
     :param gene_snps_dict: dictionary of exon numbers -> a list of SNPs of the exon region.
     :param k: number of alleles to target with a single gRNA.
+    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :return: list of results amplicons with primers.
     """
     amplicons = []
-    sorted_by_snps = sorted(sorted_candidate_amplicons, key=lambda amp: len(amp.snps), reverse=True)
-    for index, candidate_amplicon in enumerate(sorted_by_snps):
+    for index, candidate_amplicon in enumerate(sorted_candidate_amplicons):
         exon_num = candidate_amplicon.exon_num
         exon_region_seqs = gene_exon_regions_seqs_dict[exon_num]
         parameters_file_path = out_path + "/param_primer"
         # primers should be same for all alleles therefore any allele sequence is acceptable (exon_region_seqs[0][1])
         seq_id, seq, seg_target, product_range, excluded_ranges = modify_primer3_input(exon_region_seqs[0][1],
-                                                                                       candidate_amplicon, amplicon_range, target_surrounding_region, gene_snps_dict)
+                                                                                       candidate_amplicon,
+                                                                                       amplicon_range,
+                                                                                       target_surrounding_region,
+                                                                                       gene_snps_dict, multiplex)
         create_param_file(parameters_file_path, seq_id, seq, seg_target, product_range, excluded_ranges)
         primer3_res = run_primer3(primer3_core_path, parameters_file_path)
 
@@ -232,7 +278,8 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
             candidate_amplicon.primers = primers
             for i in range(distinct_alleles_num):  # Build amplicon for every allele
                 allele_seq_tup = exon_region_seqs[i]
-                scaffold_amplicon = build_amplicon(primers, allele_seq_tup, candidate_amplicon, original_exon_indices_dict, k)
+                scaffold_amplicon = build_amplicon(primers, allele_seq_tup, candidate_amplicon,
+                                                   original_exon_indices_dict, k, multiplex)
                 candidate_amplicon.scaffold_amplicons[scaffold_amplicon.scaffold] = scaffold_amplicon
             if len(amplicons) < n:  # up to 'n' amplicons
                 if candidate_amplicon not in amplicons:
@@ -243,7 +290,7 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
             continue
     # filtered_amplicons = filer_amplicons(amplicons)
     if not filter_off_targets:  # search for off targets
-        get_off_targets(amplicons, genome_fasta_path, out_path, pams, candidates_scaffold_positions, k)
+        get_off_targets(amplicons, genome_fasta_path, out_path, pams, candidates_scaffold_positions, k, multiplex)
         get_primers_off_targets(amplicons, genome_fasta_path, out_path, candidates_scaffold_positions, max_amplicon_len)
         return amplicons
     else:

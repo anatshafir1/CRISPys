@@ -22,7 +22,7 @@ class Amplicon_Obj:
 
     def __init__(self, exon_num: int, start_idx: int, end_idx: int, snps_median: float, snps_mean: float,
                  target, snps: List[SNP_Obj], primers: Primers_Obj = None, orig_exon_num: int = 0, off_targets: List = None,
-                 scaffold_amplicons: Dict = None):
+                 scaffold_amplicons: Dict = None, up_off_targets: List = None, down_off_targets: List = None):
 
         self.exon_num = exon_num
         self.orig_exon_num = orig_exon_num
@@ -44,6 +44,14 @@ class Amplicon_Obj:
             self.scaffold_amplicons = {}
         else:
             self.scaffold_amplicons = scaffold_amplicons
+        if up_off_targets is None:
+            self.up_off_targets = []
+        else:
+            self.up_off_targets = up_off_targets
+        if down_off_targets is None:
+            self.down_off_targets = []
+        else:
+            self.down_off_targets = down_off_targets
 
     def __str__(self):
         return f"target: <{self.target}>, SNPs: <{self.snps}>, primers: <{self.primers}>"
@@ -69,6 +77,8 @@ class Amplicon_Obj:
         Sort the off_targets_list by the off-targets scores from highest to lowest
         """
         self.off_targets.sort(key=lambda off: -off.score)
+        self.up_off_targets.sort(key=lambda up_off: -up_off.score)
+        self.down_off_targets.sort(key=lambda down_off: -down_off.score)
 
 
 class ScaffoldAmplicon(Amplicon_Obj):
@@ -85,7 +95,7 @@ class ScaffoldAmplicon(Amplicon_Obj):
         super().__init__(exon_num, start_idx, end_idx, snps_median, snps_mean, target, snps, primers, orig_exon_num,
                          off_targets, scaffold_amplicons)
 
-    def to_dict(self, rank: int, k: int):
+    def to_dict(self, rank: int, k: int, multiplex: int):
         """Create a dictionary of the Amplicon object"""
         self_dict = {"rank": rank}
         self_dict.update(self.__dict__.copy())
@@ -93,20 +103,33 @@ class ScaffoldAmplicon(Amplicon_Obj):
         self_dict.pop("snps")
         self_dict.pop("primers")
         self_dict.pop("off_targets")
+        self_dict.pop("up_off_targets")
+        self_dict.pop("down_off_targets")
         self_dict.pop("scaffold_amplicons")
         snps_str = ""
         for snp in self.snps:
             snps_str += f"{snp}"
         self_dict["snps"] = snps_str
-        if k > 0:
+        if multiplex:
             self_dict.update(self.target.to_dict(self.scaffold, self.strand))
+            if len(self.up_off_targets) > 0:
+                self_dict.update(self.up_off_targets[0].to_dict(1))
+            if len(self.down_off_targets) > 0:
+                self_dict.update(self.down_off_targets[0].to_dict(2))
+        elif k > 0:
+            self_dict.update(self.target.to_dict(self.scaffold, self.strand))
+            if len(self.off_targets) > 0:
+                self_dict.update(self.off_targets[0].to_dict(1))
+            if len(self.off_targets) > 1:
+                self_dict.update(self.off_targets[1].to_dict(2))
         else:
             self_dict.update(self.target.to_dict())
+            if len(self.off_targets) > 0:
+                self_dict.update(self.off_targets[0].to_dict(1))
+            if len(self.off_targets) > 1:
+                self_dict.update(self.off_targets[1].to_dict(2))
+
         self_dict.update(self.primers.to_dict())
-        if len(self.off_targets) > 0:
-            self_dict.update(self.off_targets[0].to_dict(1))
-        if len(self.off_targets) > 1:
-            self_dict.update(self.off_targets[1].to_dict(2))
         return self_dict
 
 

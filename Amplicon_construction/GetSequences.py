@@ -1,3 +1,5 @@
+import os
+
 import math
 import subprocess
 import sys
@@ -249,11 +251,11 @@ def get_exon_dict(aligned_overlapping_exons_dict: Dict[str, List[Tuple[int, int]
     """
     create a dictionary of overlapping exons with their attributes
 
-    :param aligned_overlapping_exons_dict: dictionary of allele scaffold -> list of tuples exon start,end indices
-    :param exon_num: current exon number
-    :param exon_surrounding_seq_len: number of nucleotides from each side of the exon
-    :param allele_strand_dict: dictionary of allele scaffold -> strand in genome fasta file
-    :return: dictionary of overlapping exons with their attributes'
+    :param aligned_overlapping_exons_dict: dictionary of allele scaffold -> list of tuples exon start,end indices.
+    :param exon_num: current exon number.
+    :param exon_surrounding_seq_len: number of nucleotides from each side of the exon.
+    :param allele_strand_dict: dictionary of allele scaffold -> strand in genome fasta file.
+    :return: dictionary of overlapping exons with their attributes.
     """
     exon_dict = {'seqname': [], 'new_start': [], 'end': [], 'attribute': [], 'score': [], 'strand': []}
     for allele in aligned_overlapping_exons_dict:
@@ -265,6 +267,28 @@ def get_exon_dict(aligned_overlapping_exons_dict: Dict[str, List[Tuple[int, int]
         exon_dict['score'].append(".")
         exon_dict['strand'].append(allele_strand_dict[allele])
     return exon_dict
+
+
+def delete_files_with_prefix(directory, prefix):
+    """
+    Deletes all files in the specified directory that start with the given prefix.
+
+    Args:
+        directory (str): Path to the directory.
+        prefix (str): Prefix of the files to delete.
+    """
+    if not os.path.exists(directory):
+        print(f"Directory '{directory}' does not exist.")
+        return
+
+    files_deleted = 0
+    for filename in os.listdir(directory):
+        if filename.startswith(prefix):
+            file_path = os.path.join(directory, filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                files_deleted += 1
+                print(f"Deleted: {file_path}")
 
 
 def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_surrounding_region: int, cut_location: int,
@@ -298,4 +322,5 @@ def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_surr
         call_mafft(exon_regions_path, aligned_exons_regions_path)  # create an MSA of the alleles of the exon
         exon_region_aligned_lst = genes_fasta_to_list(aligned_exons_regions_path)  # save the aligned exon regions in a list
         aligned_exons_regions_dict[exon_num + 1] = exon_region_aligned_lst  # add the list of aligned exon regions to a dictionary
+    delete_files_with_prefix(out_path, "exon")
     return aligned_exons_regions_dict, original_exon_indices_dict

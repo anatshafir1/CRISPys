@@ -6,6 +6,7 @@ from typing import List, Tuple, Dict
 import pandas as pd
 
 from Amplicon_Obj import Amplicon_Obj
+from Amplicon_construction.Target_Obj import MultiplexTarget
 from FindOffTargets import filt_off_targets
 from FindTargets import get_targets
 from GetSequences import extract_exons_regions
@@ -138,7 +139,8 @@ def calculate_snps_statistics(valid_snps_for_target: List[SNP_Obj], all_alleles_
 # noinspection PyTypeChecker
 def create_candidate_amplicon(snps_median: float, snps_mean: float, candidate_amplicon_snps_lst: List[SNP_Obj],
                               target, max_amplicon_len: int, primer_length: int, exon_num: int,
-                              target_surrounding_region: int, min_amplicon_len: int, target_len: int) -> Amplicon_Obj:
+                              target_surrounding_region: int, min_amplicon_len: int, target_len: int,
+                              multiplex: int) -> Amplicon_Obj:
     """
     Given the parameters of the potential amplicon, calculate potential range of the amplicon and create and return an
     Amplicon_Obj object, if the range is more than the minimum.
@@ -153,24 +155,87 @@ def create_candidate_amplicon(snps_median: float, snps_mean: float, candidate_am
     :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed.
     :param min_amplicon_len: minimum length of the amplicon, defined by user.
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer.
+    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :return: potential amplicon as an Amplicon_Obj.
     """
     first_snp = candidate_amplicon_snps_lst[0]
     last_snp = candidate_amplicon_snps_lst[-1]
     max_range_from_snp = max_amplicon_len - primer_length - 1
     max_range_from_target = max_amplicon_len - target_len - target_surrounding_region - primer_length
-    min_amp_start_index = target.start_idx - max_range_from_target if target.end_idx > last_snp.position else last_snp.position - max_range_from_snp
-    max_amp_end_index = target.end_idx + max_range_from_target if target.end_idx < first_snp.position else first_snp.position + max_range_from_snp
+    if multiplex:
+        min_amp_start_index = target.down_start - max_range_from_target if target.down_end > last_snp.position else last_snp.position - max_range_from_snp
+        max_amp_end_index = target.up_end + max_range_from_target if target.up_end < first_snp.position else first_snp.position + max_range_from_snp
+    else:
+        min_amp_start_index = target.start_idx - max_range_from_target if target.end_idx > last_snp.position else last_snp.position - max_range_from_snp
+        max_amp_end_index = target.end_idx + max_range_from_target if target.end_idx < first_snp.position else first_snp.position + max_range_from_snp
     if max_amp_end_index - min_amp_start_index < min_amplicon_len:  # assert amplicon is not too short
         return None
     return Amplicon_Obj(exon_num, min_amp_start_index, max_amp_end_index, snps_median, snps_mean, target,
                         candidate_amplicon_snps_lst)
 
 
+def valid_target_distance(target: MultiplexTarget, max_amplicon_len: int, primer_length: int,
+                          target_surrounding_region: int) -> bool:
+    """
+    validate that upstream target and downstream target are not too far apart for an amplicon of size "max_amplicon_len".
+
+    :param target: multiplex target with upstream target and downstream target.
+    :param max_amplicon_len: maximum length of the amplicon.
+    :param primer_length: minimum length of the primer sequence.
+    :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed.
+    :return: True if targets are not too far apart, False otherwise.
+    """
+    max_dist = max_amplicon_len - 2*primer_length - 2*target_surrounding_region
+    if target.down_end - target.up_start > max_dist:
+        return False
+    else:
+        return True
+
+
+def valid_sgrna_multiplex_target(i: int, j: int, exon_snps_list: List[SNP_Obj], distinct_alleles_num: int,
+                                 curr_target: MultiplexTarget, max_amplicon_len: int, primer_length: int,
+                                 target_surrounding_region: int) -> List[SNP_Obj]:
+    """
+    Check if current target can be used to construct an amplicon.
+
+    :param i: index of current SNP.
+    :param j: index of SNP downstream of "i".
+    :param exon_snps_list: list of the SNPs of the current exon.
+    :param distinct_alleles_num: number of distinct alleles of the gene.
+    :param curr_target: potential target to construct an amplicon with.
+    :param max_amplicon_len: maximum length of the amplicon.
+    :param primer_length: minimum length of the primer sequence.
+    :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed.
+    :return: list of SNPs that are valid to distinguish between the alleles of an amplicon sequence.
+    """
+    valid_snps_list = []
+    max_range_from_snp = max_amplicon_len - primer_length * 2 - target_surrounding_region - 1
+    first_snp = exon_snps_list[i]
+    last_snp = exon_snps_list[j]
+    # Make sure that target is not too far upstream or downstream from first and last SNPs
+    if not (curr_target.down_end < first_snp.position + max_range_from_snp and curr_target.up_start >
+            last_snp.position - max_range_from_snp):
+        return []
+    # Create a list of SNPs that can be used to calculate the Amplicon statistics
+    for m in range(i, j + 1):
+        # Add to valid_snps_list SNPs that do not fall on the target or the target buffer region - for all Tools
+        if (not (curr_target.up_start - target_surrounding_region <= exon_snps_list[m].position <=
+                 curr_target.up_end + target_surrounding_region)
+                and not (curr_target.down_start - target_surrounding_region <= exon_snps_list[m].position <=
+                         curr_target.down_end + target_surrounding_region)):
+            valid_snps_list.append(exon_snps_list[m])
+    if len(valid_snps_list) == 0:  # if no SNPs can be used do discern between the alleles
+        return []
+    # Make sure that the new SNPs list in enough for a valid amplicon (enough to distinguish between all the alleles)
+    if valid_amplicon(0, len(valid_snps_list) - 1, valid_snps_list, distinct_alleles_num):
+        return valid_snps_list
+    return []
+
+
 def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distinct_alleles_num: int,
                             exon_targets_lst: List, max_amplicon_len: int, primer_length: int, exon_num: int,
                             target_surrounding_region: int, min_amplicon_len: int, all_alleles_set: set, k: int,
-                            target_len: int) -> List[Amplicon_Obj]:
+                            target_len: int, multiplex: int) -> List[Amplicon_Obj]:
     """
     Given SNPs i to j - try to construct amplicon with every target of the current exon. return valid amplicons.
 
@@ -179,23 +244,30 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
     :param exon_snps_lst: list of the SNPs of the current exon.
     :param distinct_alleles_num: number of distinct alleles of the gene.
     :param exon_targets_lst: list of potential targets of the current exon.
-    :param max_amplicon_len: maximum length of the amplicon, defined by user.
-    :param primer_length: minimum length of the primer sequence, defined by the user in the algorithm run.
+    :param max_amplicon_len: maximum length of the amplicon.
+    :param primer_length: minimum length of the primer sequence.
     :param exon_num: current exon number, for which amplicons are constructed.
     :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed.
-    :param min_amplicon_len: minimum length of the amplicon, defined by user.
+    :param min_amplicon_len: minimum length of the amplicon.
     :param all_alleles_set: set of all the scaffold IDs.
     :param k: number of alleles to target.
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer.
+    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :return: list of potential amplicons as Amplicon_Obj objects for the current exon.
     """
 
     candidate_amplicons_list = []
     for target in exon_targets_lst:
-        # check if a valid amplicon can be constructed with given SNPs and current target
-        valid_snps_for_target = valid_sgrna_target(i, j, exon_snps_lst, distinct_alleles_num, target,
-                                                   max_amplicon_len, primer_length, target_surrounding_region,
-                                                   k)  # SNPs for Amplicon statistics
+        if multiplex:
+            if not valid_target_distance(target, max_amplicon_len, primer_length, target_surrounding_region):
+                continue
+            valid_snps_for_target = valid_sgrna_multiplex_target(i, j, exon_snps_lst, distinct_alleles_num, target,
+                                                   max_amplicon_len, primer_length, target_surrounding_region)
+        else:
+            # check if a valid amplicon can be constructed with given SNPs and current target
+            valid_snps_for_target = valid_sgrna_target(i, j, exon_snps_lst, distinct_alleles_num, target,
+                                                    max_amplicon_len, primer_length, target_surrounding_region,
+                                                    k)  # SNPs for Amplicon statistics
         if len(valid_snps_for_target) > 0:
             candidate_amplicon_snps_lst = exon_snps_lst[i:j + 1]  # all the SNPs of the Amplicon Candidate
             snps_median, snps_mean = calculate_snps_statistics(valid_snps_for_target,
@@ -203,7 +275,8 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
             if snps_median > 0:
                 candidate_amplicon = create_candidate_amplicon(snps_median, snps_mean, candidate_amplicon_snps_lst,
                                                                target, max_amplicon_len, primer_length, exon_num,
-                                                               target_surrounding_region, min_amplicon_len, target_len)
+                                                               target_surrounding_region, min_amplicon_len, target_len,
+                                                               multiplex)
                 if candidate_amplicon is not None:  # if amplicon wasn't too short
                     candidate_amplicons_list.append(candidate_amplicon)
 
@@ -213,7 +286,7 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
 def construct_amplicons(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
                         gene_snps_dict: Dict[int, List[SNP_Obj]], gene_targets_dict: Dict[int, List[Target_Obj]],
                         max_amplicon_len: int, primer_length: int, distinct_alleles_num: int,
-                        target_surrounding_region: int, min_amplicon_len: int, k: int, target_len: int) -> List[Amplicon_Obj]:
+                        target_surrounding_region: int, min_amplicon_len: int, k: int, target_len: int, multiplex: int) -> List[Amplicon_Obj]:
     """
     Given a dictionary of sgRNA targets, a dictionary of SNP of a gene and a dictionary of exon region sequences -
     for every SNP of every exon find possible amplicons that can be constructed using that SNP.
@@ -228,6 +301,7 @@ def construct_amplicons(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, s
     :param min_amplicon_len: minimum length of the amplicon, defined by user.
     :param k: number of alleles to target.
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer.
+    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :return: list of potential amplicons as Amplicon_Obj objects.
     """
     all_alleles_set = set(seq_tup[0].split(":")[0][1:] for seq_tup in gene_exon_regions_seqs_dict[1])
@@ -237,38 +311,36 @@ def construct_amplicons(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, s
         exon_targets_lst = gene_targets_dict[exon]
         if len(exon_targets_lst) == 0:  # if no targets were found for current exon - skip over current exon
             continue
-        current_exon_region = gene_exon_regions_seqs_dict[exon][0][1]
         exon_snps_lst = gene_snps_dict[exon]
-        max_range_from_snp = min(len(current_exon_region), max_dist_snp)
         for i in range(len(exon_snps_lst)):
             j = i + 1
             current_snp = exon_snps_lst[i]
-            while j < len(exon_snps_lst) and exon_snps_lst[j].position < current_snp.position + max_range_from_snp:
-                if valid_amplicon(i, j, exon_snps_lst,
-                                  distinct_alleles_num):  # check if snps i to j are enough do distinct between different alleles
+            while j < len(exon_snps_lst) and exon_snps_lst[j].position < current_snp.position + max_dist_snp:
+                if valid_amplicon(i, j, exon_snps_lst, distinct_alleles_num):  # check if snps i to j are enough do distinct between different alleles
                     current_snp_candidate_amplicons = get_candidate_amplicons(i, j, exon_snps_lst, distinct_alleles_num,
                                                                               exon_targets_lst, max_amplicon_len,
                                                                               primer_length, exon,
                                                                               target_surrounding_region,
                                                                               min_amplicon_len, all_alleles_set, k,
-                                                                              target_len)
+                                                                              target_len, multiplex)
                     candidate_amplicons_list.extend(current_snp_candidate_amplicons)
                 j += 1
 
     return candidate_amplicons_list
 
 
-def save_results_to_csv(res_amplicons_lst: List[Amplicon_Obj], out_path: str, k: int):
+def save_results_to_csv(res_amplicons_lst: List[Amplicon_Obj], out_path: str, k: int, multiplex: int):
     """
     create a dataframe of the result amplicons with all their parameters and save it as a CSV file in out_path.
 
     :param res_amplicons_lst: list of resulted amplicons objects from the algorithm run.
     :param out_path: path to output directory where algorithm results will be saved.
     :param k: number of alleles to target with a single gRNA.
+    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     """
     dicts_list = []
     for rank, amplicon in enumerate(res_amplicons_lst):
-        dicts_list.extend([amplicon.scaffold_amplicons[scaffold_amplicon].to_dict(rank+1, k) for scaffold_amplicon in
+        dicts_list.extend([amplicon.scaffold_amplicons[scaffold_amplicon].to_dict(rank+1, k, multiplex) for scaffold_amplicon in
                            amplicon.scaffold_amplicons])
     df = pd.DataFrame(dicts_list)
     df.to_csv(out_path + "/results.csv", index=False)
@@ -300,11 +372,11 @@ def get_candidates_scaffold_positions(gene_exon_regions_seqs_dict: Dict[int, Lis
 def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_surrounding_region: int, cut_location: int,
                   annotations_file_path: str,
                   out_path: str, genome_fasta_file: str, distinct_alleles_num: int, pams: Tuple[str], target_len: int,
-                  primer3_core_path: str, n: int, filter_off_targets: int, k: int) -> List[Amplicon_Obj]:
+                  primer3_core_path: str, n: int, filter_off_targets: int, k: int, multiplex: int) -> List[Amplicon_Obj]:
     """
 
-    :param max_amplicon_len_category: category of maximum length of the amplicon, defined by user.
-    :param primer_length: minimum length of the primer sequence, defined by the user in the algorithm run.
+    :param max_amplicon_len_category: category of maximum length of the amplicon.
+    :param primer_length: minimum length of the primer sequence.
     :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed.
     :param cut_location: number of nucleotides upstream to the PAM sequence where the Cas should cut (negative number if downstream).
     :param annotations_file_path: path to GFF file with annotations of the genome.
@@ -318,6 +390,7 @@ def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_sur
     :param filter_off_targets: choose whether to filter amplicons with 'strong' off-targets for their gRNAs, or return
     them in the results.
     :param k: number of alleles to target with a single gRNA.
+    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :return: list of amplicons for given gene.
     """
     amplicon_ranges = [(200, 300), (300, 500), (500, 1000)]
@@ -330,52 +403,57 @@ def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_sur
                                                                                     genome_fasta_file)
     gene_snps_dict = get_snps(gene_exon_regions_seqs_dict, distinct_alleles_num, primer_length)
     gene_targets_dict = get_targets(gene_exon_regions_seqs_dict, pams, max_amplicon_len, primer_length, cut_location,
-                                    target_surrounding_region, target_len, k)
-    if k > 0:  # Tool 2 in use, targeting k alleles. SNPs allowed in target sequences.
+                                    target_surrounding_region, target_len, k, multiplex, distinct_alleles_num)
+    if k > 0 or multiplex:  # Tool 2 in use, targeting k alleles. SNPs allowed in target sequences.
         relevant_gene_targets_dict = gene_targets_dict
     else:  # Tool 1 in use. No SNPs allowed in target sequences.
         relevant_gene_targets_dict = get_relevant_targets(gene_targets_dict, gene_snps_dict)
     candidate_amplicons_list = construct_amplicons(gene_exon_regions_seqs_dict, gene_snps_dict,
                                                    relevant_gene_targets_dict, max_amplicon_len, primer_length,
                                                    distinct_alleles_num, target_surrounding_region, min_amplicon_len, k,
-                                                   target_len)
-    sorted_candidate_amplicons = sorted(candidate_amplicons_list,
-                                        key=lambda amplicon: (amplicon.snps_median, amplicon.snps_mean), reverse=True)
+                                                   target_len, multiplex)
+    sorted_candidate_amplicons = sorted(candidate_amplicons_list, key=lambda amp: len(amp.snps), reverse=True)
     # create a dictionary of current gene scaffold:
     candidates_scaffold_positions = get_candidates_scaffold_positions(gene_exon_regions_seqs_dict)
     if filter_off_targets:  # find gRNA off-targets and filter amplicons by scores, then get primers.
         filtered_sorted_candidate_amplicons = filt_off_targets(sorted_candidate_amplicons.copy(), genome_fasta_file,
-                                                               out_path, pams, candidates_scaffold_positions, k)
+                                                               out_path, pams, candidates_scaffold_positions, k, multiplex)
         if len(filtered_sorted_candidate_amplicons) == 0:
             print("Zero Amplicons left after filtering strong Off-Targets")
             sys.exit()
         amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, filtered_sorted_candidate_amplicons,
-                                                out_path,
-                                                primer3_core_path, n, amplicon_ranges[max_amplicon_len_category - 1],
+                                                out_path, primer3_core_path, n,
+                                                amplicon_ranges[max_amplicon_len_category - 1],
                                                 distinct_alleles_num, target_surrounding_region, filter_off_targets,
                                                 genome_fasta_file, pams, candidates_scaffold_positions,
-                                                original_exon_indices_dict, max_amplicon_len, gene_snps_dict, k)
+                                                original_exon_indices_dict, max_amplicon_len, gene_snps_dict, k,
+                                                multiplex)
     else:  # Get primers, then find gRNA off-targets.
         amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, sorted_candidate_amplicons, out_path,
                                                 primer3_core_path, n, amplicon_ranges[max_amplicon_len_category - 1],
                                                 distinct_alleles_num, target_surrounding_region, filter_off_targets,
                                                 genome_fasta_file, pams, candidates_scaffold_positions,
-                                                original_exon_indices_dict, max_amplicon_len, gene_snps_dict, k)
+                                                original_exon_indices_dict, max_amplicon_len, gene_snps_dict, k,
+                                                multiplex)
     if len(amplicon_obj_with_primers) > 0:
         if k > 0:
             sorted_amplicon_obj_with_primers = sorted(amplicon_obj_with_primers,
                                                       key=lambda amplicon: (amplicon.target.chosen_sg_score, amplicon.snps_median,
                                                       amplicon.snps_mean), reverse=True)
+        elif multiplex:
+            sorted_amplicon_obj_with_primers = sorted(amplicon_obj_with_primers,
+                                                      key=lambda amplicon: (amplicon.target.multiplex_score, amplicon.snps_median,
+                                                      amplicon.snps_mean), reverse=True)
         else:
             sorted_amplicon_obj_with_primers = sorted(amplicon_obj_with_primers,
                                                       key=lambda amplicon: (amplicon.snps_median, amplicon.snps_mean),
                                                       reverse=True)
-        save_results_to_csv(sorted_amplicon_obj_with_primers, out_path, k)
+        save_results_to_csv(sorted_amplicon_obj_with_primers, out_path, k, multiplex)
         return sorted_amplicon_obj_with_primers
     else:
         if max_amplicon_len_category < 3:
             get_amplicons(max_amplicon_len_category + 1, primer_length, target_surrounding_region, cut_location,
                           annotations_file_path, out_path, genome_fasta_file, distinct_alleles_num, pams, target_len,
-                          primer3_core_path, n, filter_off_targets, k)
+                          primer3_core_path, n, filter_off_targets, k, multiplex)
         else:
             print("No amplicons found")
