@@ -5,9 +5,6 @@ from itertools import combinations
 from itertools import product
 import numpy as np
 from scipy.stats import gmean
-from Crispys import globals
-
-
 #################################
 
 
@@ -135,7 +132,7 @@ def CombineGM(m2_dic, sg_ls, tg_ls):
     return cm_ls
 
 
-def MOFF_score(m1_dic, m2_dic, sg_ls, tg_ls):
+def MOFF_score(m1_dic, m2_dic, model, sg_ls, tg_ls):
     """This function is predict off-target MOFF score for given gRNA-target pairs
 
        o input:1). m2_dic: Python dic contains CE of all the possible position combinations (20*19)
@@ -147,7 +144,7 @@ def MOFF_score(m1_dic, m2_dic, sg_ls, tg_ls):
     """
 
     np.random.seed(24)  # for reproducibility
-    pred_test = list(globals.moff_loaded_model.predict(OneHotEncoding([s.upper()[0:20] for s in sg_ls])))
+    pred_test = list(model.predict(OneHotEncoding([s.upper()[0:20] for s in sg_ls])))
 
     gop = [g[0] for g in pred_test]
     mde = Multiply(m1_dic, sg_ls, tg_ls)

@@ -1,4 +1,4 @@
-name: crispys
+name: sgRNA_Polyploids_Design
 channels:
   - bioconda
   - conda-forge
@@ -18,3 +18,5 @@ dependencies:
   - tensorflow=2.4.1
   - h5py=2.10.0
   - numpy=1.19.5
+  - bedtools=2.31.1
+  - bwa=0.7.18

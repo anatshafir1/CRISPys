@@ -67,9 +67,6 @@ moff_loaded_model = None
 moff_mtx1 = None
 moff_mtx2 = None
 
-# Amplicon parameters
-safety_padding_around_target = 20
-
 
 def createHeaderJob(path, job_name, queue="itaym", ncpu=1, mem=16):
     """

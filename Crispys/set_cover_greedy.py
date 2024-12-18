@@ -27,7 +27,7 @@ def find_set_cover(best_permutations: List, targets_genes_dict: Dict, omega: flo
         for gene in targets_genes_dict[target]:
             uncovered_genes.add(gene)
     while (len(uncovered_genes)) > 0 and len(temp_best_perm) > 0:
-        best_current_perm, best_num_of_covered, best_prob_of_covered = None, 0, 0  # best_current_perm is the hole tuple
+        best_current_perm, best_num_of_covered, best_prob_of_covered = None, 0, 0  # best_current_perm is the whole tuple
         i = 0
         while i < (len(temp_best_perm)):
             new_genes_covered = list()  # 0
