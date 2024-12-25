@@ -204,7 +204,7 @@ def build_amplicon(primers: Primers_Obj, allele_seq_tup: Tuple[str, str], candid
     else:
         target_strand = "+" if candidate_amplicon.target.strand == scaffold_strand else "-"
         new_target = Target_Obj(candidate_amplicon.target.seq, target_start_idx, target_end_idx, target_strand)
-    snps = [SNP_Obj(snp.position, snp.different_alleles_set) for snp in candidate_amplicon.snps]
+    snps = [SNP_Obj(snp.position, snp.alleles_sets_lst) for snp in candidate_amplicon.snps]
     orig_exon_num = original_exon_indices_dict[scaffold][exon_num]
     scaffold_amplicon = ScaffoldAmplicon(scaffold, scaffold_strand, sequence, exon_num, amplicon_start_idx, amplicon_end_idx,
                             snps_median, snps_mean, new_target, snps, primers, orig_exon_num)

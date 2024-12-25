@@ -1,9 +1,0 @@
-# the code was taken from: https://codeocean.com/capsule/9553651/tree/v3
-# create conda envinroment (with tensorflow 1.14)
-# create input file with: target,offtarget
-#make result dir one directory up
-mkdir ../results
-# run the predictions
-python CRISPR_Net.py input.txt
-# the output is in
-../results/CRISPR_net_results.csv

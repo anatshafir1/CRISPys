@@ -55,9 +55,7 @@ def get_relevant_targets(gene_targets_dict: Dict[int, List[Target_Obj]], gene_sn
 
 def valid_amplicon(i: int, j: int, exon_snps_list: List[SNP_Obj], distinct_alleles_num: int) -> bool:
     """
-    Check if SNPs i to j in exon_snps_list are enough to distinguish between the different alleles. The union of the sets
-    of the alleles that each SNP covers should be at least the size of the number of different alleles minus 1 to create
-    a set that will cover all the different alleles.
+    Check if SNPs i to j in exon_snps_list are enough to distinguish between the different alleles. .
 
     :param i: index of current SNP.
     :param j: index of SNP downstream of "i".
@@ -65,12 +63,31 @@ def valid_amplicon(i: int, j: int, exon_snps_list: List[SNP_Obj], distinct_allel
     :param distinct_alleles_num: number of distinct alleles of the gene.
     :return: True if sub-list of SNPs i to j are valid to distinguish between the alleles of an amplicon sequence.
     """
-    allele_set = exon_snps_list[i].different_alleles_set
-    for k in range(i + 1, j + 1):
-        allele_set = allele_set.union(exon_snps_list[k].different_alleles_set)
-        if len(allele_set) >= distinct_alleles_num - 1:
-            return True
-    return False
+    singleton_lst = []
+    k = i
+    while len(singleton_lst) < distinct_alleles_num - 1 and k < j + 1:
+        curr_snp = exon_snps_list[k]
+        for set1 in curr_snp.alleles_sets_lst:
+            if len(set1) == 1:
+                if set1 not in singleton_lst:
+                    singleton_lst.append(set1)
+                    continue
+            else:
+                for m in range(k+1, j+1):
+                    next_snp = exon_snps_list[m]
+                    for set2 in next_snp.alleles_sets_lst:
+                        intersect = set1.intersection(set2)
+                        if len(intersect) == 1:  # intersection is singleton
+                            if intersect not in singleton_lst:
+                                singleton_lst.append(intersect)
+                                if len(singleton_lst) >= distinct_alleles_num - 1:
+                                    return True
+        k += 1
+
+    if len(singleton_lst) >= distinct_alleles_num - 1:
+        return True
+    else:
+        return False
 
 
 def valid_sgrna_target(i: int, j: int, exon_snps_list: List[SNP_Obj], distinct_alleles_num: int,
@@ -107,7 +124,7 @@ def valid_sgrna_target(i: int, j: int, exon_snps_list: List[SNP_Obj], distinct_a
         if k > 0:  # Tool 2 in use.
             #  Add to valid_snps_list SNPs that fall on the target and match the expected alleles to be cut
             if curr_target.start_idx <= exon_snps_list[m].position <= curr_target.end_idx:  # SNP on target
-                if exon_snps_list[m].different_alleles_set == curr_target.cut_alleles:  # SNP match expected alleles to be cut
+                if any(allele_set.intersection(curr_target.cut_alleles) == len(curr_target.cut_alleles) for allele_set in exon_snps_list[m].alleles_sets_lst):  # SNP match expected alleles to be cut
                     valid_snps_list.append(exon_snps_list[m])
     if len(valid_snps_list) == 0:  # if no SNPs can be used do discern between the alleles
         return []
@@ -117,19 +134,48 @@ def valid_sgrna_target(i: int, j: int, exon_snps_list: List[SNP_Obj], distinct_a
     return []
 
 
-def calculate_snps_statistics(valid_snps_for_target: List[SNP_Obj], all_alleles_set: set) -> Tuple[float, float]:
+def calculate_snps_statistics(valid_snps_for_target: List[SNP_Obj]) -> Tuple[float, float]:
     """
     given a list of SNPs that are valid to distinguish between the alleles of an amplicon sequence, calculate the
     median and mean number of SNPs on each allele.
 
     :param valid_snps_for_target: list of SNPs for amplicon statistics calculation.
-    :param all_alleles_set:  set of all the scaffold IDs.
     :return: tuple of median and mean number of SNPs on each allele.
     """
-    counts_dict = {allele: 0 for allele in all_alleles_set}
-    for snp in valid_snps_for_target:
-        for allele in snp.different_alleles_set:
-            counts_dict[allele] += 1
+    counts_dict = {}
+    k = 0
+    j = len(valid_snps_for_target) - 1
+    used_sets = {snp.position: [] for snp in valid_snps_for_target}
+    while k < j + 1:
+        curr_snp = valid_snps_for_target[k]
+        for set1 in curr_snp.alleles_sets_lst:
+            if len(set1) == 1:
+                if str(set1) not in counts_dict:
+                    counts_dict[str(set1)] = 1
+                else:
+                    counts_dict[str(set1)] += 1
+            else:
+                set1_done = False
+                for m in range(k + 1, j + 1):
+                    next_snp = valid_snps_for_target[m]
+                    for set2 in next_snp.alleles_sets_lst:
+                        if set2 in used_sets[next_snp.position]:
+                            continue
+                        if len(set2) == 1:
+                            continue
+                        intersect = set1.intersection(set2)
+                        if len(intersect) == 1:  # intersection is singleton
+                            set1_done = True
+                            if str(intersect) not in counts_dict:
+                                counts_dict[str(intersect)] = 1
+                            else:
+                                counts_dict[str(intersect)] += 1
+                            used_sets[next_snp.position].append(set2)
+                            break
+                    if set1_done:
+                        break
+        k += 1
+
     snps_median = statistics.median(list(counts_dict.values()))
     snps_mean = statistics.mean(list(counts_dict.values()))
 
@@ -234,7 +280,7 @@ def valid_sgrna_multiplex_target(i: int, j: int, exon_snps_list: List[SNP_Obj], 
 
 def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distinct_alleles_num: int,
                             exon_targets_lst: List, max_amplicon_len: int, primer_length: int, exon_num: int,
-                            target_surrounding_region: int, min_amplicon_len: int, all_alleles_set: set, k: int,
+                            target_surrounding_region: int, min_amplicon_len: int, k: int,
                             target_len: int, multiplex: int) -> List[Amplicon_Obj]:
     """
     Given SNPs i to j - try to construct amplicon with every target of the current exon. return valid amplicons.
@@ -249,7 +295,6 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
     :param exon_num: current exon number, for which amplicons are constructed.
     :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed.
     :param min_amplicon_len: minimum length of the amplicon.
-    :param all_alleles_set: set of all the scaffold IDs.
     :param k: number of alleles to target.
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer.
     :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
@@ -270,8 +315,7 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
                                                     k)  # SNPs for Amplicon statistics
         if len(valid_snps_for_target) > 0:
             candidate_amplicon_snps_lst = exon_snps_lst[i:j + 1]  # all the SNPs of the Amplicon Candidate
-            snps_median, snps_mean = calculate_snps_statistics(valid_snps_for_target,
-                                                               all_alleles_set)  # statistics are counted for SNPs that are not located near the target (target surrounding region)
+            snps_median, snps_mean = calculate_snps_statistics(valid_snps_for_target)  # statistics are counted for SNPs that are not located near the target (target surrounding region)
             if snps_median > 0:
                 candidate_amplicon = create_candidate_amplicon(snps_median, snps_mean, candidate_amplicon_snps_lst,
                                                                target, max_amplicon_len, primer_length, exon_num,
@@ -283,15 +327,13 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
     return candidate_amplicons_list
 
 
-def construct_amplicons(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
-                        gene_snps_dict: Dict[int, List[SNP_Obj]], gene_targets_dict: Dict[int, List[Target_Obj]],
+def construct_amplicons(gene_snps_dict: Dict[int, List[SNP_Obj]], gene_targets_dict: Dict[int, List[Target_Obj]],
                         max_amplicon_len: int, primer_length: int, distinct_alleles_num: int,
                         target_surrounding_region: int, min_amplicon_len: int, k: int, target_len: int, multiplex: int) -> List[Amplicon_Obj]:
     """
     Given a dictionary of sgRNA targets, a dictionary of SNP of a gene and a dictionary of exon region sequences -
     for every SNP of every exon find possible amplicons that can be constructed using that SNP.
 
-    :param gene_exon_regions_seqs_dict: dictionary of exon numbers -> a list of allele sequences and their description.
     :param gene_snps_dict: dictionary of exon numbers -> a list of SNPs of the exon region.
     :param gene_targets_dict: dictionary of exon numbers -> a list potential targets of the exon.
     :param max_amplicon_len: maximum length of the amplicon.
@@ -304,7 +346,6 @@ def construct_amplicons(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, s
     :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :return: list of potential amplicons as Amplicon_Obj objects.
     """
-    all_alleles_set = set(seq_tup[0].split(":")[0][1:] for seq_tup in gene_exon_regions_seqs_dict[1])
     candidate_amplicons_list = []
     max_dist_snp = max_amplicon_len - primer_length * 2 - 1
     for exon in gene_snps_dict:
@@ -321,7 +362,7 @@ def construct_amplicons(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, s
                                                                               exon_targets_lst, max_amplicon_len,
                                                                               primer_length, exon,
                                                                               target_surrounding_region,
-                                                                              min_amplicon_len, all_alleles_set, k,
+                                                                              min_amplicon_len, k,
                                                                               target_len, multiplex)
                     candidate_amplicons_list.extend(current_snp_candidate_amplicons)
                 j += 1
@@ -408,10 +449,9 @@ def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_sur
         relevant_gene_targets_dict = gene_targets_dict
     else:  # Tool 1 in use. No SNPs allowed in target sequences.
         relevant_gene_targets_dict = get_relevant_targets(gene_targets_dict, gene_snps_dict)
-    candidate_amplicons_list = construct_amplicons(gene_exon_regions_seqs_dict, gene_snps_dict,
-                                                   relevant_gene_targets_dict, max_amplicon_len, primer_length,
-                                                   distinct_alleles_num, target_surrounding_region, min_amplicon_len, k,
-                                                   target_len, multiplex)
+    candidate_amplicons_list = construct_amplicons(gene_snps_dict, relevant_gene_targets_dict, max_amplicon_len,
+                                                   primer_length, distinct_alleles_num, target_surrounding_region,
+                                                   min_amplicon_len, k, target_len, multiplex)
     sorted_candidate_amplicons = sorted(candidate_amplicons_list, key=lambda amp: len(amp.snps), reverse=True)
     # create a dictionary of current gene scaffold:
     candidates_scaffold_positions = get_candidates_scaffold_positions(gene_exon_regions_seqs_dict)

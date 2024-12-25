@@ -281,14 +281,11 @@ def delete_files_with_prefix(directory, prefix):
         print(f"Directory '{directory}' does not exist.")
         return
 
-    files_deleted = 0
     for filename in os.listdir(directory):
         if filename.startswith(prefix):
             file_path = os.path.join(directory, filename)
             if os.path.isfile(file_path):
                 os.remove(file_path)
-                files_deleted += 1
-                print(f"Deleted: {file_path}")
 
 
 def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_surrounding_region: int, cut_location: int,

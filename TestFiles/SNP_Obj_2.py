@@ -1,4 +1,4 @@
-"""SNP class file"""
+"""test SNP class file"""
 
 from typing import List
 
@@ -19,7 +19,7 @@ class SNP_Obj:
         self.gap_length = gap_length
 
     def __str__(self):
-        return f"{self.position}, "
+        return f"{self.position},{self.alleles_sets_lst} "
 
     def __repr__(self):
         return self.__str__()

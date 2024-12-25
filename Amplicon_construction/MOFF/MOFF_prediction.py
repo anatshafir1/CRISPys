@@ -1,4 +1,4 @@
-"""MOFF implementation for CRISPys"""
+"""MOFF implementation for SPG"""
 
 # ######### Import all the packages ########## #
 from itertools import combinations

@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple
 from collections import Counter
 
-from SNP_Obj import SNP_Obj
+from SNP_Obj_2 import SNP_Obj
 
 
 def create_idx_nuc_dict(scaffold_to_seq_dict, index, gap_length, distinct_alleles_num):
@@ -101,3 +101,42 @@ def get_snps(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], distinct_all
         curr_exon_region_snps_list = create_snps_list(scaffold_to_seq_dict, distinct_alleles_num, primer_length)
         snps_dict[exon_region] = curr_exon_region_snps_list
     return snps_dict
+
+
+def valid_amplicon_2(i: int, j: int, exon_snps_list: List[SNP_Obj], distinct_alleles_num: int) -> bool:
+    """
+    Check if SNPs i to j in exon_snps_list are enough to distinguish between the different alleles. The union of the sets
+    of the alleles that each SNP covers should be at least the size of the number of different alleles minus 1 to create
+    a set that will cover all the different alleles.
+
+    :param i: index of current SNP.
+    :param j: index of SNP downstream of "i".
+    :param exon_snps_list: list of the SNPs of the current exon.
+    :param distinct_alleles_num: number of distinct alleles of the gene.
+    :return: True if sub-list of SNPs i to j are valid to distinguish between the alleles of an amplicon sequence.
+    """
+    singleton_lst = []
+    k = i
+    while len(singleton_lst) < distinct_alleles_num - 1 and k < j + 1:
+        curr_snp = exon_snps_list[k]
+        for set1 in curr_snp.alleles_sets_lst:
+            if len(set1) == 1:
+                if set1 not in singleton_lst:
+                    singleton_lst.append(set1)
+                    continue
+            else:
+                for m in range(k+1, j+1):
+                    next_snp = exon_snps_list[m]
+                    for set2 in next_snp.alleles_sets_lst:
+                        intersect = set1.intersection(set2)
+                        if len(intersect) == 1:  # intersection is singleton
+                            if intersect not in singleton_lst:
+                                singleton_lst.append(intersect)
+                                if len(singleton_lst) >= distinct_alleles_num - 1:
+                                    return True
+        k += 1
+
+    if len(singleton_lst) >= distinct_alleles_num - 1:
+        return True
+    else:
+        return False

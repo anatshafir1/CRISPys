@@ -148,13 +148,14 @@ def get_all_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
         exon_alleles_lst = gene_sequences_dict[exon_num]
         for allele in exon_alleles_lst:  # iterate over every allele (scaffold) of the exon
             exon_region_seq = allele[1]
+            # get list of all targets (as Target_Obj) for current allele
             allele_targets_list = find_targets_in_sequence(exon_region_seq, pams, max_amplicon_len, primer_length,
-                                                           cut_location, target_surrounding_region,
-                                                           target_len)  # get list of all targets (as Target_Obj) for current allele
-            for target in allele_targets_list:  # iterate over all targets found on current allele to save them and their parallels (on the other alleles) to a dictionary
+                                                           cut_location, target_surrounding_region, target_len)
+            # iterate over all targets found on current allele to save them and their parallels (on the other alleles) to a dictionary
+            for target in allele_targets_list:
                 position_targets_lst = []
-                for i in range(
-                        len(exon_alleles_lst)):  # iterate over every allele (scaffold) of the exon to get all the current target's parallels
+                # iterate over every allele (scaffold) of the exon to get all the current target's parallels
+                for i in range(len(exon_alleles_lst)):
                     scaffold = exon_alleles_lst[i][0].split(":")[0][1:]
                     if target.strand == "+":
                         cur_allele_target_seq = exon_alleles_lst[i][1][target.start_idx:target.end_idx + 1]
@@ -187,7 +188,7 @@ def filter_relevant_targets(targets_dict: Dict[int, Dict[int, List[Target_Obj]]]
         cur_exon_targets_dict = targets_dict[exon_num]
         for target_position in cur_exon_targets_dict:
             position_targets_lst = cur_exon_targets_dict[target_position]
-            nucs_tuple_per_index_lst = zip(*[target.seq for target in position_targets_lst])
+            nucs_tuple_per_index_lst = zip(*[target.seq for target in position_targets_lst])  # TODO fix for k=3
             for i, nucs in enumerate(nucs_tuple_per_index_lst):
                 if not all(nucs[0] == nuc for nuc in nucs):
                     if i != 20:  # the 'N' in the 'NGG' PAM
