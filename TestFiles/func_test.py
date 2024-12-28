@@ -1,4 +1,5 @@
-from Amplicon_construction.Target_Obj import Combined_Target_Obj, Target_Obj
+from Amplicon_construction.Target_Obj import Combined_Target_Obj, Target_Obj, sgRNA
+from Amplicon_construction.FindTargets import calc_multiplex_score
 
 trg1 = "tgaaccacaacaaaattcattgg".upper()
 trg2 = "tgaactacaacagaattcattgg".upper()
@@ -16,4 +17,12 @@ comb_trg_obj = Combined_Target_Obj(10, 23, [trg_obj1, trg_obj2, trg_obj3])
 
 relevant_targets_dict = {1: [comb_trg_obj]}
 
-print(comb_trg_obj.sg_perm)
+allele1 = "scf_1"
+allele2 = "scf_2"
+allele3 = "scf_3"
+
+sg1 = sgRNA(10, 32, trg1, {allele1: 1.0, allele2: 0.4, allele3: 1.0}, [trg_obj1, trg_obj2, trg_obj3])
+sg2 = sgRNA(60, 82, trg2, {allele1: 0.3, allele2: 1.0, allele3: 0.3}, [trg_obj1, trg_obj2, trg_obj3])
+
+multiplex_score = calc_multiplex_score(sg1, sg2, [allele1, allele2, allele3])
+print(multiplex_score)

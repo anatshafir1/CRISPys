@@ -1,10 +1,12 @@
 """Extracting target sequences"""
-import regex
-from itertools import combinations
+from operator import attrgetter
+
+import re
+from itertools import combinations, groupby
 from math import prod
 from typing import List, Dict, Tuple
 
-from Amplicon_construction.Target_Obj import MultiplexTarget
+from Amplicon_construction.Target_Obj import MultiplexTarget, sgRNA
 from globals import max_polymorphic_sites
 from FindOffTargets import moff
 from Target_Obj import Target_Obj, Combined_Target_Obj
@@ -70,9 +72,9 @@ def find_targets_in_sequence(exon_region: str, pams: Tuple, max_amplicon_len: in
     # loop over different PAM's
     for i in range(len(pams)):
         target_and_pam = "." * target_without_pam_len + pams[i]
-        compiled = regex.compile(target_and_pam)
-        found_sense_targets = regex.finditer(compiled, allowed_exon_region_for_targets)
-        found_antisense_targets = regex.finditer(compiled, complementary_strand)
+        compiled = re.compile(target_and_pam)
+        found_sense_targets = re.finditer(compiled, allowed_exon_region_for_targets)
+        found_antisense_targets = re.finditer(compiled, complementary_strand)
 
         for seq in found_sense_targets:
             if 'N' not in seq.group(0):
@@ -169,38 +171,6 @@ def get_all_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
                     exon_targets[target.start_idx] = position_targets_lst
         targets_dict[exon_num] = exon_targets
     return targets_dict
-
-
-def filter_relevant_targets(targets_dict: Dict[int, Dict[int, List[Target_Obj]]],
-                            target_len: int) -> Dict[int, List[Combined_Target_Obj]]:
-    """
-    For every exon find targets with SNPs in their sequences and save and return them as Combined_Target_Obj. Targets
-    without SNPs will be filtered off.
-
-    :param targets_dict: dictionary of exon num -> dictionary of target index in exon -> list of Target_Obj from every
-    allele of the exon
-    :param target_len: number of nucleotides in sgRNA target: PAM + protospacer
-    :return: dictionary of exon num -> list of Combined_Target_Obj (targets with SNPs in their sequences)
-    """
-    relevant_targets_dict = {}
-    for exon_num in targets_dict:
-        exon_comb_targets = []
-        cur_exon_targets_dict = targets_dict[exon_num]
-        for target_position in cur_exon_targets_dict:
-            position_targets_lst = cur_exon_targets_dict[target_position]
-            nucs_tuple_per_index_lst = zip(*[target.seq for target in position_targets_lst])  # TODO fix for k=3
-            for i, nucs in enumerate(nucs_tuple_per_index_lst):
-                if not all(nucs[0] == nuc for nuc in nucs):
-                    if i != 20:  # the 'N' in the 'NGG' PAM
-                        combined_target = Combined_Target_Obj(target_position, target_position + target_len,
-                                                              position_targets_lst)
-                        exon_comb_targets.append(combined_target)
-                        break
-
-        sorted_targets = sorted(exon_comb_targets, key=lambda target: target.start_idx)
-        relevant_targets_dict[exon_num] = sorted_targets
-
-    return relevant_targets_dict
 
 
 def all_perms(initial_seq: str, list_of_seqs: List[str], list_of_differences: List[Tuple[int, List[str]]]) -> List[str]:
@@ -392,8 +362,7 @@ def calculate_sg_rank_scores(relevant_targets_dict: Dict[int, List[Combined_Targ
                 for combo in combs_of_k:
                     product_k = prod(pair[1] for pair in combo)  # product of k "on" target scores
                     n_minus_k_lst = [pair for pair in list(comb_target.offscores_dict[sg].items()) if pair not in combo]
-                    product_n_minus_k = prod(
-                        (1 - pair[1]) for pair in n_minus_k_lst)  # product of n-k 1 minus "off" target scores
+                    product_n_minus_k = prod((1 - pair[1]) for pair in n_minus_k_lst)  # product of n-k 1 minus "off" target scores
                     tot_score = product_k * product_n_minus_k
                     if tot_score > max_sg_score:
                         max_sg_score = tot_score
@@ -435,9 +404,79 @@ def create_comb_targets(all_targets_dict: Dict[int, Dict[int, List[Target_Obj]]]
     return relevant_targets_dict
 
 
+def calc_multiplex_score(upstream_target: sgRNA, downstream_target: sgRNA, allele_ids_lst: List[str]) -> float:
+    """
+
+    :param upstream_target: potential upstream sgRNA
+    :param downstream_target: potential upstream sgRNA
+    :param allele_ids_lst: list of all allele IDs
+    :return: multiplex score of upstream and downstream sgRNAs
+    """
+    tot_score = 1.0
+    for allele in allele_ids_lst:
+        upstream_sg_no_cut = 1 - upstream_target.score_dict[allele]
+        downstream_sg_no_cut = 1 - downstream_target.score_dict[allele]
+        allele_cut = 1 - (upstream_sg_no_cut*downstream_sg_no_cut)
+        tot_score *= allele_cut
+    return tot_score
+
+
+def create_sgrna_pairs(comb_targets_lst: List[Combined_Target_Obj]) -> List[Tuple[sgRNA, sgRNA]]:
+    """
+
+    :param comb_targets_lst: List of Combined_Target_Obj objects
+    :return: List of all potential pairs of sgRNAs extracted from the comb_targets_lst
+    """
+    sg_list = []
+    for comb_target in comb_targets_lst:
+        for sg in comb_target.sg_perm:
+            sg_list.append(sgRNA(comb_target.start_idx, comb_target.end_idx, sg, comb_target.offscores_dict[sg], comb_target.targets_list))
+
+    sg_pairs_list = [(sg1, sg2) for sg1, sg2 in combinations(sg_list, 2) if sg1.start != sg2.start]
+
+    return sg_pairs_list
+
+
+def create_multiplex_targets(targets_dict: Dict[int, List[Combined_Target_Obj]], allele_ids_lst) -> Dict[int, List[MultiplexTarget]]:
+    """
+    Create combinations of targets using Combined Targets and their chosen sgRNA sequence and score. Create multiplex
+    targets from the combinations.
+
+    :param targets_dict: dictionary of exon number -> List of targets as Combined_Target_Obj
+    :param allele_ids_lst: list of all allele IDs
+    :return: dictionary of exon number -> List of targets as MultiplexTarget
+    """
+    multiplex_targets_dict = {}
+    for exon in targets_dict:
+        multiplex_targets_lst = []
+        comb_targets_lst = targets_dict[exon]
+        target_pairs = create_sgrna_pairs(comb_targets_lst)
+        for target_pair in target_pairs:
+            # distinguish which target is upstream and which is downstream
+            if target_pair[0].start < target_pair[1].start:
+                upstream_target = target_pair[0]
+                downstream_target = target_pair[1]
+            else:
+                upstream_target = target_pair[1]
+                downstream_target = target_pair[0]
+
+            multiplex_score = calc_multiplex_score(upstream_target, downstream_target, allele_ids_lst)
+            multiplex_target = MultiplexTarget(upstream_target.start, upstream_target.end, upstream_target.seq,
+                                               downstream_target.start, downstream_target.end, downstream_target.seq,
+                                               multiplex_score, upstream_target.targets_list, downstream_target.targets_list)
+            multiplex_targets_lst.append(multiplex_target)
+
+        score_sorted_targets = sorted(multiplex_targets_lst, key=lambda targ: (targ.up_start, -targ.multiplex_score))
+        max_score_sorted_targets = [next(group) for _, group in groupby(score_sorted_targets, key=attrgetter('up_start'))]
+
+        multiplex_targets_dict[exon] = max_score_sorted_targets
+
+    return multiplex_targets_dict
+
+
 def get_snp_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tuple, max_amplicon_len: int,
                     primer_length: int, cut_location: int, target_surrounding_region: int, target_len: int,
-                    k: int, multiplex: int, distinct_alleles_num: int) -> Dict[int, List[Combined_Target_Obj]]:
+                    k: int, multiplex: int, allele_ids_lst: List[str]) -> Dict[int, List[Combined_Target_Obj]]:
     """
 
     :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name
@@ -450,23 +489,19 @@ def get_snp_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer
     :param k: number of alleles to target with a single gRNA
     :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
-    :param distinct_alleles_num: number of distinct alleles of the gene.
+    :param allele_ids_lst: list of all allele IDs
     :return: dictionary of exon number -> List of targets as Combined_Target_Obj
     """
     all_targets_dict = get_all_targets(gene_sequences_dict, pams, max_amplicon_len, primer_length, cut_location,
                                        target_surrounding_region, target_len)
-    relevant_targets_dict = {}
-    if k > 0:
-        relevant_targets_dict = filter_relevant_targets(all_targets_dict, target_len)
-    if multiplex:
-        relevant_targets_dict = create_comb_targets(all_targets_dict, target_len)
+    relevant_targets_dict = create_comb_targets(all_targets_dict, target_len)
     create_sgrna_permutations(relevant_targets_dict)
     calculate_off_scores(relevant_targets_dict)
     new_relevant_targets_dict = {}
     if k > 0:
         new_relevant_targets_dict = calculate_sg_rank_scores(relevant_targets_dict, k)
     if multiplex:
-        new_relevant_targets_dict = calculate_sg_rank_scores(relevant_targets_dict, distinct_alleles_num)
+        new_relevant_targets_dict = create_multiplex_targets(relevant_targets_dict, allele_ids_lst)
     return new_relevant_targets_dict
 
 
@@ -475,44 +510,9 @@ def filter_duplicates(exon_targets):
     return sorted(list(target_pos_dict.values()), key=lambda target: target.start_idx)
 
 
-def create_multiplex_targets(targets_dict: Dict[int, List[Combined_Target_Obj]]) -> Dict[int, List[MultiplexTarget]]:
-    """
-    Create combinations of targets using Combined Targets and their chosen sgRNA sequence and score. Create multiplex
-    targets from the combinations.
-
-    :param targets_dict: dictionary of exon number -> List of targets as Combined_Target_Obj
-    :return: dictionary of exon number -> List of targets as MultiplexTarget
-    """
-    multiplex_targets_dict = {}
-    for exon in targets_dict:
-        multiplex_targets_lst = []
-        comb_targets_lst = targets_dict[exon]
-        target_pairs = combinations(comb_targets_lst, 2)
-        for target_pair in target_pairs:
-            # distinguish which target is upstream and which is downstream
-            if target_pair[0].start_idx < target_pair[1].start_idx:
-                upstream_target = target_pair[0]
-                downstream_target = target_pair[1]
-            else:
-                upstream_target = target_pair[1]
-                downstream_target = target_pair[0]
-
-            multiplex_target = MultiplexTarget(upstream_target.start_idx, upstream_target.end_idx, upstream_target.chosen_sg,
-                                               downstream_target.start_idx, downstream_target.end_idx, downstream_target.chosen_sg,
-                                               upstream_target.chosen_sg_score*downstream_target.chosen_sg_score,
-                                               upstream_target.targets_list, downstream_target.targets_list)
-            multiplex_targets_lst.append(multiplex_target)
-
-        score_sorted_targets = sorted(multiplex_targets_lst, key=lambda targ: (targ.multiplex_score, targ.up_start), reverse=True)
-
-        multiplex_targets_dict[exon] = score_sorted_targets
-
-    return multiplex_targets_dict
-
-
 def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tuple, max_amplicon_len: int,
                 primer_length: int, cut_location: int, target_surrounding_region: int, target_len: int, k: int,
-                multiplex: int, distinct_alleles_num: int) -> Dict[int, List]:
+                multiplex: int, distinct_alleles_num) -> Dict[int, List]:
     """
 
     :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name 
@@ -529,20 +529,16 @@ def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tup
     :return: a dictionary of exon number -> List of targets as Target_Obj or Combined_Target_Obj, depending on the tool in use.
     """
     targets_dict = {}
+    allele_ids_lst = [gene_sequences_dict[1][i][0].split(":")[0][1:] for i in range(distinct_alleles_num)]
     if k > 0 or multiplex:  # Tool 2 or Tool 3 in use.
         targets_dict = get_snp_targets(gene_sequences_dict, pams, max_amplicon_len, primer_length, cut_location,
-                                       target_surrounding_region, target_len, k, multiplex, distinct_alleles_num)
-        if k > 0:  # Tool 2 in use.
-            return targets_dict
-        if multiplex:  # Tool 3 in use.
-            multiplex_target_dict = create_multiplex_targets(targets_dict)
-            return multiplex_target_dict
+                                       target_surrounding_region, target_len, k, multiplex, allele_ids_lst)
+        return targets_dict
     else:  # Tool 1 in use.
         for exon_region in gene_sequences_dict:
             exon_region_seq = gene_sequences_dict[exon_region][0][1]
             exon_targets = find_targets_in_sequence(exon_region_seq, pams, max_amplicon_len, primer_length,
-                                                    cut_location,
-                                                    target_surrounding_region, target_len)
+                                                    cut_location, target_surrounding_region, target_len)
             unique_exon_targets = filter_duplicates(exon_targets)
             targets_dict[exon_region] = unique_exon_targets
         return targets_dict

@@ -45,7 +45,7 @@ class Combined_Target_Obj:
         self.end_idx = end_idx
         self.targets_list = targets_list
         self.sg_perm = sg_perm
-        self.offscores_dict = offscores_dict
+        self.offscores_dict = offscores_dict  # {sgRNA: {Scaffold: score}}
         self.cut_alleles = cut_alleles
         self.chosen_sg = chosen_sg
         self.chosen_sg_score = chosen_sg_score
@@ -118,3 +118,19 @@ class MultiplexTarget:
                 "up_gRNA_end": self.up_end, "up_gRNA_strand": up_target_strand, "down_gRNA+PAM": down_sgandpam,
                 "down_gRNA_start": self.down_start, "down_gRNA_end": self.down_end,
                 "down_gRNA_strand": down_target_strand, "multiplex_score": score}
+
+
+class sgRNA:
+    def __init__(self, start: int, end: int, seq: str, score_dict: Dict[str, float], targets_list: List[Target_Obj]):
+
+        self.start = start
+        self.end = end
+        self.seq = seq
+        self.score_dict = score_dict
+        self.targets_list = targets_list
+
+    def __str__(self):
+        return f"{self.start}, {self.seq}"
+
+    def __repr__(self):
+        return self.__str__()
