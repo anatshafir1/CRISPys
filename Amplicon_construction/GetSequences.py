@@ -189,11 +189,13 @@ def get_overlapping_exons(exon_indices_dict: Dict[str, List[Tuple[int, int]]], a
             if nuc_count_dict[allele] >= curr_exon_len and curr_allele_idx <= alignment_len:  # update exons and nucleotides count for current allele
                 exon_num_dict[allele] += 1
                 nuc_count_dict[allele] = nuc_count_dict[allele] - curr_exon_len
+            elif curr_allele_idx == alignment_len:
+                if legit_exon_dict[allele] is True:
+                    exon_num_dict[allele] += 1
         if all(legit_exon_dict[allele] is True for allele in legit_exon_dict):  # all exon alleles in the alignment are properly aligned
             for allele in aligned_overlapping_exon_idxs_dict:  # update result dictionary with the exon indices which are aligned properly
                 aligned_overlapping_exon_idxs_dict[allele].append(exon_indices_dict[allele][exon_num_dict[allele] - 1])
         prev_allele_idx = curr_allele_idx
-
     return aligned_overlapping_exon_idxs_dict
 
 
@@ -217,6 +219,7 @@ def get_original_indices_dict(aligned_overlapping_exons_dict: Dict[str, List[Tup
 def update_exon_idxs_dict(gene_seqs_dict: Dict[str, str], exon_indices_dict:  Dict[str, List[Tuple[int, int]]],
                           allele_strand_dict: Dict[str, str]) -> Tuple[Dict[str, str], Dict[str, List[Tuple[int, int]]]]:
     """
+    get the first portion (REGION_OF_GENE_TO_CUT in globals) of the gene alleles
 
     :param gene_seqs_dict:  dictionary of allele scaffold ID -> sequences of concatenated exons of the alleles
     :param exon_indices_dict: dictionary with original start & end indices of all exons
@@ -346,13 +349,15 @@ def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_surr
     :return: dictionary of exon number -> list of tuples of allele IDs and their sequences, and a
     dictionary of allele ID -> dictionary of properly aligned exon number -> original number of the exon
     """
+    print("extracting exon regions".upper().center(40, "#"))
     min_nucs_for_amplicon = primer_length + target_surrounding_region + cut_location
     aligned_overlapping_exon_idxs_dict, allele_strand_dict, aligned_to_original_exon_num_dict = get_legit_exons_regions(annotations_file_path,
                                                                                                out_path,
                                                                                                genome_fasta_file, min_nucs_for_amplicon)
     exon_surrounding_seq_len = max_amplicon_len - cut_location - target_surrounding_region - primer_length
     aligned_exons_regions_dict = {}
-    for exon_num in range(len(aligned_overlapping_exon_idxs_dict)):
+    num_of_exons = len(aligned_overlapping_exon_idxs_dict[list(aligned_overlapping_exon_idxs_dict.keys())[0]])
+    for exon_num in range(num_of_exons):
         exon_regions_path = out_path + f"/exon_{exon_num + 1}_regions.fasta"
         aligned_exons_regions_path = out_path + f"/aligned_exon_{exon_num + 1}_regions.fasta"
         exon_dict = get_exon_params_dict(aligned_overlapping_exon_idxs_dict, exon_num, exon_surrounding_seq_len, allele_strand_dict)

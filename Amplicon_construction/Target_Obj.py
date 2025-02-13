@@ -10,16 +10,17 @@ class Target_Obj:
 
         """
 
-    def __init__(self, seq: str, start_idx: int, end_idx: int, strand: str, scaffold="", ungapped_seq=""):
+    def __init__(self, seq: str, start_idx: int, end_idx: int, strand: str, scaffold="", ungapped_seq="", rank: int = 0):
         self.seq = seq
         self.start_idx = start_idx
         self.end_idx = end_idx
         self.strand = strand
         self.scaffold = scaffold
         self.ungapped_seq = ungapped_seq
+        self.rank = rank
 
     def __str__(self):
-        return f"{self.seq}, {self.start_idx}, {self.end_idx}, {self.strand}"
+        return f"{self.rank};{self.start_idx};{self.end_idx};{self.strand}"
 
     def __repr__(self):
         return self.__str__()
@@ -28,7 +29,8 @@ class Target_Obj:
         return self.end_idx - self.start_idx + 1
 
     def __eq__(self, other):
-        return self.seq == other.seq and self.start_idx == other.start_idx and self.scaffold == other.scaffold
+        return (self.seq == other.seq and self.start_idx == other.start_idx and self.scaffold == other.scaffold and
+                self.rank == other.rank)
 
     def to_dict(self):
         return {"gRNA+PAM": self.seq, "gRNA_start": self.start_idx, "gRNA_end": self.end_idx,
@@ -51,7 +53,7 @@ class Combined_Target_Obj:
         self.chosen_sg_score = chosen_sg_score
 
     def __str__(self):
-        return f"{self.start_idx}, {self.chosen_sg}, {self.cut_alleles}"
+        return f"{self.start_idx};{self.chosen_sg};{self.cut_alleles}"
 
     def __repr__(self):
         return self.__str__()
@@ -77,7 +79,7 @@ class Combined_Target_Obj:
 class MultiplexTarget:
 
     def __init__(self, up_start: int, up_end: int, up_seq: str, down_start: int, down_end: int, down_seq: str,
-                 multiplex_score: float, up_targets_list: List[Target_Obj], down_targets_list: List[Target_Obj]):
+                 multiplex_score: float, up_targets_list: List[Target_Obj], down_targets_list: List[Target_Obj], exon_num: int):
 
         self.up_start = up_start
         self.up_end = up_end
@@ -88,15 +90,21 @@ class MultiplexTarget:
         self.multiplex_score = multiplex_score
         self.up_targets_list = up_targets_list
         self.down_targets_list = down_targets_list
+        self.exon_num = exon_num
+        self.rank = 0
 
     def __str__(self):
-        return f"{self.up_start}, {self.up_seq}, {self.down_start}, {self.down_seq}, {self.multiplex_score}"
+        return f"{self.rank};{round(self.multiplex_score, 4)};{self.up_start};{self.up_seq};{self.down_start};{self.down_seq}"
 
     def __repr__(self):
         return self.__str__()
 
     def __eq__(self, other):
-        return self.up_start == other.up_start and self.up_seq == other.up_seq and self.down_start == other.down_start and self.down_seq == other.down_seq
+        return (self.up_start == other.up_start and self.up_seq == other.up_seq and self.down_start == other.down_start
+                and self.down_seq == other.down_seq and self.rank == other.rank)
+
+    def __hash__(self):
+        return hash(self.__str__())
 
     def to_dict(self, scaffold: str, strand: str):
         up_pam = ""

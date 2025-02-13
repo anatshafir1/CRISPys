@@ -4,9 +4,9 @@ import sys
 from typing import List, Tuple, Dict
 
 import pandas as pd
-
+from MultiplexToSingleplex import construct_singleplex_candidates
 from Amplicon_Obj import Amplicon_Obj
-from Amplicon_construction.Target_Obj import MultiplexTarget
+from Target_Obj import MultiplexTarget
 from FindOffTargets import filt_off_targets
 from FindTargets import get_targets
 from GetSequences import extract_exons_regions
@@ -243,7 +243,7 @@ def valid_sgrna_multiplex_target(i: int, j: int, exon_snps_list: List[SNP_Obj], 
                                  curr_target: MultiplexTarget, max_amplicon_len: int, primer_length: int,
                                  target_surrounding_region: int) -> List[SNP_Obj]:
     """
-    Check if current target can be used to construct an amplicon.
+    Check if current Multiplex target can be used to construct an amplicon.
 
     :param i: index of current SNP.
     :param j: index of SNP downstream of "i".
@@ -282,7 +282,7 @@ def valid_sgrna_multiplex_target(i: int, j: int, exon_snps_list: List[SNP_Obj], 
 def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distinct_alleles_num: int,
                             exon_targets_lst: List, max_amplicon_len: int, primer_length: int, exon_num: int,
                             target_surrounding_region: int, min_amplicon_len: int, k: int,
-                            target_len: int, multiplex: int) -> List[Amplicon_Obj]:
+                            target_len: int, multiplex: int) -> Tuple[List[Amplicon_Obj], List[MultiplexTarget]]:
     """
     Given SNPs i to j - try to construct amplicon with every target of the current exon. return valid amplicons.
 
@@ -301,11 +301,12 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
     :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :return: list of potential amplicons as Amplicon_Obj objects for the current exon.
     """
-
+    targets_for_single_plex = []
     candidate_amplicons_list = []
     for target in exon_targets_lst:
         if multiplex:
             if not valid_target_distance(target, max_amplicon_len, primer_length, target_surrounding_region):
+                targets_for_single_plex.append(target)
                 continue
             valid_snps_for_target = valid_sgrna_multiplex_target(i, j, exon_snps_lst, distinct_alleles_num, target,
                                                                  max_amplicon_len, primer_length,
@@ -326,14 +327,19 @@ def get_candidate_amplicons(i: int, j: int, exon_snps_lst: List[SNP_Obj], distin
                                                                multiplex)
                 if candidate_amplicon is not None:  # if amplicon wasn't too short
                     candidate_amplicons_list.append(candidate_amplicon)
-
-    return candidate_amplicons_list
+                elif multiplex:
+                    targets_for_single_plex.append(target)
+            elif multiplex:
+                targets_for_single_plex.append(target)
+        elif multiplex:  # couldn't find enough snps for current multiplex target
+            targets_for_single_plex.append(target)
+    return candidate_amplicons_list, targets_for_single_plex
 
 
 def construct_amplicons(gene_snps_dict: Dict[int, List[SNP_Obj]], gene_targets_dict: Dict[int, List[Target_Obj]],
                         max_amplicon_len: int, primer_length: int, distinct_alleles_num: int,
                         target_surrounding_region: int, min_amplicon_len: int, k: int, target_len: int,
-                        multiplex: int) -> List[Amplicon_Obj]:
+                        multiplex: int) -> Tuple[List[Amplicon_Obj], List[MultiplexTarget]]:
     """
     Given a dictionary of sgRNA targets, a dictionary of SNP of a gene and a dictionary of exon region sequences -
     for every SNP of every exon find possible amplicons that can be constructed using that SNP.
@@ -350,6 +356,7 @@ def construct_amplicons(gene_snps_dict: Dict[int, List[SNP_Obj]], gene_targets_d
     :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :return: list of potential amplicons as Amplicon_Obj objects.
     """
+    all_targets_for_single_plex = []
     candidate_amplicons_list = []
     max_dist_snp = max_amplicon_len - primer_length * 2 - 1
     for exon in gene_snps_dict:
@@ -361,21 +368,32 @@ def construct_amplicons(gene_snps_dict: Dict[int, List[SNP_Obj]], gene_targets_d
             j = i + 1
             current_snp = exon_snps_lst[i]
             while j < len(exon_snps_lst) and exon_snps_lst[j].position < current_snp.position + max_dist_snp:
-                if valid_amplicon(i, j, exon_snps_lst,
-                                  distinct_alleles_num):  # check if snps i to j are enough do distinct between different alleles
-                    current_snp_candidate_amplicons = get_candidate_amplicons(i, j, exon_snps_lst, distinct_alleles_num,
+                # check if snps i to j are enough do distinct between different alleles:
+                if valid_amplicon(i, j, exon_snps_lst, distinct_alleles_num):
+                    current_snp_candidate_amplicons, current_snp_targets_for_singleplex = get_candidate_amplicons(i, j,
+                                                                              exon_snps_lst, distinct_alleles_num,
                                                                               exon_targets_lst, max_amplicon_len,
                                                                               primer_length, exon,
                                                                               target_surrounding_region,
                                                                               min_amplicon_len, k,
                                                                               target_len, multiplex)
+
+                    all_targets_for_single_plex.extend(current_snp_targets_for_singleplex)
                     candidate_amplicons_list.extend(current_snp_candidate_amplicons)
                 j += 1
+    filt_targets_for_singleplex = []
+    if multiplex:
+        no_duplicates_targets_lst = list(set(all_targets_for_single_plex))
+        targets_of_candidate_amps = [cand_amp.target for cand_amp in candidate_amplicons_list]
+        for trg in no_duplicates_targets_lst:
+            if trg in targets_of_candidate_amps:
+                continue
+            else:
+                filt_targets_for_singleplex.append(trg)
+    return candidate_amplicons_list, filt_targets_for_singleplex
 
-    return candidate_amplicons_list
 
-
-def save_results_to_csv(res_amplicons_lst: List[Amplicon_Obj], out_path: str, k: int, multiplex: int):
+def save_results_to_csv(res_amplicons_lst: Tuple[List[Amplicon_Obj], List[Amplicon_Obj]], out_path: str, k: int, multiplex: int):
     """
     create a dataframe of the result amplicons with all their parameters and save it as a CSV file in out_path.
 
@@ -385,12 +403,28 @@ def save_results_to_csv(res_amplicons_lst: List[Amplicon_Obj], out_path: str, k:
     :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     """
     dicts_list = []
-    for rank, amplicon in enumerate(res_amplicons_lst):
-        dicts_list.extend(
-            [amplicon.scaffold_amplicons[scaffold_amplicon].to_dict(rank + 1, k, multiplex) for scaffold_amplicon in
-             amplicon.scaffold_amplicons])
-    df = pd.DataFrame(dicts_list)
-    df.to_csv(out_path + "/results.csv", index=False)
+    singleplex_dicts_list = []
+    if multiplex:
+        for amplicon in res_amplicons_lst[0]:
+            dicts_list.extend(
+                [amplicon.scaffold_amplicons[scaffold_amplicon].to_dict(amplicon.target.rank, k, multiplex) for scaffold_amplicon in
+                 amplicon.scaffold_amplicons])
+        df = pd.DataFrame(dicts_list)
+        df.to_csv(out_path + "/multiplex_results.csv", index=False)
+
+        for amplicon in res_amplicons_lst[1]:
+            singleplex_dicts_list.extend(
+                [amplicon.scaffold_amplicons[scaffold_amplicon].to_dict(amplicon.target.rank, 0, 0) for scaffold_amplicon in
+                 amplicon.scaffold_amplicons])
+        df = pd.DataFrame(singleplex_dicts_list)
+        df.to_csv(out_path + "/singleplex_results.csv", index=False)
+    else:
+        for rank, amplicon in enumerate(res_amplicons_lst[0]):
+            dicts_list.extend(
+                [amplicon.scaffold_amplicons[scaffold_amplicon].to_dict(rank + 1, k, multiplex) for scaffold_amplicon in
+                 amplicon.scaffold_amplicons])
+        df = pd.DataFrame(dicts_list)
+        df.to_csv(out_path + "/results.csv", index=False)
 
 
 def get_candidates_scaffold_positions(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]]) -> Dict[str, Tuple[int, int]]:
@@ -416,10 +450,44 @@ def get_candidates_scaffold_positions(gene_exon_regions_seqs_dict: Dict[int, Lis
     return candidates_scaffold_positions
 
 
+def filter_redundancies_and_sort(candidate_amplicons_list: List[Amplicon_Obj],
+                                 singleplex_candidate_amplicons_list: List[Amplicon_Obj] = None, k: int = 1,
+                                 multiplex: int = 1) -> List[Amplicon_Obj]:
+    """
+    sort the amplicon candidates according to the used algorithm method. rank them and add a rank attribute to the objects
+
+    :param candidate_amplicons_list: List of candidate amplicons to be sorted and ranked
+    :param singleplex_candidate_amplicons_list:
+    :param k: number of alleles to target with a single gRNA.
+    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
+    :return: list of sorted and ranked amplicons
+    """
+    if k > 0:
+        sorted_amplicon_obj = sorted(candidate_amplicons_list,
+                                     key=lambda amplicon: (
+                                         amplicon.target.chosen_sg_score, amplicon.snps_median,
+                                         amplicon.snps_mean, len(amplicon.snps)), reverse=True)
+    elif multiplex:
+        combined_list = candidate_amplicons_list + singleplex_candidate_amplicons_list
+        sorted_amplicon_obj = sorted(combined_list,
+                                     key=lambda amplicon: (
+                                         -amplicon.target.rank, amplicon.snps_median,
+                                         amplicon.snps_mean, len(amplicon.snps)), reverse=True)
+    else:
+        sorted_amplicon_obj = sorted(candidate_amplicons_list,
+                                     key=lambda amplicon: (amplicon.snps_median, amplicon.snps_mean, len(amplicon.snps)),
+                                     reverse=True)
+    filtered_candidates = []
+    for candidate in sorted_amplicon_obj:
+        if candidate not in filtered_candidates:
+            filtered_candidates.append(candidate)
+    return filtered_candidates
+
+
 def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_surrounding_region: int, cut_location: int,
-                  annotations_file_path: str,
-                  out_path: str, genome_fasta_file: str, distinct_alleles_num: int, pams: Tuple[str], target_len: int,
-                  primer3_core_path: str, n: int, filter_off_targets: int, k: int, multiplex: int) -> List[Amplicon_Obj]:
+                  annotations_file_path: str, out_path: str, genome_fasta_file: str, distinct_alleles_num: int,
+                  pams: Tuple[str], target_len: int, primer3_core_path: str, n: int, filter_off_targets: int, k: int,
+                  multiplex: int) -> Tuple[List[Amplicon_Obj], List[Amplicon_Obj]]:
     """
 
     :param max_amplicon_len_category: category of maximum length of the amplicon.
@@ -455,47 +523,44 @@ def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_sur
         relevant_gene_targets_dict = gene_targets_dict
     else:  # Tool 1 in use. No SNPs allowed in target sequences.
         relevant_gene_targets_dict = get_relevant_targets(gene_targets_dict, gene_snps_dict)
-    candidate_amplicons_list = construct_amplicons(gene_snps_dict, relevant_gene_targets_dict, max_amplicon_len,
+    print("constructing candidate amplicons".upper().center(40, "#"))
+    candidate_amplicons_list, targets_for_singleplex_lst = construct_amplicons(gene_snps_dict, relevant_gene_targets_dict, max_amplicon_len,
                                                    primer_length, distinct_alleles_num, target_surrounding_region,
                                                    min_amplicon_len, k, target_len, multiplex)
-    if k > 0:
-        sorted_amplicon_obj = sorted(candidate_amplicons_list,
-                                     key=lambda amplicon: (
-                                         amplicon.target.chosen_sg_score, amplicon.snps_median,
-                                         amplicon.snps_mean), reverse=True)
-    elif multiplex:
-        sorted_amplicon_obj = sorted(candidate_amplicons_list,
-                                     key=lambda amplicon: (
-                                         amplicon.target.multiplex_score, amplicon.snps_median,
-                                         amplicon.snps_mean), reverse=True)
+    sorted_targets_for_singleplex_lst = sorted(targets_for_singleplex_lst, key=lambda trg: trg.rank)
+    if multiplex:
+        singleplex_candidate_amplicons_list = construct_singleplex_candidates(sorted_targets_for_singleplex_lst, gene_snps_dict, max_amplicon_len, primer_length,
+                                                  distinct_alleles_num, target_surrounding_region, min_amplicon_len, 0,
+                                                  target_len, 0)
+        filt_sorted_candidate_amplicons_list = filter_redundancies_and_sort(candidate_amplicons_list, singleplex_candidate_amplicons_list, k, multiplex)
     else:
-        sorted_amplicon_obj = sorted(candidate_amplicons_list,
-                                     key=lambda amplicon: (amplicon.snps_median, amplicon.snps_mean),
-                                     reverse=True)
+        filt_sorted_candidate_amplicons_list = filter_redundancies_and_sort(candidate_amplicons_list, [], k, multiplex)
     # create a dictionary of current gene scaffold:
     candidates_scaffold_positions = get_candidates_scaffold_positions(gene_exon_regions_seqs_dict)
     if filter_off_targets:  # find gRNA off-targets and filter amplicons by scores, then get primers.
-        filtered_sorted_candidate_amplicons = filt_off_targets(sorted_amplicon_obj.copy(), genome_fasta_file,
+        off_trg_filt_sorted_candidate_amplicons = filt_off_targets(filt_sorted_candidate_amplicons_list.copy(), genome_fasta_file,
                                                                out_path, pams, candidates_scaffold_positions, k,
                                                                multiplex)
-        if len(filtered_sorted_candidate_amplicons) == 0:
+        if len(off_trg_filt_sorted_candidate_amplicons) == 0:
             print("Zero Amplicons left after filtering strong Off-Targets")
             sys.exit()
-        amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, filtered_sorted_candidate_amplicons,
+        amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, off_trg_filt_sorted_candidate_amplicons,
                                                 out_path, primer3_core_path, n,
                                                 amplicon_ranges[max_amplicon_len_category - 1],
                                                 distinct_alleles_num, target_surrounding_region, filter_off_targets,
                                                 genome_fasta_file, pams, candidates_scaffold_positions,
                                                 original_exon_indices_dict, max_amplicon_len, gene_snps_dict, k,
-                                                multiplex)
+                                                multiplex, primer_length, min_amplicon_len, target_len, genome_fasta_file
+                                                )
     else:  # Get primers, then find gRNA off-targets.
-        amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, sorted_amplicon_obj, out_path,
+        amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, filt_sorted_candidate_amplicons_list, out_path,
                                                 primer3_core_path, n, amplicon_ranges[max_amplicon_len_category - 1],
                                                 distinct_alleles_num, target_surrounding_region, filter_off_targets,
                                                 genome_fasta_file, pams, candidates_scaffold_positions,
                                                 original_exon_indices_dict, max_amplicon_len, gene_snps_dict, k,
-                                                multiplex)
-    if len(amplicon_obj_with_primers) > 0:
+                                                multiplex, primer_length, min_amplicon_len, target_len, genome_fasta_file
+                                                )
+    if len(amplicon_obj_with_primers[0]) > 0 or len(amplicon_obj_with_primers[1]) > 0:
         save_results_to_csv(amplicon_obj_with_primers, out_path, k, multiplex)
         return amplicon_obj_with_primers
     else:

@@ -19,7 +19,7 @@ class SNP_Obj:
         self.gap_length = gap_length
 
     def __str__(self):
-        return f"{self.position}, "
+        return f"{self.position}"
 
     def __repr__(self):
         return self.__str__()

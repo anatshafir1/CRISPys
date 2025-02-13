@@ -53,7 +53,7 @@ def create_sequence_to_candidate_dict(candidate_amplicons_list: List[Amplicon_Ob
             if k > 0:
                 target_seq = candidate.target.chosen_sg
             else:
-                target_seq = candidate.target.seq[:-3]
+                target_seq = candidate.target.seq[:20]
             if target_seq in sequence_to_candidate_dict:
                 sequence_to_candidate_dict[target_seq] += [candidate_amplicons_list[i]]
             else:
@@ -151,22 +151,8 @@ def calculate_scores(candidate_amplicons_list: List[Amplicon_Obj], k: int, multi
         scores = moff(batch_candidates_list, batch_off_targets_list)
         t1 = time.perf_counter()
         print(f"scoring function for {len(batch_candidates_list)} off-targets ran in {t1 - t0} seconds")
-        i = 0
         for candidate in candidate_amplicons_list:
-            if sgrna == "up":
-                if len(candidate.up_off_targets) > 0:
-                    for up_off in candidate.up_off_targets:
-                        up_off.score = round(scores[i], 4)
-                        i += 1
-                    # sort the off-targets in the off_targets_list by score from highest to lowest
-                    candidate.sort_off_targets()
-            elif sgrna == "down":
-                if len(candidate.down_off_targets) > 0:
-                    for down_off in candidate.down_off_targets:
-                        down_off.score = round(scores[i], 4)
-                        i += 1
-                    # sort the off-targets in the off_targets_list by score from highest to lowest
-                    candidate.sort_off_targets()
+            candidate.add_off_targets_to_candidate(scores, sgrna)
     else:
         batch_off_targets_list = []
         batch_candidates_list = []
@@ -177,14 +163,8 @@ def calculate_scores(candidate_amplicons_list: List[Amplicon_Obj], k: int, multi
         scores = moff(batch_candidates_list, batch_off_targets_list)
         t1 = time.perf_counter()
         print(f"scoring function for {len(batch_candidates_list)} off-targets ran in {t1 - t0} seconds")
-        i = 0
         for candidate in candidate_amplicons_list:
-            if len(candidate.off_targets) > 0:
-                for off in candidate.off_targets:
-                    off.score = round(scores[i], 4)
-                    i += 1
-                # sort the off-targets in the off_targets_list by score from highest to lowest
-                candidate.sort_off_targets()
+            candidate.add_off_targets_to_candidate(scores)
 
 
 def create_bwa_input(candidate_amplicons_list: List[Amplicon_Obj], grnas_fasta: str, k: int, multiplex: int,
@@ -216,7 +196,7 @@ def create_bwa_input(candidate_amplicons_list: List[Amplicon_Obj], grnas_fasta: 
         if k > 0:  # Tool 2 in use
             grna_seq_no_pam = candidate.target.chosen_sg
         else:
-            grna_seq_no_pam = candidate.target.seq[:-3]  # get gRNA target sequence
+            grna_seq_no_pam = candidate.target.seq[:20]  # get gRNA target sequence
         if grna_seq_no_pam not in unique_grnas:
             unique_grnas.append(grna_seq_no_pam)
     for grna in unique_grnas:
@@ -267,7 +247,6 @@ def run_bwa(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta: str, out
     :param sgrna: define which sgRNA to use in case of multiplex.
     :return:
     """
-    print("Searching for gRNA off-targets with BWA")
     grna_input_fasta_path = out_path + "/gRNA_input.fasta"
     # create a gRNA input file for search
     grnas_fasta = create_bwa_input(candidate_amplicons_list, grna_input_fasta_path, k, multiplex, sgrna)
@@ -457,7 +436,7 @@ def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_f
     :param k: number of alleles to target with a single gRNA.
     :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     """
-
+    print("Searching for sgRNA off-targets with BWA".upper().center(60, "#"))
     if multiplex:
         # run off target search
         up_off_targets_sam = run_bwa(candidate_amplicons_list, genome_fasta_file, out_path, k, multiplex, "up")

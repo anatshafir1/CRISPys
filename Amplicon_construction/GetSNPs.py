@@ -49,8 +49,7 @@ def create_snps_list(scaffold_to_seq_dict: Dict[str, str], distinct_alleles_num:
             if snp.position > primer_length:
                 result_list.append(snp)
             index += 1
-        elif all(counts[val] == 1 for val in
-                 counts):  # all nucleotides are different in current index. ex. ('A', '-', 'G')
+        elif all(counts[val] == 1 for val in counts) and distinct_alleles_num > 2:  # all nucleotides are different in current index. ex. ('A', '-', 'G')
             alleles_sets_lst = get_allele_sets_list(scaffold_to_seq_dict, index)
             snp = SNP_Obj(index, alleles_sets_lst)
             if snp.position > primer_length:
@@ -94,6 +93,7 @@ def get_snps(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], distinct_all
     :param primer_length: minimum length of the primer sequence, defined by the user in the algorithm run
     :return:
     """
+    print("finding snps".upper().center(40, "#"))
     snps_dict = {}
     for exon_region in gene_sequences_dict:
         scaffold_to_seq_dict = {seq_tup[0].split(":")[0][1:]: seq_tup[1] for seq_tup in

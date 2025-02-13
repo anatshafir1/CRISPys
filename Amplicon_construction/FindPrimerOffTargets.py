@@ -73,7 +73,6 @@ def run_bwa(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta: str, out
     :param out_path:
     :return:
     """
-    print("Searching for primers off-targets with BWA")
     primers_input_fasta_path = out_path + "/primers_input.fasta"
     # create a primers input file for search
     primers_fasta = create_bwa_input(candidate_amplicons_list, primers_input_fasta_path)
@@ -271,7 +270,7 @@ def get_primers_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome
     :param max_amplicon_len: maximum length of the amplicon, defined by user
     :return
     """
-
+    print("Searching for primers off-targets with BWA".upper().center(60, "#"))
     # run off target search
     off_targets_sam = run_bwa(candidate_amplicons_list, genome_fasta_file, out_path)
     # extract off-targets from SAM file to pandas DataFrame

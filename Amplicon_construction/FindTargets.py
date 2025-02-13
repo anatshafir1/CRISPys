@@ -325,7 +325,7 @@ def calculate_off_scores(relevant_targets_dict: [Dict[int, List[Combined_Target_
 
                     if not faulty_pam:
                         comb_on_targets.append(sg)
-                        comb_off_targets.append(target.seq)
+                        comb_off_targets.append(target.ungapped_seq)
             on_targets_list.extend(comb_on_targets)
             off_targets_list.extend(comb_off_targets)
     moff_scores = moff(on_targets_list, off_targets_list)
@@ -335,8 +335,8 @@ def calculate_off_scores(relevant_targets_dict: [Dict[int, List[Combined_Target_
         for comb_target in relevant_targets_dict[exon_num]:
             for sg in comb_target.sg_perm:
                 for target in comb_target.targets_list:
-                    if f"{sg},{target.seq}" in scores_dict:
-                        comb_target.offscores_dict[sg][target.scaffold] = scores_dict[f"{sg},{target.seq}"]
+                    if f"{sg},{target.ungapped_seq}" in scores_dict:
+                        comb_target.offscores_dict[sg][target.scaffold] = scores_dict[f"{sg},{target.ungapped_seq}"]
     print("Combined targets MOFF scores updated")
 
 
@@ -414,8 +414,8 @@ def calc_multiplex_score(upstream_target: sgRNA, downstream_target: sgRNA, allel
     """
     tot_score = 1.0
     for allele in allele_ids_lst:
-        upstream_sg_no_cut = 1 - upstream_target.score_dict[allele]
-        downstream_sg_no_cut = 1 - downstream_target.score_dict[allele]
+        upstream_sg_no_cut = 1 - 0.9*upstream_target.score_dict[allele]
+        downstream_sg_no_cut = 1 - 0.9*downstream_target.score_dict[allele]
         allele_cut = 1 - (upstream_sg_no_cut*downstream_sg_no_cut)
         tot_score *= allele_cut
     return tot_score
@@ -446,6 +446,7 @@ def create_multiplex_targets(targets_dict: Dict[int, List[Combined_Target_Obj]],
     :param allele_ids_lst: list of all allele IDs
     :return: dictionary of exon number -> List of targets as MultiplexTarget
     """
+    all_multiplex_targets_list = []
     multiplex_targets_dict = {}
     for exon in targets_dict:
         multiplex_targets_lst = []
@@ -463,14 +464,22 @@ def create_multiplex_targets(targets_dict: Dict[int, List[Combined_Target_Obj]],
             multiplex_score = calc_multiplex_score(upstream_target, downstream_target, allele_ids_lst)
             multiplex_target = MultiplexTarget(upstream_target.start, upstream_target.end, upstream_target.seq,
                                                downstream_target.start, downstream_target.end, downstream_target.seq,
-                                               multiplex_score, upstream_target.targets_list, downstream_target.targets_list)
+                                               multiplex_score, upstream_target.targets_list, downstream_target.targets_list, exon)
             multiplex_targets_lst.append(multiplex_target)
 
-        score_sorted_targets = sorted(multiplex_targets_lst, key=lambda targ: (targ.up_start, -targ.multiplex_score))
+        score_sorted_targets = sorted(multiplex_targets_lst, key=lambda tg: (tg.up_start, -tg.multiplex_score))
+        # for every start index take only pair with the highest score:
         max_score_sorted_targets = [next(group) for _, group in groupby(score_sorted_targets, key=attrgetter('up_start'))]
 
-        multiplex_targets_dict[exon] = max_score_sorted_targets
-
+        all_multiplex_targets_list.extend(max_score_sorted_targets)
+    # add rank to all multiplex targets:
+    sorted_all_targets_list = sorted(all_multiplex_targets_list, key=lambda tg: -tg.multiplex_score)
+    for index, targ in enumerate(sorted_all_targets_list):
+        targ.rank = index + 1
+        if targ.exon_num not in multiplex_targets_dict:
+            multiplex_targets_dict[targ.exon_num] = [targ]
+        else:
+            multiplex_targets_dict[targ.exon_num].append(targ)
     return multiplex_targets_dict
 
 
@@ -528,6 +537,7 @@ def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tup
     :param distinct_alleles_num: number of distinct alleles of the gene.
     :return: a dictionary of exon number -> List of targets as Target_Obj or Combined_Target_Obj, depending on the tool in use.
     """
+    print("searching for potential targets".upper().center(40, "#"))
     targets_dict = {}
     allele_ids_lst = [gene_sequences_dict[1][i][0].split(":")[0][1:] for i in range(distinct_alleles_num)]
     if k > 0 or multiplex:  # Tool 2 or Tool 3 in use.

@@ -52,6 +52,7 @@ class Amplicon_Obj:
             self.down_off_targets = []
         else:
             self.down_off_targets = down_off_targets
+        self.rank = 0
 
     def __str__(self):
         return f"target: <{self.target}>, SNPs: <{self.snps}>, primers: <{self.primers}>"
@@ -60,10 +61,13 @@ class Amplicon_Obj:
         return self.__str__()
 
     def __eq__(self, other):
+        if not isinstance(self.target, type(other.target)):
+            return False
         same_primers = self.primers == other.primers
         same_target = self.target == other.target
+        same_snps = (self.snps[0].position >= other.snps[0].position and self.snps[-1].position <= other.snps[-1].position)
 
-        return same_primers and same_target
+        return same_snps and same_target and same_primers
 
     def __hash__(self):
         return hash((self.target.__str__(), self.primers.__str__()))
@@ -79,6 +83,30 @@ class Amplicon_Obj:
         self.off_targets.sort(key=lambda off: -off.score)
         self.up_off_targets.sort(key=lambda up_off: -up_off.score)
         self.down_off_targets.sort(key=lambda down_off: -down_off.score)
+
+    def add_off_targets_to_candidate(self, scores: List[float], sgrna_type: str = None):
+        i = 0
+        if sgrna_type == "up":
+            if len(self.up_off_targets) > 0:
+                for up_off in self.up_off_targets:
+                    up_off.score = round(scores[i], 4)
+                    i += 1
+                # sort the off-targets in the off_targets_list by score from highest to lowest
+                self.sort_off_targets()
+        elif sgrna_type == "down":
+            if len(self.down_off_targets) > 0:
+                for down_off in self.down_off_targets:
+                    down_off.score = round(scores[i], 4)
+                    i += 1
+                # sort the off-targets in the off_targets_list by score from highest to lowest
+                self.sort_off_targets()
+        else:
+            if len(self.off_targets) > 0:
+                for off in self.off_targets:
+                    off.score = round(scores[i], 4)
+                    i += 1
+                # sort the off-targets in the off_targets_list by score from highest to lowest
+                self.sort_off_targets()
 
 
 class ScaffoldAmplicon(Amplicon_Obj):
@@ -97,8 +125,9 @@ class ScaffoldAmplicon(Amplicon_Obj):
 
     def to_dict(self, rank: int, k: int, multiplex: int):
         """Create a dictionary of the Amplicon object"""
-        self_dict = {"rank": rank}
+        self_dict = {"target_rank": rank}
         self_dict.update(self.__dict__.copy())
+        self_dict.pop("rank")
         self_dict.pop("target")
         self_dict.pop("snps")
         self_dict.pop("primers")
@@ -108,8 +137,8 @@ class ScaffoldAmplicon(Amplicon_Obj):
         self_dict.pop("scaffold_amplicons")
         snps_str = ""
         for snp in self.snps:
-            snps_str += f"{snp}"
-        self_dict["snps"] = snps_str
+            snps_str += f"{snp};"
+        self_dict["snps"] = snps_str[:-1]
         if multiplex:
             self_dict.update(self.target.to_dict(self.scaffold, self.strand))
             if len(self.up_off_targets) > 0:
