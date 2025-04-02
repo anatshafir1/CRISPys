@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="shaielk@cb1.ee.bgu.ac.il:22 password" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="cb1_DeepHF">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/data/shaielk/DeepHF" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="shaielk@cb1.ee.bgu.ac.il:22 password">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/data/shaielk/DeepHF" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="shaielk@cb1.ee.bgu.ac.il:22 password (1)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/data/shaielk/DeepHF" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="shaielk@cb1.ee.bgu.ac.il:22 password (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/data/shaielk/DeepHF" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>

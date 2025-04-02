@@ -1,15 +1,13 @@
 """Extracting target sequences"""
-from operator import attrgetter
 
 import re
-from itertools import combinations, groupby
+from itertools import combinations
 from math import prod
 from typing import List, Dict, Tuple
 
-from Amplicon_construction.Target_Obj import MultiplexTarget, sgRNA
-from globals import max_polymorphic_sites
-from FindOffTargets import moff
-from Target_Obj import Target_Obj, Combined_Target_Obj
+from globals import MAX_POLYMORPHIC_SITES
+from Amplicon_construction.FindOffTargets import moff
+from Amplicon_construction.Target_Obj import Target_Obj, Combined_Target_Obj
 
 
 def give_complementary(seq: str) -> str:
@@ -240,55 +238,6 @@ def extract_polymorphic_sites(comb_target_snps_dict: Dict[int, Dict[str, List[st
     return list_of_differences
 
 
-def create_sgrna_permutations(relevant_targets_dict: Dict[int, List[Combined_Target_Obj]],
-                              pam_idxs: Tuple[int] = (22, 23)):
-    """
-
-    :param relevant_targets_dict:
-    :param pam_idxs: indices (starting from 1) of nucleotides in the PAM sequences of the sgRNA that are strictly a specific nucleotide ("G" for Cas9)
-    """
-    for exon_num in relevant_targets_dict:
-        comb_target_lst = relevant_targets_dict[exon_num]
-        for comb_target in comb_target_lst:
-            scaffold_to_num_polymorphic_sites = {target.scaffold: 0 for target in comb_target.targets_list}
-            number_to_scaffold_dict = {i: target.scaffold for i, target in enumerate(comb_target.targets_list)}
-            nucs_tuple_per_index_lst = zip(*[target.ungapped_seq for target in comb_target.targets_list])
-            comb_target_snps_dict = {}  # {snp_position: {nucleotide: list of scaffold_IDs}}
-            for index, nucs in enumerate(nucs_tuple_per_index_lst):
-                if not all(nucs[0] == nucleotide for nucleotide in nucs):  # SNP at current index
-                    pos_target_dict = {}  # {nucleotide: list of scaffold_IDs}
-                    for i in range(len(nucs)):
-                        if nucs[i].upper() not in pos_target_dict:
-                            pos_target_dict[nucs[i].upper()] = [number_to_scaffold_dict[i]]
-                        else:
-                            pos_target_dict[nucs[i].upper()].append(number_to_scaffold_dict[i])
-                    for nuc in pos_target_dict:
-                        if len(pos_target_dict[nuc]) == 1:
-                            scaffold_to_num_polymorphic_sites[pos_target_dict[nuc][0]] += 1
-                    comb_target_snps_dict[index] = pos_target_dict
-                if index == pam_idxs[0] - 3:
-                    break
-            snp_abundant_targets_scaffolds = []
-            if len(comb_target_snps_dict) > max_polymorphic_sites:
-                for scaffold in scaffold_to_num_polymorphic_sites:
-                    if scaffold_to_num_polymorphic_sites[scaffold] >= len(
-                            comb_target_snps_dict) / 2:  # check if any of the targets is "accountable" for more than half of the SNPs
-                        snp_abundant_targets_scaffolds.append(scaffold)
-                if len(snp_abundant_targets_scaffolds) < 1:  # none of the targets is "accountable" for more than half of the SNPs. Target will not be used.
-                    comb_target.sg_perm = []
-                    continue
-                else:
-                    list_of_differences = extract_polymorphic_sites(comb_target_snps_dict,
-                                                                    snp_abundant_targets_scaffolds)
-                    initial_seq = get_initial_seq(comb_target, snp_abundant_targets_scaffolds)
-                    comb_target.sg_perm = all_perms(initial_seq, [], list_of_differences)
-            else:
-                list_of_differences = extract_polymorphic_sites(comb_target_snps_dict, snp_abundant_targets_scaffolds)
-                initial_seq = get_initial_seq(comb_target, snp_abundant_targets_scaffolds)
-                comb_target.sg_perm = all_perms(initial_seq, [], list_of_differences)
-    print("Combined targets sgRNA permutations created")
-
-
 def create_scores_dict(on_targets_list, off_targets_list, moff_scores):
     scores_dict = {f"{on_targets_list[i]},{off_targets_list[i]}": round(moff_scores[i], 4) for i in
                    range(len(moff_scores))}
@@ -377,6 +326,55 @@ def calculate_sg_rank_scores(relevant_targets_dict: Dict[int, List[Combined_Targ
     return new_relevant_targets_dict
 
 
+def create_sgrna_permutations(relevant_targets_dict: Dict[int, List[Combined_Target_Obj]],
+                              pam_idxs: Tuple[int] = (22, 23)):
+    """
+
+    :param relevant_targets_dict:
+    :param pam_idxs: indices (starting from 1) of nucleotides in the PAM sequences of the sgRNA that are strictly a specific nucleotide ("G" for Cas9)
+    """
+    for exon_num in relevant_targets_dict:
+        comb_target_lst = relevant_targets_dict[exon_num]
+        for comb_target in comb_target_lst:
+            scaffold_to_num_polymorphic_sites = {target.scaffold: 0 for target in comb_target.targets_list}
+            number_to_scaffold_dict = {i: target.scaffold for i, target in enumerate(comb_target.targets_list)}
+            nucs_tuple_per_index_lst = zip(*[target.ungapped_seq for target in comb_target.targets_list])
+            comb_target_snps_dict = {}  # {snp_position: {nucleotide: list of scaffold_IDs}}
+            for index, nucs in enumerate(nucs_tuple_per_index_lst):
+                if not all(nucs[0] == nucleotide for nucleotide in nucs):  # SNP at current index
+                    pos_target_dict = {}  # {nucleotide: list of scaffold_IDs}
+                    for i in range(len(nucs)):
+                        if nucs[i].upper() not in pos_target_dict:
+                            pos_target_dict[nucs[i].upper()] = [number_to_scaffold_dict[i]]
+                        else:
+                            pos_target_dict[nucs[i].upper()].append(number_to_scaffold_dict[i])
+                    for nuc in pos_target_dict:
+                        if len(pos_target_dict[nuc]) == 1:
+                            scaffold_to_num_polymorphic_sites[pos_target_dict[nuc][0]] += 1
+                    comb_target_snps_dict[index] = pos_target_dict
+                if index == pam_idxs[0] - 3:
+                    break
+            snp_abundant_targets_scaffolds = []
+            if len(comb_target_snps_dict) > MAX_POLYMORPHIC_SITES:
+                for scaffold in scaffold_to_num_polymorphic_sites:
+                    if scaffold_to_num_polymorphic_sites[scaffold] >= len(
+                            comb_target_snps_dict) / 2:  # check if any of the targets is "accountable" for more than half of the SNPs
+                        snp_abundant_targets_scaffolds.append(scaffold)
+                if len(snp_abundant_targets_scaffolds) < 1:  # none of the targets is "accountable" for more than half of the SNPs. Target will not be used.
+                    comb_target.sg_perm = []
+                    continue
+                else:
+                    list_of_differences = extract_polymorphic_sites(comb_target_snps_dict,
+                                                                    snp_abundant_targets_scaffolds)
+                    initial_seq = get_initial_seq(comb_target, snp_abundant_targets_scaffolds)
+                    comb_target.sg_perm = all_perms(initial_seq, [], list_of_differences)
+            else:
+                list_of_differences = extract_polymorphic_sites(comb_target_snps_dict, snp_abundant_targets_scaffolds)
+                initial_seq = get_initial_seq(comb_target, snp_abundant_targets_scaffolds)
+                comb_target.sg_perm = all_perms(initial_seq, [], list_of_differences)
+    print("Combined targets sgRNA permutations created")
+
+
 def create_comb_targets(all_targets_dict: Dict[int, Dict[int, List[Target_Obj]]],
                         target_len: int) -> Dict[int, List[Combined_Target_Obj]]:
     """
@@ -404,88 +402,9 @@ def create_comb_targets(all_targets_dict: Dict[int, Dict[int, List[Target_Obj]]]
     return relevant_targets_dict
 
 
-def calc_multiplex_score(upstream_target: sgRNA, downstream_target: sgRNA, allele_ids_lst: List[str]) -> float:
-    """
-
-    :param upstream_target: potential upstream sgRNA
-    :param downstream_target: potential upstream sgRNA
-    :param allele_ids_lst: list of all allele IDs
-    :return: multiplex score of upstream and downstream sgRNAs
-    """
-    tot_score = 1.0
-    for allele in allele_ids_lst:
-        upstream_sg_no_cut = 1 - 0.9*upstream_target.score_dict[allele]
-        downstream_sg_no_cut = 1 - 0.9*downstream_target.score_dict[allele]
-        allele_cut = 1 - (upstream_sg_no_cut*downstream_sg_no_cut)
-        tot_score *= allele_cut
-    return tot_score
-
-
-def create_sgrna_pairs(comb_targets_lst: List[Combined_Target_Obj]) -> List[Tuple[sgRNA, sgRNA]]:
-    """
-
-    :param comb_targets_lst: List of Combined_Target_Obj objects
-    :return: List of all potential pairs of sgRNAs extracted from the comb_targets_lst
-    """
-    sg_list = []
-    for comb_target in comb_targets_lst:
-        for sg in comb_target.sg_perm:
-            sg_list.append(sgRNA(comb_target.start_idx, comb_target.end_idx, sg, comb_target.offscores_dict[sg], comb_target.targets_list))
-
-    sg_pairs_list = [(sg1, sg2) for sg1, sg2 in combinations(sg_list, 2) if sg1.start != sg2.start]
-
-    return sg_pairs_list
-
-
-def create_multiplex_targets(targets_dict: Dict[int, List[Combined_Target_Obj]], allele_ids_lst) -> Dict[int, List[MultiplexTarget]]:
-    """
-    Create combinations of targets using Combined Targets and their chosen sgRNA sequence and score. Create multiplex
-    targets from the combinations.
-
-    :param targets_dict: dictionary of exon number -> List of targets as Combined_Target_Obj
-    :param allele_ids_lst: list of all allele IDs
-    :return: dictionary of exon number -> List of targets as MultiplexTarget
-    """
-    all_multiplex_targets_list = []
-    multiplex_targets_dict = {}
-    for exon in targets_dict:
-        multiplex_targets_lst = []
-        comb_targets_lst = targets_dict[exon]
-        target_pairs = create_sgrna_pairs(comb_targets_lst)
-        for target_pair in target_pairs:
-            # distinguish which target is upstream and which is downstream
-            if target_pair[0].start < target_pair[1].start:
-                upstream_target = target_pair[0]
-                downstream_target = target_pair[1]
-            else:
-                upstream_target = target_pair[1]
-                downstream_target = target_pair[0]
-
-            multiplex_score = calc_multiplex_score(upstream_target, downstream_target, allele_ids_lst)
-            multiplex_target = MultiplexTarget(upstream_target.start, upstream_target.end, upstream_target.seq,
-                                               downstream_target.start, downstream_target.end, downstream_target.seq,
-                                               multiplex_score, upstream_target.targets_list, downstream_target.targets_list, exon)
-            multiplex_targets_lst.append(multiplex_target)
-
-        score_sorted_targets = sorted(multiplex_targets_lst, key=lambda tg: (tg.up_start, -tg.multiplex_score))
-        # for every start index take only pair with the highest score:
-        max_score_sorted_targets = [next(group) for _, group in groupby(score_sorted_targets, key=attrgetter('up_start'))]
-
-        all_multiplex_targets_list.extend(max_score_sorted_targets)
-    # add rank to all multiplex targets:
-    sorted_all_targets_list = sorted(all_multiplex_targets_list, key=lambda tg: -tg.multiplex_score)
-    for index, targ in enumerate(sorted_all_targets_list):
-        targ.rank = index + 1
-        if targ.exon_num not in multiplex_targets_dict:
-            multiplex_targets_dict[targ.exon_num] = [targ]
-        else:
-            multiplex_targets_dict[targ.exon_num].append(targ)
-    return multiplex_targets_dict
-
-
 def get_snp_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tuple, max_amplicon_len: int,
                     primer_length: int, cut_location: int, target_surrounding_region: int, target_len: int,
-                    k: int, multiplex: int, allele_ids_lst: List[str]) -> Dict[int, List[Combined_Target_Obj]]:
+                    k: int) -> Dict[int, List[Combined_Target_Obj]]:
     """
 
     :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name
@@ -497,8 +416,6 @@ def get_snp_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
     :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer
     :param k: number of alleles to target with a single gRNA
-    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
-    :param allele_ids_lst: list of all allele IDs
     :return: dictionary of exon number -> List of targets as Combined_Target_Obj
     """
     all_targets_dict = get_all_targets(gene_sequences_dict, pams, max_amplicon_len, primer_length, cut_location,
@@ -506,11 +423,7 @@ def get_snp_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
     relevant_targets_dict = create_comb_targets(all_targets_dict, target_len)
     create_sgrna_permutations(relevant_targets_dict)
     calculate_off_scores(relevant_targets_dict)
-    new_relevant_targets_dict = {}
-    if k > 0:
-        new_relevant_targets_dict = calculate_sg_rank_scores(relevant_targets_dict, k)
-    if multiplex:
-        new_relevant_targets_dict = create_multiplex_targets(relevant_targets_dict, allele_ids_lst)
+    new_relevant_targets_dict = calculate_sg_rank_scores(relevant_targets_dict, k)
     return new_relevant_targets_dict
 
 
@@ -521,7 +434,7 @@ def filter_duplicates(exon_targets):
 
 def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tuple, max_amplicon_len: int,
                 primer_length: int, cut_location: int, target_surrounding_region: int, target_len: int, k: int,
-                multiplex: int, distinct_alleles_num) -> Dict[int, List]:
+                distinct_alleles_num: int) -> Dict[int, List]:
     """
 
     :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name 
@@ -533,16 +446,14 @@ def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tup
     :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer
     :param k: number of alleles to target with a single gRNA.
-    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :param distinct_alleles_num: number of distinct alleles of the gene.
     :return: a dictionary of exon number -> List of targets as Target_Obj or Combined_Target_Obj, depending on the tool in use.
     """
     print("searching for potential targets".upper().center(40, "#"))
     targets_dict = {}
-    allele_ids_lst = [gene_sequences_dict[1][i][0].split(":")[0][1:] for i in range(distinct_alleles_num)]
-    if k > 0 or multiplex:  # Tool 2 or Tool 3 in use.
+    if k > 0:  # Tool 2 in use.
         targets_dict = get_snp_targets(gene_sequences_dict, pams, max_amplicon_len, primer_length, cut_location,
-                                       target_surrounding_region, target_len, k, multiplex, allele_ids_lst)
+                                       target_surrounding_region, target_len, k)
         return targets_dict
     else:  # Tool 1 in use.
         for exon_region in gene_sequences_dict:

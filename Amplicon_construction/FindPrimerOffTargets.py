@@ -8,7 +8,8 @@ import subprocess
 from Bio import SeqIO
 from pandas import DataFrame
 
-from Amplicon_Obj import Amplicon_Obj
+from Amplicon_construction.Amplicon_Obj import Amplicon_Obj
+from Gene_Family_Targeting.FindSGRNAOffTargets import get_scaffolds_positions_dict
 
 from globals import OFF_PRIMER_CUTOFF
 
@@ -116,7 +117,8 @@ def extract_off_targets(sam_file: str, genome_fasta: str, out_path: str) -> Data
     :param out_path: path to output directory where algorithm results will be saved
     :return:
     """
-    off_targets = {'orig_primer': [], 'off_primer': [], 'Chromosome': [], 'Position': [], 'Direction': [], 'Mismatches': []}
+    off_targets = {'orig_primer': [], 'off_primer': [], 'Chromosome': [], 'Position': [], 'Direction': [],
+                   'Mismatches': []}
     reference_genome = SeqIO.to_dict(SeqIO.parse(genome_fasta, "fasta"))
     with open(sam_file, 'r') as file:
         for line in file:
@@ -130,7 +132,7 @@ def extract_off_targets(sam_file: str, genome_fasta: str, out_path: str) -> Data
             scaffold = columns[2]
             position = columns[3]
             cigar = columns[5]
-            strand = "-" if int(columns[1]) & 0x10 != 0 else "+"   # inferring strand from the FLAG's 5th bit
+            strand = "-" if int(columns[1]) & 0x10 != 0 else "+"  # inferring strand from the FLAG's 5th bit
             start = int(position) - 1  # Convert to 0-based indexing
             ref_seq = reference_genome[scaffold].seq
             off_target_len = sum(int(length) for length, op in re.findall(r'(\d+)([MID])', cigar) if op != 'D')
@@ -150,7 +152,8 @@ def extract_off_targets(sam_file: str, genome_fasta: str, out_path: str) -> Data
                 off_targets['Mismatches'].append(columns[12].split(":")[-1])
 
             # handle rest of the matches:
-            xa_tag = next((col for col in columns if col.startswith('XA:Z:')), None)  # skip to the column where the off-targets are
+            xa_tag = next((col for col in columns if col.startswith('XA:Z:')),
+                          None)  # skip to the column where the off-targets are
             if xa_tag:
                 # Extract the off-target alignments from the XA:Z: tag
                 off_target_entries = xa_tag[5:].split(';')[:-1]  # Remove the trailing empty entry
@@ -181,18 +184,17 @@ def extract_off_targets(sam_file: str, genome_fasta: str, out_path: str) -> Data
         #  create a dataframe from the dictionary
         off_targets_df = pd.DataFrame.from_dict(off_targets)
 
-    off_targets_df.to_csv(out_path+"/off_primers.csv", index=False)
+    off_targets_df.to_csv(out_path + "/off_primers.csv", index=False)
     return off_targets_df
 
 
-def filter_off_targets(off_targets_df: DataFrame, candidates_scaffold_positions: Dict[str, Tuple[int, int]],
-                       out_path: str) -> DataFrame:
+def remove_on_targets_primers_df(off_targets_df: DataFrame, candidates_scaffold_positions: Dict[str, Tuple[int, int]],
+                                 ) -> DataFrame:
     """
     Filter the original primers from the primers off-target dataframe
 
     :param off_targets_df: DataFrame of found off-targets for the primers, including the primers themselves
     :param candidates_scaffold_positions: Dictionary of scaffold IDs to current gene indices in the scaffold
-    :param out_path:
     :return:
     """
     scaffold_lst = list(candidates_scaffold_positions.keys())
@@ -204,17 +206,54 @@ def filter_off_targets(off_targets_df: DataFrame, candidates_scaffold_positions:
     in_scaffold = off_targets_df['Chromosome'].isin(scaffold_lst)
     # Check positional condition in the scaffold
     positional_condition = off_targets_df.apply(
-        lambda row: candidates_scaffold_positions[row['Chromosome']][0] < row['Position'] <
-                    candidates_scaffold_positions[row['Chromosome']][1]
+        lambda row: candidates_scaffold_positions[row['Chromosome']][0] < row['Position'] < candidates_scaffold_positions[row['Chromosome']][1]
         if row['Chromosome'] in candidates_scaffold_positions else False, axis=1)
 
     filter_condition = no_mismatches & in_scaffold & positional_condition
     filtered_off_targets_df = off_targets_df[~filter_condition]
 
-    for index, row in filtered_off_targets_df.iterrows():
-        if row["Chromosome"] in scaffold_lst:  # check if any of the filtered primers is on one of the gene's scaffolds (alleles)
-            rows_with_scaffold = off_targets_df[(off_targets_df["Chromosome"] == row["Chromosome"]) & (off_targets_df["Direction"] != row["Direction"])]  # filter rows with current scaffold and opposite direction
-            rows_to_add = rows_with_scaffold[~rows_with_scaffold.isin(filtered_off_targets_df).all(axis=1)]  # filter out rows from off_targets_df that are already in filtered_off_targets_df
+    for index, df_row in filtered_off_targets_df.iterrows():
+        if df_row["Chromosome"] in scaffold_lst:  # check if any of the filtered primers is on one of the gene's scaffolds (alleles)
+            rows_with_scaffold = off_targets_df[(off_targets_df["Chromosome"] == df_row["Chromosome"]) & (
+                    off_targets_df["Direction"] != df_row["Direction"])]  # filter rows with current scaffold and opposite direction
+            rows_to_add = rows_with_scaffold[~rows_with_scaffold.isin(filtered_off_targets_df).all(
+                axis=1)]  # filter out rows from off_targets_df that are already in filtered_off_targets_df
+            filtered_off_targets_df = filtered_off_targets_df.append(rows_to_add)
+
+    return filtered_off_targets_df
+
+
+def remove_family_on_targets_primers_df(off_targets_df: DataFrame,
+                                        candidates_scaffold_positions: Dict[str, List[Tuple[int, int]]]) -> DataFrame:
+    """
+    Filter the original primers from the primers off-target dataframe
+
+    :param off_targets_df: DataFrame of found off-targets for the primers, including the primers themselves
+    :param candidates_scaffold_positions: Dictionary of scaffold IDs to current gene indices in the scaffold
+    :return:
+    """
+
+    def on_target(row):
+        mms = row['Mismatches']
+        chrom = row['Chromosome']
+        position = row['Position']
+        if int(mms) == 0:
+            if chrom in candidates_scaffold_positions:
+                for start, end in candidates_scaffold_positions[chrom]:
+                    if start <= int(position) <= end:
+                        return True
+        return False
+
+    rows_to_remove = off_targets_df[off_targets_df.apply(on_target, axis=1)].index
+    filtered_off_targets_df = off_targets_df.drop(index=rows_to_remove, inplace=False)
+
+    scaffold_lst = list(candidates_scaffold_positions.keys())
+    for index, df_row in filtered_off_targets_df.iterrows():
+        if df_row["Chromosome"] in scaffold_lst:  # check if any of the filtered primers is on one of the gene's scaffolds (alleles)
+            rows_with_scaffold = off_targets_df[(off_targets_df["Chromosome"] == df_row["Chromosome"]) & (
+                    off_targets_df["Direction"] != df_row["Direction"])]  # filter rows with current scaffold and opposite direction
+            rows_to_add = rows_with_scaffold[~rows_with_scaffold.isin(filtered_off_targets_df).all(
+                axis=1)]  # filter out rows from off_targets_df that are already in filtered_off_targets_df
             filtered_off_targets_df = filtered_off_targets_df.append(rows_to_add)
 
     return filtered_off_targets_df
@@ -257,7 +296,7 @@ def get_problematic_primers(filtered_off_targets_pd: DataFrame, max_amplicon_len
 
 
 def get_primers_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_file: str, out_path: str,
-                    candidates_scaffold_positions: Dict[str, Tuple[int, int]], max_amplicon_len: int):
+                            candidates_scaffold_positions: Dict, max_amplicon_len: int, family_targeting: int):
     """
     Find the off-targets for each candidate using BWA, store them in the candidate's off_targets_list attribute
     as a list of OffTarget objects. Then calculates the off-target scores for each off-target of each candidate and
@@ -268,6 +307,7 @@ def get_primers_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome
     :param genome_fasta_file: path to input FASTA format file of the genome
     :param candidates_scaffold_positions: dictionary of allele scaffold -> gene allele start,end indices
     :param max_amplicon_len: maximum length of the amplicon, defined by user
+    :param family_targeting:
     :return
     """
     print("Searching for primers off-targets with BWA".upper().center(60, "#"))
@@ -276,8 +316,33 @@ def get_primers_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome
     # extract off-targets from SAM file to pandas DataFrame
     off_targets_pd = extract_off_targets(off_targets_sam, genome_fasta_file, out_path)
     # filter on-targets
-    filtered_off_targets_pd = filter_off_targets(off_targets_pd, candidates_scaffold_positions, out_path)
+    if family_targeting:
+        filtered_off_targets_pd = remove_family_on_targets_primers_df(off_targets_pd, candidates_scaffold_positions)
+    else:
+        filtered_off_targets_pd = remove_on_targets_primers_df(off_targets_pd, candidates_scaffold_positions)
     # find problematic primers
     problematic_primers_df = get_problematic_primers(filtered_off_targets_pd, max_amplicon_len)
-    problematic_primers_df.to_csv(out_path+"/problematic_primers.csv", index=False)
+    problematic_primers_df.to_csv(out_path + "/problematic_primers.csv", index=False)
     return problematic_primers_df
+
+
+def primers_off_targets(sgrna_amplicons_dict: Dict[str, Dict[str, List[Amplicon_Obj]]], out_path: str,
+                        genome_fasta_file: str, max_amplicon_len: int,
+                        genes_exons_seq_dict: Dict[str, Tuple[Dict[int, List[Tuple[str, str]]], Dict[str, Dict[int, int]]]],
+                        family_targeting: int):
+    """
+
+    :param sgrna_amplicons_dict:
+    :param out_path:
+    :param genome_fasta_file:
+    :param max_amplicon_len:
+    :param genes_exons_seq_dict:
+    :param family_targeting:
+    """
+    amplicons_list = []
+    candidates_scaffold_positions = get_scaffolds_positions_dict(genes_exons_seq_dict)
+    for sgrna in sgrna_amplicons_dict:
+        for gene in sgrna_amplicons_dict[sgrna]:
+            amplicons_list.extend(sgrna_amplicons_dict[sgrna][gene])
+    get_primers_off_targets(amplicons_list, genome_fasta_file, out_path, candidates_scaffold_positions,
+                            max_amplicon_len, family_targeting)

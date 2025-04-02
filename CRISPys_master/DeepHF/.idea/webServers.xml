@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="cfb53e34-a0f9-499c-b2de-24d7383c3013" name="cb1_DeepHF">
+        <fileTransfer accessType="SFTP" host="cb1.ee.bgu.ac.il" port="22" sshConfigId="2c1ddc35-7225-40f6-a4dc-0107d09667d9" sshConfig="shaielk@cb1.ee.bgu.ac.il:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

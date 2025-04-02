@@ -9,108 +9,11 @@ import subprocess
 from Bio import SeqIO
 from pandas import DataFrame
 
-from Amplicon_Obj import Amplicon_Obj, OffTarget
+from Amplicon_construction.Amplicon_Obj import Amplicon_Obj, OffTarget
 
-from MOFF.MOFF_prediction import MOFF_score
-from MOFF.MoffLoad import mtx1, mtx2, model
-
-
-# create dictionary of sequence:candidate
-def create_sequence_to_candidate_dict(candidate_amplicons_list: List[Amplicon_Obj], k: int, multiplex: int,
-                                      sgrna: str = None) -> Dict[str, List[Amplicon_Obj]]:
-    """
-    This function takes a list of sgRNA candidates, and returns a sequence to candidate dictionary.
-
-    :param candidate_amplicons_list: a list of sgRNA candidates
-    :param k: number of alleles to target with a single gRNA.
-    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
-    :param sgrna: define which sgRNA to use in case of multiplex.
-    :return: a dictionary: sequence -> an ActivationCandidate object where candidate.seq = sequence.
-    """
-    sequence_to_candidate_dict = {}
-    up_sequence_to_candidate_dict = {}
-    down_sequence_to_candidate_dict = {}
-    if multiplex:
-        for i, candidate in enumerate(candidate_amplicons_list):
-            if sgrna == "up":
-                target_seq = candidate.target.up_seq
-                if target_seq in sequence_to_candidate_dict:
-                    up_sequence_to_candidate_dict[target_seq] += [candidate_amplicons_list[i]]
-                else:
-                    up_sequence_to_candidate_dict[target_seq] = [candidate_amplicons_list[i]]
-            elif sgrna == "down":
-                target_seq = candidate.target.down_seq
-                if target_seq in sequence_to_candidate_dict:
-                    down_sequence_to_candidate_dict[target_seq] += [candidate_amplicons_list[i]]
-                else:
-                    down_sequence_to_candidate_dict[target_seq] = [candidate_amplicons_list[i]]
-        if sgrna == "up":
-            return up_sequence_to_candidate_dict
-        elif sgrna == "down":
-            return down_sequence_to_candidate_dict
-    else:
-        for i, candidate in enumerate(candidate_amplicons_list):
-            if k > 0:
-                target_seq = candidate.target.chosen_sg
-            else:
-                target_seq = candidate.target.seq[:20]
-            if target_seq in sequence_to_candidate_dict:
-                sequence_to_candidate_dict[target_seq] += [candidate_amplicons_list[i]]
-            else:
-                sequence_to_candidate_dict[target_seq] = [candidate_amplicons_list[i]]
-        return sequence_to_candidate_dict
-
-
-# add to each "Candidate" its off-targets
-def add_off_targets(off_targets_df, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]], multiplex: int,
-                    sgrna: str = None):
-    """
-    This function adds all found off-targets to each CandidateWithOffTargets using the crispritz results.
-
-    :param off_targets_df: The output of crispritz as a pd datatable, where each row is a potential offtarget.
-    :param sequence_to_candidate_dict: sequence -> a CandidateWithOffTargets object with the proper sequence.
-    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
-    :param sgrna: define which sgRNA to use in case of multiplex.
-
-    """
-    # apply the 'get_off_target' function on each row in the crispritz table results
-    off_targets_df.apply(get_off_target, args=(sequence_to_candidate_dict, multiplex, sgrna), axis=1)
-    return
-
-
-# This function will be used in an apply command. it reads crispritz results and create an offtarget object out of each one
-def get_off_target(x, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]], multiplex, sgrna):
-    """
-    A function to use with apply on crispritz result table
-    it takes a row of crispritz results and a dictionary of sequence:candidate, and make an OffTarget
-    object from the crispritz results and add it to the candidate offtargets list.
-
-    :param x: a row in crispritz results table
-    :param sequence_to_candidate_dict: a dictionary of sequence:candidate
-    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
-    :param sgrna: define which sgRNA to use in case of multiplex.
-    """
-    candidates_list = sequence_to_candidate_dict[x['crRNA'][:20]]  # get list of candidate amplicons with current on-target (chosen_sg)
-    off_target = OffTarget(x['DNA'].upper(), x['Chromosome'].split(" ")[0], int(x['Position']), x['Direction'],
-                           int(x['Mismatches']))  # create off-target object
-    legit_letters = True
-    for char in off_target.seq:  # allow only nucleotide letters in off-target sequence
-        if char not in {"A", "C", "T", "G"}:
-            legit_letters = False
-            break
-    if legit_letters:  # add current off-target to all amplicons with matching on target (candidates_list)
-        for candidate in candidates_list:
-            if multiplex:
-                if sgrna == "up":
-                    if off_target not in candidate.up_off_targets:
-                        candidate.up_off_targets.append(off_target)
-                elif sgrna == "down":
-                    if off_target not in candidate.down_off_targets:
-                        candidate.down_off_targets.append(off_target)
-            else:
-                if off_target not in candidate.off_targets:
-                    candidate.off_targets.append(off_target)
-    return
+from Amplicon_construction.MOFF.MOFF_prediction import MOFF_score
+from Amplicon_construction.MOFF.MoffLoad import mtx1, mtx2, model
+from globals import OFF_TARGET_FILTER_CUTOFF
 
 
 def moff(candidate_lst: List[str], target_lst: List[str]) -> List[float]:
@@ -126,73 +29,40 @@ def moff(candidate_lst: List[str], target_lst: List[str]) -> List[float]:
     return list(scores)
 
 
-def calculate_scores(candidate_amplicons_list: List[Amplicon_Obj], k: int, multiplex: int, sgrna: str = None):
+def calculate_scores(candidate_amplicons_list: List[Amplicon_Obj], k: int):
     """
     Calculate the off-target scores for each off-target of each candidate and store the scores in each off-target's
     score attribute.
 
     :param candidate_amplicons_list: a list of Amplicon candidates
     :param k: number of alleles to target with a single gRNA
-    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
-    :param sgrna: define which sgRNA to use in case of multiplex.
     """
-    if multiplex:
-        batch_off_targets_list = []
-        batch_candidates_list = []
-        if sgrna == "up":
-            for candidate in candidate_amplicons_list:
-                batch_candidates_list += [candidate.target.up_seq for _ in range(len(candidate.up_off_targets))]
-                batch_off_targets_list += [up_off_target.seq for up_off_target in candidate.up_off_targets]
-        elif sgrna == "down":
-            for candidate in candidate_amplicons_list:
-                batch_candidates_list += [candidate.target.down_seq for _ in range(len(candidate.down_off_targets))]
-                batch_off_targets_list += [down_off_target.seq for down_off_target in candidate.down_off_targets]
-        t0 = time.perf_counter()
-        scores = moff(batch_candidates_list, batch_off_targets_list)
-        t1 = time.perf_counter()
-        print(f"scoring function for {len(batch_candidates_list)} off-targets ran in {t1 - t0} seconds")
-        for candidate in candidate_amplicons_list:
-            candidate.add_off_targets_to_candidate(scores, sgrna)
-    else:
-        batch_off_targets_list = []
-        batch_candidates_list = []
-        for candidate in candidate_amplicons_list:
-            batch_candidates_list += [candidate.target.chosen_sg if k > 0 else candidate.target.seq for _ in range(len(candidate.off_targets))]
-            batch_off_targets_list += [off_target.seq for off_target in candidate.off_targets]
-        t0 = time.perf_counter()
-        scores = moff(batch_candidates_list, batch_off_targets_list)
-        t1 = time.perf_counter()
-        print(f"scoring function for {len(batch_candidates_list)} off-targets ran in {t1 - t0} seconds")
-        for candidate in candidate_amplicons_list:
-            candidate.add_off_targets_to_candidate(scores)
+    batch_off_targets_list = []
+    batch_candidates_list = []
+    for candidate in candidate_amplicons_list:
+        batch_candidates_list += [candidate.target.chosen_sg if k > 0 else candidate.target.seq for _ in range(len(candidate.off_targets))]
+        batch_off_targets_list += [off_target.seq for off_target in candidate.off_targets]
+    t0 = time.perf_counter()
+    scores = moff(batch_candidates_list, batch_off_targets_list)
+    t1 = time.perf_counter()
+    print(f"scoring function for {len(batch_candidates_list)} off-targets ran in {t1 - t0} seconds")
+    for candidate in candidate_amplicons_list:
+        candidate.add_off_targets_to_candidate(scores)
 
 
-def create_bwa_input(candidate_amplicons_list: List[Amplicon_Obj], grnas_fasta: str, k: int, multiplex: int,
-                     sgrna: str) -> str:
+def create_bwa_input(candidate_amplicons_list: List[Amplicon_Obj], grnas_fasta: str, k: int) -> str:
     """
     create input fasta file for BWA for all the gRNAs of the candidate amplicons
 
     :param candidate_amplicons_list: A list of candidate amplicons objects
     :param grnas_fasta: output path where the BWA input gRNAs fasta will be created
     :param k: number of alleles to target with a single gRNA
-    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
-    :param sgrna: define which sgRNA to use in case of multiplex.
     :return: path of the BWA input gRNAs fasta
     """
     out = ""
     unique_grnas = []
 
     for candidate in candidate_amplicons_list:  # go over each candidate and get the guide sequence
-        if multiplex:
-            if sgrna == "up":
-                grna_seq_no_pam = candidate.target.up_seq
-                if grna_seq_no_pam not in unique_grnas:
-                    unique_grnas.append(grna_seq_no_pam)
-            elif sgrna == "down":
-                grna_seq_no_pam = candidate.target.down_seq
-                if grna_seq_no_pam not in unique_grnas:
-                    unique_grnas.append(grna_seq_no_pam)
-            continue
         if k > 0:  # Tool 2 in use
             grna_seq_no_pam = candidate.target.chosen_sg
         else:
@@ -235,21 +105,15 @@ def index_genome(genome_fasta: str):
         print(f"An error occurred while indexing the genome: {e}")
 
 
-def run_bwa(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta: str, out_path: str, k: int, multiplex: int,
-            sgrna: str = None) -> str:
+def run_bwa(grnas_fasta: str, genome_fasta: str, out_path: str) -> str:
     """run off-target search with BWA and return path to result SAM file
 
-    :param candidate_amplicons_list:
+    :param grnas_fasta: path to bwa input fasta file
     :param genome_fasta:
     :param out_path:
-    :param k: number of alleles to target with a single gRNA
-    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
-    :param sgrna: define which sgRNA to use in case of multiplex.
     :return:
     """
-    grna_input_fasta_path = out_path + "/gRNA_input.fasta"
-    # create a gRNA input file for search
-    grnas_fasta = create_bwa_input(candidate_amplicons_list, grna_input_fasta_path, k, multiplex, sgrna)
+
     # check if the genome is indexed. index if not
     if check_bwa_index_files(genome_fasta):
         print(f"BWA index files for {genome_fasta} already exist.")
@@ -366,63 +230,97 @@ def extract_off_targets(sam_file: str, genome_fasta: str, pams: Tuple) -> DataFr
     return off_targets_df
 
 
-def remove_on_targets(candidate_amplicons_list: List[Amplicon_Obj],
-                      candidates_scaffold_positions: Dict[str, Tuple[int, int]], multiplex: int):
-    for candidate_amplicon in candidate_amplicons_list:
-        if multiplex:
-            new_up_off_targets_lst = []
-            new_down_off_targets_lst = []
-            for up_off in candidate_amplicon.up_off_targets:
-                if up_off.number_of_mismatches == 0:
-                    off_target_scaffold = up_off.chromosome
-                    if off_target_scaffold in candidates_scaffold_positions:
-                        cand_amp_start = candidates_scaffold_positions[off_target_scaffold][0]
-                        cand_amp_end = candidates_scaffold_positions[off_target_scaffold][1]
-                        if up_off.start_position in range(cand_amp_start, cand_amp_end):
-                            continue
-                    else:
-                        if up_off not in new_up_off_targets_lst:
-                            new_up_off_targets_lst.append(up_off)
-                else:
-                    if up_off not in new_up_off_targets_lst:
-                        new_up_off_targets_lst.append(up_off)
-            for down_off in candidate_amplicon.down_off_targets:
-                if down_off.number_of_mismatches == 0:
-                    off_target_scaffold = down_off.chromosome
-                    if off_target_scaffold in candidates_scaffold_positions:
-                        cand_amp_start = candidates_scaffold_positions[off_target_scaffold][0]
-                        cand_amp_end = candidates_scaffold_positions[off_target_scaffold][1]
-                        if down_off.start_position in range(cand_amp_start, cand_amp_end):
-                            continue
-                    else:
-                        if down_off not in new_down_off_targets_lst:
-                            new_down_off_targets_lst.append(down_off)
-                else:
-                    if down_off not in new_down_off_targets_lst:
-                        new_down_off_targets_lst.append(down_off)
-            candidate_amplicon.up_off_targets = new_up_off_targets_lst
-            candidate_amplicon.down_off_targets = new_down_off_targets_lst
+def remove_on_targets_df(off_targets_df: DataFrame, candidates_scaffold_positions: Dict[str, Tuple[int, int]]):
+
+    def on_target(row):
+        mms = row['Mismatches']
+        chrom = row['Chromosome']
+        position = row['Position']
+        if int(mms) == 0:
+            if chrom in candidates_scaffold_positions:
+                start, end = candidates_scaffold_positions[chrom]
+                if start <= int(position) <= end:
+                    return True
+        return False
+
+    rows_to_remove = off_targets_df[off_targets_df.apply(on_target, axis=1)].index
+    filtered_off_targets_df = off_targets_df.drop(index=rows_to_remove, inplace=False)
+    return filtered_off_targets_df
+
+
+def calc_off_scores_for_df(off_targets_df: DataFrame):
+    on_tg_lst = off_targets_df['crRNA'].tolist()
+    off_tg_lst = off_targets_df['DNA'].tolist()
+    t0 = time.perf_counter()
+    scores = moff(on_tg_lst, off_tg_lst)
+    t1 = time.perf_counter()
+    print(f"scoring function for {len(on_tg_lst)} off-targets ran in {t1 - t0} seconds")
+    off_targets_df["off_scores"] = scores
+
+
+# create dictionary of sequence:candidate
+def create_sequence_to_candidate_dict(candidate_amplicons_list: List[Amplicon_Obj], k: int) -> Dict[str, List[Amplicon_Obj]]:
+    """
+    This function takes a list of sgRNA candidates, and returns a sequence to candidate dictionary.
+
+    :param candidate_amplicons_list: a list of sgRNA candidates
+    :param k: number of alleles to target with a single gRNA.
+    :return: a dictionary: sequence -> an ActivationCandidate object where candidate.seq = sequence.
+    """
+    sequence_to_candidate_dict = {}
+    for i, candidate in enumerate(candidate_amplicons_list):
+        if k > 0:
+            target_seq = candidate.target.chosen_sg
         else:
-            new_off_targets_lst = []
-            for off in candidate_amplicon.off_targets:
-                if off.number_of_mismatches == 0:
-                    off_target_scaffold = off.chromosome
-                    if off_target_scaffold in candidates_scaffold_positions:
-                        cand_amp_start = candidates_scaffold_positions[off_target_scaffold][0]
-                        cand_amp_end = candidates_scaffold_positions[off_target_scaffold][1]
-                        if off.start_position in range(cand_amp_start, cand_amp_end):
-                            continue
-                    else:
-                        if off not in new_off_targets_lst:
-                            new_off_targets_lst.append(off)
-                else:
-                    if off not in new_off_targets_lst:
-                        new_off_targets_lst.append(off)
-            candidate_amplicon.off_targets = new_off_targets_lst
+            target_seq = candidate.target.seq[:20]
+        if target_seq in sequence_to_candidate_dict:
+            sequence_to_candidate_dict[target_seq] += [candidate_amplicons_list[i]]
+        else:
+            sequence_to_candidate_dict[target_seq] = [candidate_amplicons_list[i]]
+    return sequence_to_candidate_dict
+
+
+# This function will be used in an apply command. it reads crispritz results and create an offtarget object out of each one
+def get_off_target(x, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]]):
+    """
+    A function to use with apply on crispritz result table
+    it takes a row of crispritz results and a dictionary of sequence:candidate, and make an OffTarget
+    object from the crispritz results and add it to the candidate offtargets list.
+
+    :param x: a row in crispritz results table
+    :param sequence_to_candidate_dict: a dictionary of sequence:candidate
+    """
+    candidates_list = sequence_to_candidate_dict[x['crRNA'][:20]]  # get list of candidate amplicons with current on-target (chosen_sg)
+    off_target = OffTarget(x['DNA'].upper(), x['Chromosome'].split(" ")[0], int(x['Position']), x['Direction'],
+                           int(x['Mismatches']), float(x['off_scores']))  # create off-target object
+    legit_letters = True
+    for char in off_target.seq:  # allow only nucleotide letters in off-target sequence
+        if char not in {"A", "C", "T", "G"}:
+            legit_letters = False
+            break
+    if legit_letters:  # add current off-target to all amplicons with matching on target (candidates_list)
+        for candidate in candidates_list:
+            if off_target not in candidate.off_targets:
+                candidate.off_targets.append(off_target)
+    return
+
+
+# add to each "Candidate" its off-targets
+def add_off_targets(off_targets_df, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]]):
+    """
+    This function adds all found off-targets to each CandidateWithOffTargets using the crispritz results.
+
+    :param off_targets_df: The output of crispritz as a pd datatable, where each row is a potential offtarget.
+    :param sequence_to_candidate_dict: sequence -> a CandidateWithOffTargets object with the proper sequence.
+
+    """
+    # apply the 'get_off_target' function on each row in the crispritz table results
+    off_targets_df.apply(get_off_target, args=sequence_to_candidate_dict, axis=1)
+    return
 
 
 def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_file: str, out_path: str, pams: Tuple,
-                    candidates_scaffold_positions: Dict[str, Tuple[int, int]], k: int, multiplex: int):
+                    candidates_scaffold_positions: Dict[str, Tuple[int, int]], k: int):
     """
     Find the off-targets for each candidate using BWA, store them in the candidate's off_targets_list attribute
     as a list of OffTarget objects. Then calculates the off-target scores for each off-target of each candidate and
@@ -434,53 +332,31 @@ def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_f
     :param pams: tuple of PAM sequences of the Cas protein in use.
     :param candidates_scaffold_positions: dictionary of allele scaffold -> gene allele start,end indices.
     :param k: number of alleles to target with a single gRNA.
-    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     """
     print("Searching for sgRNA off-targets with BWA".upper().center(60, "#"))
-    if multiplex:
-        # run off target search
-        up_off_targets_sam = run_bwa(candidate_amplicons_list, genome_fasta_file, out_path, k, multiplex, "up")
-        # extract off-targets from SAM file to pandas DataFrame
-        up_off_targets_pd = extract_off_targets(up_off_targets_sam, genome_fasta_file, pams)
-        # create a dictionary of sequence -> candidate
-        up_sequence_to_candidate_dict = create_sequence_to_candidate_dict(candidate_amplicons_list, k, multiplex, "up")
-        # add the found off-targets of each candidate to the candidate's off_targets_list
-        add_off_targets(up_off_targets_pd, up_sequence_to_candidate_dict, multiplex, "up")
 
-        # run off target search
-        down_off_targets_sam = run_bwa(candidate_amplicons_list, genome_fasta_file, out_path, k, multiplex, "down")
-        # extract off-targets from SAM file to pandas DataFrame
-        down_off_targets_pd = extract_off_targets(down_off_targets_sam, genome_fasta_file, pams)
-        # create a dictionary of sequence -> candidate
-        down_sequence_to_candidate_dict = create_sequence_to_candidate_dict(candidate_amplicons_list, k, multiplex, "down")
-        # add the found off-targets of each candidate to the candidate's off_targets_list
-        add_off_targets(down_off_targets_pd, down_sequence_to_candidate_dict, multiplex, "down")
-    else:
-        # run off target search
-        off_targets_sam = run_bwa(candidate_amplicons_list, genome_fasta_file, out_path, k, multiplex)
-        # extract off-targets from SAM file to pandas DataFrame
-        off_targets_pd = extract_off_targets(off_targets_sam, genome_fasta_file, pams)
-        # create a dictionary of sequence -> candidate
-        sequence_to_candidate_dict = create_sequence_to_candidate_dict(candidate_amplicons_list, k, multiplex)
-        # add the found off-targets of each candidate to the candidate's off_targets_list
-        add_off_targets(off_targets_pd, sequence_to_candidate_dict, multiplex)
-        # remove on-targets
-    remove_on_targets(candidate_amplicons_list, candidates_scaffold_positions, multiplex)
-    # calculate the off-target scores for each off_target of each candidate
-    if multiplex:
-        calculate_scores(candidate_amplicons_list, k, multiplex, "up")
-        calculate_scores(candidate_amplicons_list, k, multiplex, "down")
-    else:
-        calculate_scores(candidate_amplicons_list, k, multiplex)
+    # create a gRNA input file for search
+    grna_input_fasta_path = out_path + "/gRNA_input.fasta"
+    grnas_fasta = create_bwa_input(candidate_amplicons_list, grna_input_fasta_path, k)
+    # run off target search
+    off_targets_sam = run_bwa(grnas_fasta, genome_fasta_file, out_path)
+    # extract off-targets from SAM file to pandas DataFrame
+    off_targets_pd = extract_off_targets(off_targets_sam, genome_fasta_file, pams)
+    # remove on-targets
+    filtered_off_targets_df = remove_on_targets_df(off_targets_pd, candidates_scaffold_positions)
+    # calculate the off-target scores for each off_target
+    calc_off_scores_for_df(filtered_off_targets_df)
+    # create a dictionary of sequence -> candidate
+    sequence_to_candidate_dict = create_sequence_to_candidate_dict(candidate_amplicons_list, k)
+    # add the found off-targets of each candidate to the candidate's off_targets_list
+    add_off_targets(filtered_off_targets_df, sequence_to_candidate_dict)
     for candidate_amplicon in candidate_amplicons_list:
         for scaffold_amplicon in candidate_amplicon.scaffold_amplicons:
             candidate_amplicon.scaffold_amplicons[scaffold_amplicon].off_targets = candidate_amplicon.off_targets
-            candidate_amplicon.scaffold_amplicons[scaffold_amplicon].up_off_targets = candidate_amplicon.up_off_targets
-            candidate_amplicon.scaffold_amplicons[scaffold_amplicon].down_off_targets = candidate_amplicon.down_off_targets
 
 
 def filt_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_file: str, out_path: str, pams: Tuple,
-                     candidates_scaffold_positions: Dict[str, Tuple[int, int]], k: int, multiplex: int) -> List[Amplicon_Obj]:
+                     candidates_scaffold_positions: Dict[str, Tuple[int, int]], k: int) -> List[Amplicon_Obj]:
     """
 
     :param candidate_amplicons_list: a list of amplicon candidates
@@ -489,20 +365,14 @@ def filt_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_
     :param pams: tuple of PAM sequences of the Cas protein in use
     :param candidates_scaffold_positions: dictionary of allele scaffold -> gene allele start,end indices
     :param k: number of alleles to target with a single gRNA
-    :param multiplex: choose whether to plan 2 sgRNA or 1 sgRNA.
     :return:
     """
 
     filtered_sorted_candidate_amplicons = []
-    get_off_targets(candidate_amplicons_list, genome_fasta_file, out_path, pams, candidates_scaffold_positions,
-                    k, multiplex)
+    get_off_targets(candidate_amplicons_list, genome_fasta_file, out_path, pams, candidates_scaffold_positions, k)
 
     for candidate in candidate_amplicons_list:
-        if multiplex:
-            if candidate.up_off_targets[0].score < 0.15 and candidate.down_off_targets[0].score < 0.15:
-                filtered_sorted_candidate_amplicons.append(candidate)
-        else:
-            if candidate.off_targets[0].score < 0.15:
-                filtered_sorted_candidate_amplicons.append(candidate)
+        if candidate.off_targets[0].score < OFF_TARGET_FILTER_CUTOFF:
+            filtered_sorted_candidate_amplicons.append(candidate)
 
     return filtered_sorted_candidate_amplicons

@@ -1,5 +1,6 @@
-from Amplicon_construction.Target_Obj import Combined_Target_Obj, Target_Obj, sgRNA
-from Amplicon_construction.FindTargets import calc_multiplex_score
+from FindTargets import create_sgrna_permutations, calculate_off_scores, create_multiplex_targets
+from Target_Obj import Combined_Target_Obj, Target_Obj
+
 
 trg1 = "tgaaccacaacaaaattcattgg".upper()
 trg2 = "tgaactacaacagaattcattgg".upper()
@@ -13,16 +14,27 @@ trg_obj1 = Target_Obj(trg1, 10, 33, "+", "scf_1", trg1_ungapped)
 trg_obj2 = Target_Obj(trg2, 10, 33, "+", "scf_2", trg2_ungapped)
 trg_obj3 = Target_Obj(trg3, 10, 33, "+", "scf_3", trg3_ungapped)
 
-comb_trg_obj = Combined_Target_Obj(10, 23, [trg_obj1, trg_obj2, trg_obj3])
+comb_trg_obj1 = Combined_Target_Obj(10, 33, [trg_obj1, trg_obj2, trg_obj3])
 
-relevant_targets_dict = {1: [comb_trg_obj]}
+trg4 = "tgaaccacaacagaattcattgg".upper()
+trg5 = "tgaaccacaacagaattcattgg".upper()
+trg6 = "tgaaccacaacagaattcattgg".upper()
 
-allele1 = "scf_1"
-allele2 = "scf_2"
-allele3 = "scf_3"
+trg4_ungapped = trg4
+trg5_ungapped = trg5
+trg6_ungapped = trg6
 
-sg1 = sgRNA(10, 32, trg1, {allele1: 1.0, allele2: 0.4, allele3: 1.0}, [trg_obj1, trg_obj2, trg_obj3])
-sg2 = sgRNA(60, 82, trg2, {allele1: 0.3, allele2: 1.0, allele3: 0.3}, [trg_obj1, trg_obj2, trg_obj3])
+trg_obj1 = Target_Obj(trg1, 60, 83, "+", "scf_1", trg4_ungapped)
+trg_obj2 = Target_Obj(trg2, 60, 83, "+", "scf_2", trg5_ungapped)
+trg_obj3 = Target_Obj(trg3, 60, 83, "+", "scf_3", trg6_ungapped)
 
-multiplex_score = calc_multiplex_score(sg1, sg2, [allele1, allele2, allele3])
-print(multiplex_score)
+comb_trg_obj2 = Combined_Target_Obj(60, 83, [trg_obj1, trg_obj2, trg_obj3])
+
+relevant_targets_dict = {1: [comb_trg_obj1, comb_trg_obj2]}
+allele_ids_lst = ["scf_1", "scf_2", "scf_3"]
+
+create_sgrna_permutations(relevant_targets_dict)
+calculate_off_scores(relevant_targets_dict)
+new_relevant_targets_dict = create_multiplex_targets(relevant_targets_dict, allele_ids_lst)
+
+print(new_relevant_targets_dict)

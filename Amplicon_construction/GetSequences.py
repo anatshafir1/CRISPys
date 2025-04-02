@@ -82,7 +82,8 @@ def get_genomic_sites(out_path: str, fasta_file: str, filtered_allele_df: DataFr
     # run bedtools
     seq = subprocess.run(['bedtools', 'getfasta', '-fi', fasta_file, '-bed', bed_file, '-s'],
                          stdout=subprocess.PIPE)
-    sites_list = seq.stdout.decode().split()
+    sites_str = seq.stdout.decode()
+    sites_list = sites_str.split()
     return sites_list
 
 
