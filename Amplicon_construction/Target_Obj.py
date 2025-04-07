@@ -11,7 +11,7 @@ class Target_Obj:
         """
 
     def __init__(self, seq: str, start_idx: int, end_idx: int, strand: str, scaffold="", ungapped_seq="", rank: float = 0,
-                 score: int = 0, exon_num: int = 0):
+                 score: float = 0, exon_num: int = 0):
         self.seq = seq
         self.start_idx = start_idx
         self.end_idx = end_idx
@@ -39,12 +39,12 @@ class Target_Obj:
             return {"gRNA+PAM": self.seq, "gRNA_start": self.start_idx, "gRNA_end": self.end_idx,
                     "gRNA_strand": self.strand}
         else:
-            if self.rank % 0.2 == 0:
+            if (self.rank - 0.2) % 1 == 0:
                 return {"up_target+PAM": "", "up_target_start": "",
                         "up_target_end": "", "up_target_strand": "",
                         "down_target+PAM": self.seq, "down_target_start": self.start_idx,
                         "down_target_end": self.end_idx, "down_target_strand": self.strand}
-            else:
+            elif (self.rank - 0.1) % 1 == 0:
                 return {"up_target+PAM": self.seq, "up_target_start": self.start_idx,
                         "up_target_end": self.end_idx, "up_target_strand": self.strand,
                         "down_target+PAM": "", "down_target_start": "",

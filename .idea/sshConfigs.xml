@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="SshConfigs">
-    <configs>
-      <sshConfig authType="PASSWORD" host="powerlogin.tau.ac.il" id="b052365e-f12b-4aea-a238-f2692e09e10b" port="22" nameFormat="DESCRIPTIVE" username="josefbrook" useOpenSSHConfig="true" />
-    </configs>
-  </component>
-</project>

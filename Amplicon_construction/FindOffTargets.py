@@ -315,7 +315,7 @@ def add_off_targets(off_targets_df, sequence_to_candidate_dict: Dict[str, List[A
 
     """
     # apply the 'get_off_target' function on each row in the crispritz table results
-    off_targets_df.apply(get_off_target, args=sequence_to_candidate_dict, axis=1)
+    off_targets_df.apply(get_off_target, args=(sequence_to_candidate_dict,), axis=1)
     return
 
 

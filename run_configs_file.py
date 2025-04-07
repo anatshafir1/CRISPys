@@ -34,8 +34,7 @@ def main(configs_file):
                              data["genome_fasta_path"], data["num_of_alleles"],
                              tuple(data["pams"].split(",")), data["target_len"],
                              data["primer3_core_path"], data["max_amplicons"],
-                             data["filter_off_targets"], data["k_alleles"],
-                             data["multiplex"])
+                             data["filter_off_targets"], data["k_alleles"])
     return amps
 
 

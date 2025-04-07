@@ -9,10 +9,10 @@ from Amplicon_construction.Target_Obj import Target_Obj, MultiplexTarget, Family
 def split_target(multiplex_target: MultiplexTarget) -> Tuple[Target_Obj, Target_Obj]:
     up_target = Target_Obj(multiplex_target.up_seq, multiplex_target.up_start, multiplex_target.up_end,
                            multiplex_target.up_targets_list[0].strand, "", multiplex_target.up_seq,
-                           multiplex_target.rank + 0.1, 0, multiplex_target.exon_num)
+                           multiplex_target.rank + 0.1, multiplex_target.multiplex_score, multiplex_target.exon_num)
     down_target = Target_Obj(multiplex_target.down_seq, multiplex_target.down_start, multiplex_target.down_end,
                              multiplex_target.down_targets_list[0].strand, "", multiplex_target.down_seq,
-                             multiplex_target.rank + 0.2, 0, multiplex_target.exon_num)
+                             multiplex_target.rank + 0.2, multiplex_target.multiplex_score, multiplex_target.exon_num)
 
     return up_target, down_target
 
