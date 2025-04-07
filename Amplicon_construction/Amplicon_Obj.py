@@ -117,7 +117,7 @@ class ScaffoldAmplicon(Amplicon_Obj):
         elif family_targeting == 2:
             self_dict.update(self.target.to_family_multiplex_dict())
         elif multiplex:
-            self_dict.update(self.target.to_dict(self.scaffold, self.strand))
+            self_dict.update(self.target.to_dict(self.scaffold, self.strand, multiplex))
         elif k > 0:
             self_dict.update(self.target.to_dict(self.scaffold, self.strand))
             if len(self.off_targets) > 0:

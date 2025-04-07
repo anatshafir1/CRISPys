@@ -7,7 +7,16 @@ from typing import List, Dict, Tuple
 
 from globals import MAX_POLYMORPHIC_SITES
 from Amplicon_construction.FindOffTargets import moff
-from Amplicon_construction.Target_Obj import Target_Obj, Combined_Target_Obj
+from Amplicon_construction.Target_Obj import Target_Obj, Combined_Target_Obj, MultiplexTarget
+
+
+def valid_distance_for_multiplex(multiplex_target: MultiplexTarget, max_amplicon_len: int, primer_length: int,
+                          target_surrounding_region: int) -> bool:
+    max_dist = max_amplicon_len - 2 * primer_length - 2 * target_surrounding_region
+    if multiplex_target.down_end - multiplex_target.up_start > max_dist:
+        return False
+    else:
+        return True
 
 
 def give_complementary(seq: str) -> str:
@@ -434,7 +443,7 @@ def filter_duplicates(exon_targets):
 
 def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tuple, max_amplicon_len: int,
                 primer_length: int, cut_location: int, target_surrounding_region: int, target_len: int, k: int,
-                distinct_alleles_num: int) -> Dict[int, List]:
+                ) -> Dict[int, List]:
     """
 
     :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name 
@@ -446,7 +455,6 @@ def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tup
     :param target_surrounding_region: buffer regions around sgRNA target (upstream and downstream) where primers are not allowed
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer
     :param k: number of alleles to target with a single gRNA.
-    :param distinct_alleles_num: number of distinct alleles of the gene.
     :return: a dictionary of exon number -> List of targets as Target_Obj or Combined_Target_Obj, depending on the tool in use.
     """
     print("searching for potential targets".upper().center(40, "#"))

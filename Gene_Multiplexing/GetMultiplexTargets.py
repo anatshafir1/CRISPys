@@ -35,13 +35,12 @@ def create_sgrna_pairs(comb_targets_lst: List[Combined_Target_Obj]) -> List[Tupl
         for sg in comb_target.sg_perm:
             sg_list.append(sgRNA(comb_target.start_idx, comb_target.end_idx, sg, comb_target.offscores_dict[sg], comb_target.targets_list))
 
-    sg_pairs_list = [(sg1, sg2) for sg1, sg2 in combinations(sg_list, 2) if sg1.start != sg2.start]
+    sg_pairs_list = [(sg1, sg2) for sg1, sg2 in combinations(sg_list, 2) if sg1.start_idx != sg2.start_idx]
 
     return sg_pairs_list
 
 
-def create_multiplex_targets(targets_dict: Dict[int, List[Combined_Target_Obj]],
-                             allele_ids_lst: List[str]) -> List[MultiplexTarget]:
+def create_multiplex_targets(targets_dict: Dict[int, List[Combined_Target_Obj]],  allele_ids_lst: List[str]) -> List[MultiplexTarget]:
     """
     Create combinations of targets using Combined Targets and their chosen sgRNA sequence and score. Create multiplex
     targets from the combinations.
@@ -51,24 +50,22 @@ def create_multiplex_targets(targets_dict: Dict[int, List[Combined_Target_Obj]],
     :return: dictionary of exon number -> List of targets as MultiplexTarget
     """
     all_multiplex_targets_list = []
-    multiplex_targets_dict = {}
     for exon in targets_dict:
         multiplex_targets_lst = []
         comb_targets_lst = targets_dict[exon]
         target_pairs = create_sgrna_pairs(comb_targets_lst)
         for target_pair in target_pairs:
             # distinguish which target is upstream and which is downstream
-            if target_pair[0].start < target_pair[1].start:
+            if target_pair[0].start_idx < target_pair[1].start_idx:
                 upstream_target = target_pair[0]
                 downstream_target = target_pair[1]
             else:
                 upstream_target = target_pair[1]
                 downstream_target = target_pair[0]
-
             multiplex_score = calc_multiplex_score(upstream_target, downstream_target, allele_ids_lst)
-            multiplex_target = MultiplexTarget(upstream_target.start, upstream_target.end, upstream_target.seq,
-                                               downstream_target.start, downstream_target.end, downstream_target.seq,
-                                               multiplex_score, upstream_target.targets_list, downstream_target.targets_list, exon)
+            multiplex_target = MultiplexTarget(upstream_target.start_idx, upstream_target.end_idx, upstream_target.seq,
+                                               downstream_target.start_idx, downstream_target.end_idx, downstream_target.seq,
+                                               multiplex_score, upstream_target.targets_list, downstream_target.targets_list, exon, 0)
             multiplex_targets_lst.append(multiplex_target)
 
         score_sorted_targets = sorted(multiplex_targets_lst, key=lambda tg: (tg.up_start, -tg.multiplex_score))
@@ -115,5 +112,5 @@ def get_multiplex_targets_dict(multiplex_target: MultiplexTarget,
         if exon == multiplex_target.exon_num:
             multiplex_targets_dict[exon] = [multiplex_target]
         else:
-            multiplex_targets_dict = []
+            multiplex_targets_dict[exon] = []
     return multiplex_targets_dict

@@ -368,12 +368,12 @@ def get_primers(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]],
         if len(amplicons) > 0:
             get_off_targets(amplicons, genome_fasta_path, out_path, pams, candidates_scaffold_positions, k)
             get_primers_off_targets(amplicons, genome_fasta_path, out_path, candidates_scaffold_positions,
-                                    max_amplicon_len)
+                                    max_amplicon_len, 0)
         if len(res_singleplex_amplicons) > 0:
             get_off_targets(res_singleplex_amplicons, genome_fasta_path, out_path, pams, candidates_scaffold_positions,
                             0)
             get_primers_off_targets(res_singleplex_amplicons, genome_fasta_path, out_path,
-                                    candidates_scaffold_positions, max_amplicon_len)
+                                    candidates_scaffold_positions, max_amplicon_len, 0)
         return amplicons, res_singleplex_amplicons
     else:
         return amplicons, res_singleplex_amplicons

@@ -30,15 +30,15 @@ def create_bwa_sgrna_input_fasta(sgrna_seq_object_dict: Dict[str, Candidate], ou
     return grnas_fasta
 
 
-def get_scaffolds_positions_dict(
+def get_family_scaffolds_positions_dict(
         genes_exons_seq_dict: Dict[str, Tuple[Dict[int, List[Tuple[str, str]]], Dict[str, Dict[int, int]]]]) -> Dict[str, List[Tuple[int, int]]]:
     """
     create dictionary of {scaffold names: list of gene region indices for the scaffold}
     """
-    from Amplicon_construction.AmpliconConstruction import get_candidates_scaffold_positions
+    from Amplicon_construction.AmpliconConstruction import get_gene_scaffold_positions
     scaffolds_positions_dict = {}
     for gene in genes_exons_seq_dict:
-        gene_scaffold_pos_dict = get_candidates_scaffold_positions(genes_exons_seq_dict[gene][0])
+        gene_scaffold_pos_dict = get_gene_scaffold_positions(genes_exons_seq_dict[gene][0])
         for scaffold in gene_scaffold_pos_dict:
             if scaffold not in scaffolds_positions_dict:
                 scaffolds_positions_dict[scaffold] = [gene_scaffold_pos_dict[scaffold]]
@@ -49,7 +49,7 @@ def get_scaffolds_positions_dict(
 
 def remove_on_targets_df(off_targets_df: DataFrame,
                          genes_exons_seq_dict: Dict[str, Tuple[Dict[int, List[Tuple[str, str]]], Dict[str, Dict[int, int]]]]):
-    scaffolds_positions_dict = get_scaffolds_positions_dict(genes_exons_seq_dict)
+    scaffolds_positions_dict = get_family_scaffolds_positions_dict(genes_exons_seq_dict)
 
     def on_target(row):
         mms = row['Mismatches']

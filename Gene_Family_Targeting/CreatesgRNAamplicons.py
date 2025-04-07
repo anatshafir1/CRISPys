@@ -5,7 +5,7 @@ from Amplicon_construction.Amplicon_Obj import Amplicon_Obj
 from Amplicon_construction.GetPrimers import get_gene_family_primers
 from Amplicon_construction.MultiplexToSingleplex import split_family_target, get_singleplex_amplicons
 from Amplicon_construction.SNP_Obj import SNP_Obj
-from Amplicon_construction.Target_Obj import Target_Obj
+from Amplicon_construction.Target_Obj import FamilyMultiplexTarget, Family_Target_Obj
 from CRISPys_master.Candidate import Candidate
 from Gene_Family_Targeting.GetGeneFamilyTargets import get_genes_multiplex_targets_dict, get_genes_single_targets_dict
 
@@ -70,7 +70,16 @@ def create_single_sgrna_amplicons(sorted_sgrnas: List[Candidate], genes_exons_se
     return sgrna_amplicons_dict, sgrna_seq_to_object_dict
 
 
-def get_single_targets(gene_targets_dict: Dict[int, List[Target_Obj]]):
+def get_multiplex_target(gene_targets_dict: Dict[int, List[FamilyMultiplexTarget]]) -> FamilyMultiplexTarget:
+    target = None
+    for exon in gene_targets_dict:
+        if gene_targets_dict[exon]:
+            target = gene_targets_dict[exon][0]
+            break
+    return target
+
+
+def get_single_targets(gene_targets_dict: Dict[int, List[Family_Target_Obj]]) -> Tuple[Family_Target_Obj, Family_Target_Obj]:
     targets_list = []
     for exon in gene_targets_dict:
         if gene_targets_dict[exon]:
@@ -115,7 +124,8 @@ def create_multiplex_sgrna_amplicons(sorted_sgrna_pairs: List[Tuple[Candidate, C
                         target_surrounding_region, min_amplicon_len, 0, target_len,
                         1)
                     if not multiplex_candidate_amplicons:  # Failed to construct Multiplex Candidate amplicons. Try singles
-                        up_target, down_target = split_family_target(targets_for_singleplex_lst[0])
+                        multiplex_target = get_multiplex_target(exons_targets_dict)
+                        up_target, down_target = split_family_target(multiplex_target)
                         singleplex_amplicons = get_singleplex_amplicons(
                             up_target, down_target, genes_snps_dict[gene_name], max_amplicon_len, primer_length,
                             distinct_alleles_num, target_surrounding_region, min_amplicon_len, target_len,

@@ -9,10 +9,10 @@ from Amplicon_construction.Target_Obj import Target_Obj, MultiplexTarget, Family
 def split_target(multiplex_target: MultiplexTarget) -> Tuple[Target_Obj, Target_Obj]:
     up_target = Target_Obj(multiplex_target.up_seq, multiplex_target.up_start, multiplex_target.up_end,
                            multiplex_target.up_targets_list[0].strand, "", multiplex_target.up_seq,
-                           0, 0, multiplex_target.exon_num)
+                           multiplex_target.rank + 0.1, 0, multiplex_target.exon_num)
     down_target = Target_Obj(multiplex_target.down_seq, multiplex_target.down_start, multiplex_target.down_end,
                              multiplex_target.down_targets_list[0].strand, "", multiplex_target.down_seq,
-                             0, 0, multiplex_target.exon_num)
+                             multiplex_target.rank + 0.2, 0, multiplex_target.exon_num)
 
     return up_target, down_target
 
@@ -44,7 +44,7 @@ def construct_singleplex_candidates(up_target: Target_Obj, down_target: Target_O
                                                             distinct_alleles_num, target_surrounding_region,
                                                             min_amplicon_len,
                                                             k, target_len, multiplex)
-    if not up_candidate_single_trg_amplicons[0]:
+    if not up_candidate_single_trg_amplicons:
         if up_target.seq not in failed_targets:
             failed_targets[up_target.seq] = [up_target]
         else:
@@ -59,7 +59,7 @@ def construct_singleplex_candidates(up_target: Target_Obj, down_target: Target_O
                                                               primer_length, distinct_alleles_num,
                                                               target_surrounding_region,
                                                               min_amplicon_len, k, target_len, multiplex)
-    if not down_candidate_singleplex_amplicons[0]:
+    if not down_candidate_singleplex_amplicons:
         if down_target.seq not in failed_targets:
             failed_targets[down_target.seq] = [down_target]
         else:
@@ -67,7 +67,7 @@ def construct_singleplex_candidates(up_target: Target_Obj, down_target: Target_O
                 failed_targets[down_target.seq].append(down_target)
         return
     else:
-        return up_candidate_single_trg_amplicons[0], down_candidate_singleplex_amplicons[0]
+        return up_candidate_single_trg_amplicons, down_candidate_singleplex_amplicons
 
 
 def get_singleplex_amplicons(up_target: Target_Obj, down_target: Target_Obj, gene_snps_dict, max_amplicon_len, primer_length, distinct_alleles_num,

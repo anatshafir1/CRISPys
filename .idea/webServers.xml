@@ -2,10 +2,10 @@
 <project version="4">
   <component name="WebServers">
     <option name="servers">
-      <webServer id="aa86a3e9-5b2a-45b3-ac38-67397120a912" name="Amplicon_Construct">
-        <fileTransfer rootFolder="/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/sgRNA_polyploids_design_code" accessType="SFTP" host="powerlogin.tau.ac.il" port="22" sshConfigId="05aa6090-247b-4f94-823a-0af62a0e203d" sshConfig="josefbrook@powerlogin.tau.ac.il:22 password">
+      <webServer id="7ddfa350-eb14-4775-a79a-2ecc3e96c0c9" name="spg">
+        <fileTransfer accessType="SFTP" host="powerlogin.tau.ac.il" port="22" sshConfigId="b052365e-f12b-4aea-a238-f2692e09e10b" sshConfig="josefbrook@powerlogin.tau.ac.il:22 password">
           <advancedOptions>
-            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
           </advancedOptions>
         </fileTransfer>
       </webServer>

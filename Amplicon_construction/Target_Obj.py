@@ -34,9 +34,21 @@ class Target_Obj:
     def __eq__(self, other):
         return self.seq == other.seq and self.start_idx == other.start_idx and self.scaffold == other.scaffold
 
-    def to_dict(self):
-        return {"gRNA+PAM": self.seq, "gRNA_start": self.start_idx, "gRNA_end": self.end_idx,
-                "gRNA_strand": self.strand}
+    def to_dict(self, scaffold: str = "", strand: str = "", multiplex: int = 0):
+        if not multiplex:
+            return {"gRNA+PAM": self.seq, "gRNA_start": self.start_idx, "gRNA_end": self.end_idx,
+                    "gRNA_strand": self.strand}
+        else:
+            if self.rank % 0.2 == 0:
+                return {"up_target+PAM": "", "up_target_start": "",
+                        "up_target_end": "", "up_target_strand": "",
+                        "down_target+PAM": self.seq, "down_target_start": self.start_idx,
+                        "down_target_end": self.end_idx, "down_target_strand": self.strand}
+            else:
+                return {"up_target+PAM": self.seq, "up_target_start": self.start_idx,
+                        "up_target_end": self.end_idx, "up_target_strand": self.strand,
+                        "down_target+PAM": "", "down_target_start": "",
+                        "down_target_end": "", "down_target_strand": ""}
 
 
 class Family_Target_Obj(Target_Obj):
@@ -141,7 +153,7 @@ class MultiplexTarget:
     def __hash__(self):
         return hash(self.__str__())
 
-    def to_dict(self, scaffold: str, strand: str):
+    def to_dict(self, scaffold: str, strand: str, multiplex: int = 1):
         up_pam = ""
         down_pam = ""
         up_target_strand = ""
@@ -203,16 +215,16 @@ class FamilyMultiplexTarget(MultiplexTarget):
 
 
 class sgRNA:
-    def __init__(self, start: int, end: int, seq: str, score_dict: Dict[str, float], targets_list: List[Target_Obj]):
+    def __init__(self, start_idx: int, end_idx: int, seq: str, score_dict: Dict[str, float], targets_list: List[Target_Obj]):
 
-        self.start = start
-        self.end = end
+        self.start_idx = start_idx
+        self.end_idx = end_idx
         self.seq = seq
         self.score_dict = score_dict
         self.targets_list = targets_list
 
     def __str__(self):
-        return f"{self.start}, {self.seq}"
+        return f"{self.start_idx}, {self.seq}"
 
     def __repr__(self):
         return self.__str__()

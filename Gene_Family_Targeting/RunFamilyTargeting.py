@@ -4,7 +4,7 @@ from typing import Tuple, Dict, Any, List
 import pandas as pd
 
 from Amplicon_construction.Amplicon_Obj import Amplicon_Obj
-from Amplicon_construction.FindPrimerOffTargets import primers_off_targets
+from Amplicon_construction.FindPrimerOffTargets import gene_family_primers_off_targets
 from CRISPys_master.Stage0 import CRISPys_main
 from Gene_Family_Targeting.CreatesgRNAamplicons import create_single_sgrna_amplicons, create_multiplex_sgrna_amplicons
 from Gene_Family_Targeting.FindSGRNAOffTargets import filter_sgrna_off_targets, get_off_targets, get_off_target_from_df
@@ -120,6 +120,6 @@ def get_gene_family_amps(max_amplicon_len_category: int, primer_length: int, tar
         get_off_target_from_df(off_targets_df, sgrna_seq_to_object_dict, family_targeting, out_path)
     else:
         get_off_targets(sgrna_seq_to_object_dict, out_path, genome_fasta_file, pams, genes_exons_seq_dict, family_targeting)
-    primers_off_targets(sgrna_amplicons_dict, out_path, genome_fasta_file, max_amplicon_len, genes_exons_seq_dict, family_targeting)
+    gene_family_primers_off_targets(sgrna_amplicons_dict, out_path, genome_fasta_file, max_amplicon_len, genes_exons_seq_dict, family_targeting)
     save_results(sgrna_amplicons_dict, sgrnas_dict, sgrna_seq_to_object_dict, family_targeting, out_path)
     return

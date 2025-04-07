@@ -2,7 +2,7 @@ import re
 from itertools import combinations
 from typing import Tuple, Dict, List
 
-from Amplicon_construction.FindTargets import give_complementary
+from Amplicon_construction.FindTargets import give_complementary, valid_distance_for_multiplex
 from Amplicon_construction.Target_Obj import Family_Target_Obj, FamilyMultiplexTarget
 from CRISPys_master.Candidate import Candidate
 from CRISPys_master.SubgroupRes import SubgroupRes
@@ -88,7 +88,8 @@ def create_genes_single_targets_dict_permutations(genes_targets_dict: Dict[str, 
 
 
 def create_genes_multiplex_targets_dict_permutations(genes_targets_dict: Dict[str, Dict[int, List[Family_Target_Obj]]],
-                                                     rank: int):
+                                                     rank: int, max_amplicon_len: int, primer_length: int,
+                                                     target_surrounding_region: int):
     updated_genes_targets_dict = {}
     for gene in genes_targets_dict:
         exon_targets_dicts_list = []
@@ -100,11 +101,19 @@ def create_genes_multiplex_targets_dict_permutations(genes_targets_dict: Dict[st
                         for target2 in genes_targets_dict[gene][exon2]:
                             if target1.seq != target2.seq:
                                 if exon1 == exon2:
-                                    curr_target_dict = {exon: ([] if exon != exon1 else [
-                                        create_family_multiplex_target(target1, target2, exon1, rank)]) for exon in
-                                                        genes_targets_dict[gene]}
-                                    curr_target_dict["multiplex"] = 1
-                                    exon_targets_dicts_list.append(curr_target_dict)
+                                    if valid_distance_for_multiplex(target1, target2, max_amplicon_len, primer_length, target_surrounding_region):
+                                        curr_target_dict = {exon: ([] if exon != exon1 else [
+                                            create_family_multiplex_target(target1, target2, exon1, rank)]) for exon in
+                                                            genes_targets_dict[gene]}
+                                        curr_target_dict["multiplex"] = 1
+                                        exon_targets_dicts_list.append(curr_target_dict)
+                                    else:
+                                        curr_target_dict = {exon: [] for exon in genes_targets_dict[gene]}
+                                        target1.rank = rank + 0.1
+                                        target2.rank = rank + 0.2
+                                        curr_target_dict[exon1] = [target1, target2]
+                                        curr_target_dict["multiplex"] = 0
+                                        exon_targets_dicts_list.append(curr_target_dict)
                                 else:
                                     curr_target_dict = {exon: [] for exon in genes_targets_dict[gene]}
                                     target1.rank = rank + 0.1
@@ -185,13 +194,16 @@ def get_genes_single_targets_dict(sgrna: Candidate, genes_exons_seq_dict: Dict[
     return updated_genes_targets_dict
 
 
-def get_genes_multiplex_targets_dict(sgrna_pair, genes_exons_seq_dict, max_amplicon_len, primer_length, cut_location,
-                                     target_surrounding_region, failed_targets: Dict[str, List], rank: int):
+def get_genes_multiplex_targets_dict(sgrna_pair: Tuple[Candidate, Candidate], genes_exons_seq_dict: Dict[
+                                       str, Tuple[Dict[int, List[Tuple[str, str]]], Dict[str, Dict[int, int]]]],
+                                     max_amplicon_len: int, primer_length: int, cut_location: int,
+                                     target_surrounding_region: int, failed_targets: Dict[str, List], rank: int):
     genes_targets_dict = {}  # dictionary of {gene: {exon: targets list}}
     intron_region_added = max_amplicon_len - primer_length - cut_location - target_surrounding_region  # 255 by default
     for sgrna in sgrna_pair:
         get_single_sg_targets(genes_targets_dict, sgrna, genes_exons_seq_dict, intron_region_added, failed_targets)
-    updated_genes_targets_dict = create_genes_multiplex_targets_dict_permutations(genes_targets_dict, rank)
+    updated_genes_targets_dict = create_genes_multiplex_targets_dict_permutations(genes_targets_dict, rank, max_amplicon_len,
+                                                                                  primer_length, target_surrounding_region)
 
     return updated_genes_targets_dict
 
