@@ -149,6 +149,8 @@ def calculate_snps_statistics(valid_snps_for_target: List[SNP_Obj]) -> Tuple[flo
     while k < j + 1:
         curr_snp = valid_snps_for_target[k]
         for set1 in curr_snp.alleles_sets_lst:
+            if set1 in used_sets[curr_snp.position]:
+                continue
             if len(set1) == 1:
                 if str(set1) not in counts_dict:
                     counts_dict[str(set1)] = 1

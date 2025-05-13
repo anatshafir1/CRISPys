@@ -2,19 +2,19 @@ max_amplicon_len: 1
 min_primer_len: 18
 target_surrounding_region: 20
 cut_location: 7
-annotations_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/output/test/crispys_test/test_MLO_annotations.txt"
-out_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/MLO"
-genome_fasta_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Banana_GAL.Phased_Scaffolds.fasta"
-#annotations_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/CONSTANS1/CONSTANS1_annotations.txt"
-#out_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/CONSTANS1"
+#annotations_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/output/test/crispys_test/test_MLO_annotations.txt"
+#out_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/MLO"
 #genome_fasta_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Banana_GAL.Phased_Scaffolds.fasta"
+annotations_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/CONSTANS1/CONSTANS1_annotations.txt"
+out_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Manual_amplicon/CONSTANS1"
+genome_fasta_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/Banana_GAL.Phased_Scaffolds.fasta"
 num_of_alleles: 3
 pams: "AGG,TGG,CGG,GGG"
 target_len: 23
 
 primer3_core_path: "/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/sgRNA_polyploids_design_code/Amplicon_construction/primer3/src/primer3_core"
 
-max_amplicons: 50
+max_amplicons: 200
 
 filter_off_targets: 0
 
@@ -22,4 +22,4 @@ k_alleles: 0
 
 multiplex: 0
 
-family_targeting: 1
+family_targeting: 0

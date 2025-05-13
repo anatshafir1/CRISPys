@@ -54,13 +54,16 @@ class Amplicon_Obj:
     def __eq__(self, other):
         if not isinstance(self.target, type(other.target)):
             return False
-        same_primers = self.primers == other.primers
-        same_target = self.target == other.target
-        same_start = min(self.snps[0].position, self.target.start_idx) == min(other.snps[0].position, other.target.start_idx)
-        same_end = max(self.snps[-1].position, self.target.end_idx) == max(other.snps[-1].position, other.target.end_idx)
-        same_start_end = same_start and same_end
-
-        return same_start_end and same_target and same_primers
+        if not isinstance(self.primers, Primers_Obj):  # checking if candidate amplicons are equal before finding primers
+            same_target = self.target == other.target
+            same_start = min(self.snps[0].position, self.target.start_idx) == min(other.snps[0].position, other.target.start_idx)
+            same_end = max(self.snps[-1].position, self.target.end_idx) == max(other.snps[-1].position, other.target.end_idx)
+            same_start_end = same_start and same_end
+            return same_start_end and same_target
+        else:  # checking if candidate amplicons with primers are equal
+            same_target = self.target == other.target
+            same_primers = self.primers == other.primers
+            return same_primers and same_target
 
     def __hash__(self):
         return hash((self.target.__str__(), self.primers.__str__()))
