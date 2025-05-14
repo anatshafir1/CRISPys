@@ -79,7 +79,7 @@ def handle_primer3_output(output: str, exon_region_seqs: List[Tuple[str, str]]) 
         right_matches = list(re.finditer(give_complementary(right_sequence), allele[1]))
         if right_matches:
             seq = right_matches[0]
-            right_start_in_aligned = seq.end()
+            right_start_in_aligned = seq.end() - 1
         if left_start_in_aligned and right_start_in_aligned:
             break
     primers = Primers_Obj(primer_penalty, left_sequence, right_sequence, left_start_in_aligned, left_tm,
