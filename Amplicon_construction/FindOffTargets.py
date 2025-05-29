@@ -281,7 +281,7 @@ def create_sequence_to_candidate_dict(candidate_amplicons_list: List[Amplicon_Ob
 
 
 # This function will be used in an apply command. it reads crispritz results and create an offtarget object out of each one
-def get_off_target(x, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]]):
+def get_off_target(x, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]], k):
     """
     A function to use with apply on crispritz result table
     it takes a row of crispritz results and a dictionary of sequence:candidate, and make an OffTarget
@@ -301,12 +301,16 @@ def get_off_target(x, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]])
     if legit_letters:  # add current off-target to all amplicons with matching on target (candidates_list)
         for candidate in candidates_list:
             if off_target not in candidate.off_targets:
-                candidate.off_targets.append(off_target)
+                if k > 0:
+                    if all(round(off_target.score, 4) != candidate.target.offscores_dict[candidate.target.chosen_sg][scaffold] for scaffold in candidate.target.offscores_dict[candidate.target.chosen_sg]):
+                        candidate.off_targets.append(off_target)
+                else:
+                    candidate.off_targets.append(off_target)
     return
 
 
 # add to each "Candidate" its off-targets
-def add_off_targets(off_targets_df, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]]):
+def add_off_targets(off_targets_df, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]], k):
     """
     This function adds all found off-targets to each CandidateWithOffTargets using the crispritz results.
 
@@ -315,7 +319,7 @@ def add_off_targets(off_targets_df, sequence_to_candidate_dict: Dict[str, List[A
 
     """
     # apply the 'get_off_target' function on each row in the crispritz table results
-    off_targets_df.apply(get_off_target, args=(sequence_to_candidate_dict,), axis=1)
+    off_targets_df.apply(get_off_target, args=(sequence_to_candidate_dict, k, ), axis=1)
     return
 
 
@@ -349,7 +353,7 @@ def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_f
     # create a dictionary of sequence -> candidate
     sequence_to_candidate_dict = create_sequence_to_candidate_dict(candidate_amplicons_list, k)
     # add the found off-targets of each candidate to the candidate's off_targets_list
-    add_off_targets(filtered_off_targets_df, sequence_to_candidate_dict)
+    add_off_targets(filtered_off_targets_df, sequence_to_candidate_dict, k)
     for candidate_amplicon in candidate_amplicons_list:
         for scaffold_amplicon in candidate_amplicon.scaffold_amplicons:
             candidate_amplicon.scaffold_amplicons[scaffold_amplicon].off_targets = candidate_amplicon.off_targets

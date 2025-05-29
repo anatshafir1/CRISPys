@@ -96,7 +96,7 @@ def genomic_sites_dict_to_fasta(gene_seqs, out_path: str):
     sequences = []
     if isinstance(gene_seqs, dict):
         for seq_id, seq in gene_seqs.items():
-            sequences += [SeqRecord(Seq(seq), id=seq_id)]
+            sequences += [SeqRecord(Seq(seq), id=seq_id, description='')]  # TODO mention 'no description' in next commit
 
     elif isinstance(gene_seqs, list):
         zipped_seqs = zip([gene_seqs[i] for i in range(0, len(gene_seqs), 2)],
