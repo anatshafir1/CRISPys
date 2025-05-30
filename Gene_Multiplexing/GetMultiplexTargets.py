@@ -83,7 +83,7 @@ def get_multiplex_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]],
                           distinct_alleles_num: int) -> List[MultiplexTarget]:
     """
 
-    :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name
+    :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold_id name
     (example format: ">scaffold10132:437703-438762(+)") and tuple[1] is allele sequence.
     :param pams: tuple of PAM sequences of the Cas protein in use
     :param max_amplicon_len: maximum length of the amplicon
@@ -95,7 +95,7 @@ def get_multiplex_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]],
     :return: a dictionary of exon number -> List of targets as Target_Obj or Combined_Target_Obj, depending on the tool in use.
     """
     print("searching for potential targets".upper().center(40, "#"))
-    allele_ids_lst = [gene_sequences_dict[1][i][0].split(":")[0][1:] for i in range(distinct_alleles_num)]
+    allele_ids_lst = [gene_sequences_dict[1][i][0].split("::")[0][1:] for i in range(distinct_alleles_num)]
     all_targets_dict = get_all_targets(gene_sequences_dict, pams, max_amplicon_len, primer_length, cut_location,
                                        target_surrounding_region, target_len)
     relevant_targets_dict = create_comb_targets(all_targets_dict, target_len)

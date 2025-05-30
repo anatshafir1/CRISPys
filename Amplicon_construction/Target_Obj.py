@@ -10,17 +10,18 @@ class Target_Obj:
 
         """
 
-    def __init__(self, seq: str, start_idx: int, end_idx: int, strand: str, scaffold="", ungapped_seq="", rank: float = 0,
-                 score: float = 0, exon_num: int = 0):
+    def __init__(self, seq: str, start_idx: int, end_idx: int, strand: str, scaffold_id="", ungapped_seq="", rank: float = 0,
+                 score: float = 0, exon_num: int = 0, allele_id: str = ""):
         self.seq = seq
         self.start_idx = start_idx
         self.end_idx = end_idx
         self.strand = strand
-        self.scaffold = scaffold
+        self.scaffold_id = scaffold_id
         self.ungapped_seq = ungapped_seq
         self.rank = rank
         self.score = score
         self.exon_num = exon_num
+        self.allele_id = allele_id
 
     def __str__(self):
         return f"{self.rank};{self.start_idx};{self.end_idx};{self.strand}"
@@ -32,9 +33,9 @@ class Target_Obj:
         return self.end_idx - self.start_idx + 1
 
     def __eq__(self, other):
-        return self.seq == other.seq and self.start_idx == other.start_idx and self.scaffold == other.scaffold
+        return self.seq == other.seq and self.start_idx == other.start_idx and self.scaffold_id == other.scaffold_id
 
-    def to_dict(self, scaffold: str = "", strand: str = "", multiplex: int = 0):
+    def to_dict(self, allele_id: str = "", strand: str = "", multiplex: int = 0):
         if not multiplex:
             return {"gRNA+PAM": self.seq, "gRNA_start": self.start_idx, "gRNA_end": self.end_idx,
                     "gRNA_strand": self.strand}
@@ -59,9 +60,9 @@ class Family_Target_Obj(Target_Obj):
 
         """
 
-    def __init__(self, seq: str, start_idx: int, end_idx: int, strand: str, scaffold="", ungapped_seq="", rank: float = 0,
+    def __init__(self, seq: str, start_idx: int, end_idx: int, strand: str, scaffold_id="", ungapped_seq="", rank: float = 0,
                  score: int = 0, cut_alleles_lst: List = None, exon_num: int = 0, sgrna: str = ""):
-        super().__init__(seq, start_idx, end_idx, strand, scaffold, ungapped_seq, rank, score, exon_num)
+        super().__init__(seq, start_idx, end_idx, strand, scaffold_id, ungapped_seq, rank, score, exon_num)
         self.cut_alleles_lst = cut_alleles_lst
         self.sgrna = sgrna
 
@@ -70,12 +71,12 @@ class Family_Target_Obj(Target_Obj):
             return {"target+PAM": self.seq, "target_start": self.start_idx,
                     "target_end": self.end_idx, "target_strand": self.strand}
         elif family_targeting == 2:
-            if self.rank % 0.2 == 0:
+            if (self.rank - 0.2) % 1 == 0:
                 return {"up_target+PAM": "", "up_target_start": "",
                         "up_target_end": "", "up_target_strand": "",
                         "down_target+PAM": self.seq, "down_target_start": self.start_idx,
                         "down_target_end": self.end_idx, "down_target_strand": self.strand}
-            else:
+            elif (self.rank - 0.1) % 1 == 0:
                 return {"up_target+PAM": self.seq, "up_target_start": self.start_idx,
                         "up_target_end": self.end_idx, "up_target_strand": self.strand,
                         "down_target+PAM": "", "down_target_start": "",
@@ -92,8 +93,8 @@ class Combined_Target_Obj:
         self.end_idx = end_idx
         self.targets_list = targets_list
         self.sg_perm = sg_perm
-        self.offscores_dict = offscores_dict  # {sgRNA: {Scaffold: score}}
-        self.cut_alleles = cut_alleles
+        self.offscores_dict = offscores_dict  # {sgRNA: {allele_id: score}}
+        self.cut_alleles = cut_alleles  # set of allele ids expected to be edited. {allele_id}
         self.chosen_sg = chosen_sg
         self.chosen_sg_score = chosen_sg_score
 
@@ -106,17 +107,17 @@ class Combined_Target_Obj:
     def __eq__(self, other):
         return self.chosen_sg == other.chosen_sg and self.start_idx == other.start_idx
 
-    def to_dict(self, scaffold: str, strand: str):
+    def to_dict(self, allele_id: str, strand: str):
         pam = ""
         target_strand = ""
         for target in self.targets_list:
-            if target.scaffold == list(self.cut_alleles)[0]:
+            if target.allele_id == list(self.cut_alleles)[0]:
                 pam = target.seq[20:23]
-            if target.scaffold == scaffold:
+            if target.allele_id == allele_id:
                 target_strand = "+" if target.strand == strand else "-"
 
-        score = self.offscores_dict[self.chosen_sg][scaffold]
-        sgandpam = self.chosen_sg + pam if scaffold in self.cut_alleles else "NA"
+        score = self.offscores_dict[self.chosen_sg][allele_id]
+        sgandpam = self.chosen_sg + pam if allele_id in self.cut_alleles else "NA"
         return {"gRNA+PAM": sgandpam, "MOFF-score": score, "gRNA_start": self.start_idx,
                 "gRNA_end": self.end_idx, "gRNA_strand": target_strand}
 
@@ -153,17 +154,17 @@ class MultiplexTarget:
     def __hash__(self):
         return hash(self.__str__())
 
-    def to_dict(self, scaffold: str, strand: str, multiplex: int = 1):
+    def to_dict(self, allele_id: str, strand: str, multiplex: int = 1):
         up_pam = ""
         down_pam = ""
         up_target_strand = ""
         down_target_strand = ""
         for target in self.up_targets_list:
-            if target.scaffold == scaffold:
+            if target.allele_id == allele_id:
                 up_pam = target.seq[20:23]
                 up_target_strand = "+" if target.strand == strand else "-"
         for target in self.down_targets_list:
-            if target.scaffold == scaffold:
+            if target.allele_id == allele_id:
                 down_pam = target.seq[20:23]
                 down_target_strand = "+" if target.strand == strand else "-"
         score = self.multiplex_score

@@ -170,7 +170,7 @@ def extract_off_targets(sam_file: str, genome_fasta: str, pams: Tuple) -> DataFr
             cigar = columns[5]
             strand = "-" if int(columns[1]) & 0x10 != 0 else "+"  # inferring strand from the FLAG's 5th bit
             start = int(position) - 1  # Convert to 0-based indexing
-            ref_seq = reference_genome[scaffold].seq  # sequence of scaffold where the off-target was found
+            ref_seq = reference_genome[scaffold].seq  # sequence of scaffold_id where the off-target was found
             off_target_len = sum(int(length) for length, op in re.findall(r'(\d+)([MID])', cigar) if op != 'D')
             if not off_target_len < len(grna):
                 end = start + off_target_len
@@ -230,7 +230,8 @@ def extract_off_targets(sam_file: str, genome_fasta: str, pams: Tuple) -> DataFr
     return off_targets_df
 
 
-def remove_on_targets_df(off_targets_df: DataFrame, candidates_scaffold_positions: Dict[str, Tuple[int, int]]):
+def remove_on_targets_df(off_targets_df: DataFrame,
+                         candidates_scaffold_positions: Dict[str, List[Tuple[int, int]]]) -> DataFrame:
 
     def on_target(row):
         mms = row['Mismatches']
@@ -238,8 +239,7 @@ def remove_on_targets_df(off_targets_df: DataFrame, candidates_scaffold_position
         position = row['Position']
         if int(mms) == 0:
             if chrom in candidates_scaffold_positions:
-                start, end = candidates_scaffold_positions[chrom]
-                if start <= int(position) <= end:
+                if any(start <= int(position) <= end for start, end in candidates_scaffold_positions[chrom]):
                     return True
         return False
 
@@ -289,6 +289,7 @@ def get_off_target(x, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]],
 
     :param x: a row in crispritz results table
     :param sequence_to_candidate_dict: a dictionary of sequence:candidate
+    :param k: number of alleles to target with a single gRNA.
     """
     candidates_list = sequence_to_candidate_dict[x['crRNA'][:20]]  # get list of candidate amplicons with current on-target (chosen_sg)
     off_target = OffTarget(x['DNA'].upper(), x['Chromosome'].split(" ")[0], int(x['Position']), x['Direction'],
@@ -302,7 +303,7 @@ def get_off_target(x, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]],
         for candidate in candidates_list:
             if off_target not in candidate.off_targets:
                 if k > 0:
-                    if all(round(off_target.score, 4) != candidate.target.offscores_dict[candidate.target.chosen_sg][scaffold] for scaffold in candidate.target.offscores_dict[candidate.target.chosen_sg]):
+                    if all(round(off_target.score, 4) != candidate.target.offscores_dict[candidate.target.chosen_sg][allele_id] for allele_id in candidate.target.offscores_dict[candidate.target.chosen_sg]):
                         candidate.off_targets.append(off_target)
                 else:
                     candidate.off_targets.append(off_target)
@@ -310,12 +311,13 @@ def get_off_target(x, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]],
 
 
 # add to each "Candidate" its off-targets
-def add_off_targets(off_targets_df, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]], k):
+def add_off_targets(off_targets_df, sequence_to_candidate_dict: Dict[str, List[Amplicon_Obj]], k: int):
     """
     This function adds all found off-targets to each CandidateWithOffTargets using the crispritz results.
 
     :param off_targets_df: The output of crispritz as a pd datatable, where each row is a potential offtarget.
     :param sequence_to_candidate_dict: sequence -> a CandidateWithOffTargets object with the proper sequence.
+    :param k: number of alleles to target with a single gRNA.
 
     """
     # apply the 'get_off_target' function on each row in the crispritz table results
@@ -324,7 +326,7 @@ def add_off_targets(off_targets_df, sequence_to_candidate_dict: Dict[str, List[A
 
 
 def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_file: str, out_path: str, pams: Tuple,
-                    candidates_scaffold_positions: Dict[str, Tuple[int, int]], k: int):
+                    candidates_scaffold_positions: Dict[str, List[Tuple[int, int]]], k: int):
     """
     Find the off-targets for each candidate using BWA, store them in the candidate's off_targets_list attribute
     as a list of OffTarget objects. Then calculates the off-target scores for each off-target of each candidate and
@@ -334,7 +336,7 @@ def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_f
     :param out_path: output path for the algorithm results.
     :param genome_fasta_file: path to input FASTA format file of the genome.
     :param pams: tuple of PAM sequences of the Cas protein in use.
-    :param candidates_scaffold_positions: dictionary of allele scaffold -> gene allele start,end indices.
+    :param candidates_scaffold_positions: dictionary of allele scaffold_id -> gene allele start,end indices.
     :param k: number of alleles to target with a single gRNA.
     """
     print("Searching for sgRNA off-targets with BWA".upper().center(60, "#"))
@@ -360,14 +362,14 @@ def get_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_f
 
 
 def filt_off_targets(candidate_amplicons_list: List[Amplicon_Obj], genome_fasta_file: str, out_path: str, pams: Tuple,
-                     candidates_scaffold_positions: Dict[str, Tuple[int, int]], k: int) -> List[Amplicon_Obj]:
+                     candidates_scaffold_positions: Dict[str, List[Tuple[int, int]]], k: int) -> List[Amplicon_Obj]:
     """
 
     :param candidate_amplicons_list: a list of amplicon candidates
     :param genome_fasta_file: path to input FASTA format file of the genome
     :param out_path: output path for the algorithm results
     :param pams: tuple of PAM sequences of the Cas protein in use
-    :param candidates_scaffold_positions: dictionary of allele scaffold -> gene allele start,end indices
+    :param candidates_scaffold_positions: dictionary of allele scaffold_id -> gene allele start,end indices
     :param k: number of alleles to target with a single gRNA
     :return:
     """

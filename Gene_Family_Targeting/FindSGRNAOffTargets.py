@@ -33,17 +33,17 @@ def create_bwa_sgrna_input_fasta(sgrna_seq_object_dict: Dict[str, Candidate], ou
 def get_family_scaffolds_positions_dict(
         genes_exons_seq_dict: Dict[str, Tuple[Dict[int, List[Tuple[str, str]]], Dict[str, Dict[int, int]]]]) -> Dict[str, List[Tuple[int, int]]]:
     """
-    create dictionary of {scaffold names: list of gene region indices for the scaffold}
+    create dictionary of {scaffold_id names: list of gene region indices for the scaffold_id}
     """
-    from Amplicon_construction.AmpliconConstruction import get_gene_scaffold_positions
+    from Amplicon_construction.AmpliconConstruction import get_gene_alleles_positions
     scaffolds_positions_dict = {}
     for gene in genes_exons_seq_dict:
-        gene_scaffold_pos_dict = get_gene_scaffold_positions(genes_exons_seq_dict[gene][0])
-        for scaffold in gene_scaffold_pos_dict:
-            if scaffold not in scaffolds_positions_dict:
-                scaffolds_positions_dict[scaffold] = [gene_scaffold_pos_dict[scaffold]]
+        gene_scaffold_pos_dict = get_gene_alleles_positions(genes_exons_seq_dict[gene][0])
+        for scaffold_id in gene_scaffold_pos_dict:
+            if scaffold_id not in scaffolds_positions_dict:
+                scaffolds_positions_dict[scaffold_id] = gene_scaffold_pos_dict[scaffold_id]
             else:
-                scaffolds_positions_dict[scaffold].append(gene_scaffold_pos_dict[scaffold])
+                scaffolds_positions_dict[scaffold_id].extend(gene_scaffold_pos_dict[scaffold_id])
     return scaffolds_positions_dict
 
 

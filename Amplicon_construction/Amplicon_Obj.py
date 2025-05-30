@@ -3,6 +3,7 @@ from typing import List, Dict
 
 from Amplicon_construction.Primers_Obj import Primers_Obj
 from Amplicon_construction.SNP_Obj import SNP_Obj
+from Amplicon_construction.Target_Obj import Family_Target_Obj, FamilyMultiplexTarget
 
 
 def calc_amplicon_size(seq):
@@ -90,11 +91,12 @@ class Amplicon_Obj:
 
 class ScaffoldAmplicon(Amplicon_Obj):
 
-    def __init__(self, scaffold: str, strand: str, sequence: str, exon_num: int, start_idx: int,
+    def __init__(self, scaffold_id: str, strand: str, sequence: str, exon_num: int, start_idx: int,
                  end_idx: int, snps_median: float, snps_mean: float, target, snps: List[SNP_Obj], primers: Primers_Obj,
-                 orig_exon_num: int = 0, off_targets: List = None, scaffold_amplicons: Dict = None):
+                 orig_exon_num: int = 0, off_targets: List = None, scaffold_amplicons: Dict = None, allele_id: str = ""):
 
-        self.scaffold = scaffold
+        self.scaffold_id = scaffold_id
+        self.allele_id = allele_id
         self.strand = strand
         self.sequence = sequence
         self.size = calc_amplicon_size(sequence)
@@ -111,18 +113,20 @@ class ScaffoldAmplicon(Amplicon_Obj):
         self_dict.pop("primers")
         self_dict.pop("off_targets")
         self_dict.pop("scaffold_amplicons")
+        self_dict.pop("allele_id")
         snps_str = ""
         for snp in self.snps:
             snps_str += f"{snp};"
         self_dict["snps"] = snps_str[:-1]
-        if family_targeting == 1:
-            self_dict.update(self.target.to_family_singleplex_dict(family_targeting))
-        elif family_targeting == 2:
-            self_dict.update(self.target.to_family_multiplex_dict())
+        if family_targeting:
+            if isinstance(self.target, Family_Target_Obj):
+                self_dict.update(self.target.to_family_singleplex_dict(family_targeting))
+            elif isinstance(self.target, FamilyMultiplexTarget):
+                self_dict.update(self.target.to_family_multiplex_dict())
         elif multiplex:
-            self_dict.update(self.target.to_dict(self.scaffold, self.strand, multiplex))
+            self_dict.update(self.target.to_dict(self.allele_id, self.strand, multiplex))
         elif k > 0:
-            self_dict.update(self.target.to_dict(self.scaffold, self.strand))
+            self_dict.update(self.target.to_dict(self.allele_id, self.strand))
             if len(self.off_targets) > 0:
                 self_dict.update(self.off_targets[0].to_dict(1))
             if len(self.off_targets) > 1:

@@ -30,7 +30,7 @@ def get_allele_sets_list(scaffold_to_seq_dict, index):
 def create_snps_list(scaffold_to_seq_dict: Dict[str, str], distinct_alleles_num: int, primer_length: int) -> List[SNP_Obj]:
     """
 
-    :param scaffold_to_seq_dict: dictionary of scaffold ID -> sequence of scaffold.
+    :param scaffold_to_seq_dict: dictionary of scaffold_id ID -> sequence of scaffold_id.
     :param distinct_alleles_num: number of distinct alleles of the gene.
     :param primer_length: minimum length of the primer sequence.
     :return:
@@ -92,7 +92,7 @@ def get_snps(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], distinct_all
     # print("finding snps".upper().center(40, "#"))
     snps_dict = {}
     for exon_region in gene_sequences_dict:
-        scaffold_to_seq_dict = {seq_tup[0].split(":")[0][1:]: seq_tup[1] for seq_tup in
+        scaffold_to_seq_dict = {seq_tup[0].split("::")[0][1:]: seq_tup[1] for seq_tup in
                                 gene_sequences_dict[exon_region]}
         curr_exon_region_snps_list = create_snps_list(scaffold_to_seq_dict, distinct_alleles_num, primer_length)
         snps_dict[exon_region] = curr_exon_region_snps_list

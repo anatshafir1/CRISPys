@@ -26,17 +26,37 @@ def annotations_to_lst_df(annotations_file_path: str) -> List[DataFrame]:
     :param annotations_file_path: path to GFF file with annotations of the genome
     :return: a list of DataFrames, each with annotations of all the alleles of a single exon in the gene
     """
-    annotations_df = pd.read_csv(annotations_file_path,
-                                 sep='\s{2,}|\t')  # sep='\s{2,}' uses a regular expression to match two or more whitespace characters as the separator
+    # sep='\s{2,}' uses a regular expression to match two or more whitespace characters as the separator
+    annotations_df = pd.read_csv(annotations_file_path, sep='\s{2,}|\t')
+    # create allele_id column with values of scaffold_id ('seqname') + ';' + gene start, for every gene allele. this is
+    # important since different gene alleles may appear in the same scaffold_id name in the genome fasta.
+    annotations_df['seq_id'] = None
+    gene_rows = annotations_df[annotations_df['feature'] == 'gene']
+    # Assign allele_id to matching rows
+    for idx, gene_row in gene_rows.iterrows():
+        gene = gene_row['genename']
+        seqname = gene_row['seqname']
+        g_start = gene_row['start']
+        g_end = gene_row['end']
+
+        # Build the seq_id string
+        allele_id = f"{gene}_{seqname};{g_start}"
+
+        # Find all rows with the same gene + seqname, and within start/end range
+        match = (
+                (annotations_df['genename'] == gene) &
+                (annotations_df['seqname'] == seqname) &
+                (annotations_df['start'] >= g_start) &
+                (annotations_df['end'] <= g_end)
+        )
+
+        # Assign seq_id to these rows
+        annotations_df.loc[match, 'seq_id'] = allele_id
     filtered_by_exon = annotations_df[annotations_df['feature'] == 'exon']
-
-    filtered_by_exon['new_start'] = filtered_by_exon.apply(lambda x: x['start'] - 1,
-                                                           axis=1)  # indices in genome fasta start from 1. getfasta calculates from 0. therefor "start" will be with -1
+    # indices in genome fasta start from 1. getfasta calculates from 0. therefor "start" will be with -1
+    filtered_by_exon['new_start'] = filtered_by_exon.apply(lambda x: x['start'] - 1, axis=1)
     filtered_by_exon.reset_index(drop=True, inplace=True)
-
-    # add column of sequence IDs
-    filtered_by_exon["seq_id"] = filtered_by_exon["genename"] + "_" + filtered_by_exon["seqname"]
-    # Group exons by scaffold
+    # Group exons by scaffold_id
     allele_groups = filtered_by_exon.groupby('seq_id')
     exons_dfs_list = []
 
@@ -57,7 +77,7 @@ def get_genomic_sites(out_path: str, fasta_file: str, filtered_allele_df: DataFr
     :param out_path: the path to which the algorithm will store the results
     :param fasta_file: path to input FASTA format file of the genome
     :param filtered_allele_df: DataFrame of exon sequences and their parameters
-    :return: list of strings where even indices are scaffold names and odd indices are sequences
+    :return: list of strings where even indices are scaffold_id names and odd indices are sequences
     """
     # create BED format file
     filtered_allele_df.to_csv(out_path + '/exon_sites.bed', sep='\t',
@@ -132,9 +152,10 @@ def get_sequences_dict(max_amplicon_len: int, primer_length: int, target_surroun
     for gene in genes_list:
         gene_annotations_df = annotations_df[annotations_df["genename"] == gene]
         gene_annotations_df_path = out_path + f"/{gene}_annotations.txt"
-        columns = gene_annotations_df.columns.tolist().remove("genename")
+        columns = gene_annotations_df.columns.tolist()
+        columns.remove('genename')
         gene_annotations_df.to_csv(gene_annotations_df_path, sep='\t', columns=columns, index=False)
         aligned_exons_regions_dict, aligned_to_original_exon_num_dict = extract_exons_regions(max_amplicon_len, primer_length, target_surrounding_region, cut_location,
-                                               annotations_file_path, out_path, genome_fasta_file)
+                                               gene_annotations_df_path, out_path, genome_fasta_file)
         sequences_dict[gene] = aligned_exons_regions_dict, aligned_to_original_exon_num_dict
     return sequences_dict

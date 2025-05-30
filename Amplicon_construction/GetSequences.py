@@ -36,7 +36,7 @@ def call_mafft(in_file: str, out_file: str):
         handle.write(stdout)
 
 
-def annotations_to_lst_df(annotations_file_path: str) -> List[DataFrame]:
+def annotations_to_alleles_lst_df(annotations_file_path: str) -> List[DataFrame]:
     """
     Given a gene annotations file path, construct a list of dataframes, with annotations of all the
     different alleles of a single exon. The start and end columns of each exon will include a region around the exon
@@ -45,14 +45,36 @@ def annotations_to_lst_df(annotations_file_path: str) -> List[DataFrame]:
     :param annotations_file_path: path to GFF file with annotations of the genome
     :return: a list of DataFrames, each with annotations of all the alleles of a single exon in the gene
     """
-    annotations_df = pd.read_csv(annotations_file_path,
-                                 sep='\s{2,}|\t')  # sep='\s{2,}' uses a regular expression to match two or more whitespace characters as the separator
-    filtered_by_exon = annotations_df[annotations_df['feature'] == 'exon']
+    # sep='\s{2,}' uses a regular expression to match two or more whitespace characters as the separator
+    annotations_df = pd.read_csv(annotations_file_path, sep='\s{2,}|\t')
+    # create allele_id column with values of scaffold_id ('seqname') + ';' + gene start, for every gene allele. this is
+    # important since different gene alleles may appear in the same scaffold_id name in the genome fasta.
+    annotations_df['allele_id'] = None
+    gene_rows = annotations_df[annotations_df['feature'] == 'gene']
+    # Assign allele_id to matching rows
+    for idx, gene_row in gene_rows.iterrows():
+        seqname = gene_row['seqname']
+        g_start = gene_row['start']
+        g_end = gene_row['end']
 
-    filtered_by_exon['new_start'] = filtered_by_exon.apply(lambda x: x['start'] - 1, axis=1)  # indices in genome fasta start from 1. getfasta calculates from 0. therefor "start" will be with -1
+        # Build the seq_id string
+        allele_id = f"{seqname};{g_start}"
+
+        # Find all rows with the same gene + seqname, and within start/end range
+        match = (
+                (annotations_df['seqname'] == seqname) &
+                (annotations_df['start'] >= g_start) &
+                (annotations_df['end'] <= g_end)
+        )
+
+        # Assign seq_id to these rows
+        annotations_df.loc[match, 'allele_id'] = allele_id
+    filtered_by_exon = annotations_df[annotations_df['feature'] == 'exon']
+    # indices in genome fasta start from 1. getfasta calculates from 0. therefor "start" will be with -1
+    filtered_by_exon['new_start'] = filtered_by_exon.apply(lambda x: x['start'] - 1, axis=1)
     filtered_by_exon.reset_index(drop=True, inplace=True)
-    # Group exons by scaffold
-    allele_groups = filtered_by_exon.groupby('seqname')
+    # Group exons by scaffold_id
+    allele_groups = filtered_by_exon.groupby('allele_id')
     exons_dfs_list = []
 
     for _, group in allele_groups:
@@ -72,15 +94,15 @@ def get_genomic_sites(out_path: str, fasta_file: str, filtered_allele_df: DataFr
     :param out_path: the path to which the algorithm will store the results
     :param fasta_file: path to input FASTA format file of the genome
     :param filtered_allele_df: DataFrame of exon sequences and their parameters
-    :return: list of strings where even indices are scaffold names and odd indices are sequences
+    :return: list of strings where even indices are scaffold_id names and odd indices are sequences
     """
     # create BED format file
     filtered_allele_df.to_csv(out_path + '/exon_sites.bed', sep='\t',
-                              columns=['seqname', 'new_start', 'end', 'attribute', 'score', 'strand'],
+                              columns=['seqname', 'new_start', 'end', 'allele_id', 'score', 'strand'],
                               header=False, index=False)
     bed_file = out_path + "/exon_sites.bed"
     # run bedtools
-    seq = subprocess.run(['bedtools', 'getfasta', '-fi', fasta_file, '-bed', bed_file, '-s'],
+    seq = subprocess.run(['bedtools', 'getfasta', '-fi', fasta_file, '-bed', bed_file, '-s', '-name'],
                          stdout=subprocess.PIPE)
     sites_str = seq.stdout.decode()
     sites_list = sites_str.split()
@@ -89,6 +111,7 @@ def get_genomic_sites(out_path: str, fasta_file: str, filtered_allele_df: DataFr
 
 def genomic_sites_dict_to_fasta(gene_seqs, out_path: str):
     """
+    save sequences strings in a fasta format file
 
     :param gene_seqs: Dict of allele ID -> concatenated exons sequences or List of exon region sequences
     :param out_path:
@@ -96,7 +119,7 @@ def genomic_sites_dict_to_fasta(gene_seqs, out_path: str):
     sequences = []
     if isinstance(gene_seqs, dict):
         for seq_id, seq in gene_seqs.items():
-            sequences += [SeqRecord(Seq(seq), id=seq_id, description='')]  # TODO mention 'no description' in next commit
+            sequences += [SeqRecord(Seq(seq), id=seq_id, description='')]
 
     elif isinstance(gene_seqs, list):
         zipped_seqs = zip([gene_seqs[i] for i in range(0, len(gene_seqs), 2)],
@@ -143,11 +166,11 @@ def get_overlapping_exons(exon_indices_dict: Dict[str, List[Tuple[int, int]]], a
     Using aligned sequences of concatenated exons and exon start,end indices (given by annotations file) calculate
     which exons are properly aligned to enable potential amplicon construction.
 
-    :param exon_indices_dict: dictionary of allele scaffold -> list of tuples of exons start,end indices
-    :param alleles_exons_aligned_dict: dictionary of allele scaffold ID -> sequences of alignment of the alleles of concatenated exons
+    :param exon_indices_dict: dictionary of allele scaffold_id -> list of tuples of exons start,end indices
+    :param alleles_exons_aligned_dict: dictionary of allele scaffold_id ID -> sequences of alignment of the alleles of concatenated exons
     :param alignment_len: length of the alignment of the alleles of concatenated exons
     :param min_nucs_for_amplicon: minimum necessary number of nucleotides on exon sequence to construct a potential amplicon
-    :return: a dictionary with original start & end indices of exons which are properly aligned, and their number
+    :return: a dictionary of allele id -> list of start, end indices of exons which are properly aligned
     """
     aligned_overlapping_exon_idxs_dict = {allele: [] for allele in exon_indices_dict}
     prev_allele_idx = 0
@@ -220,12 +243,12 @@ def get_original_indices_dict(aligned_overlapping_exons_dict: Dict[str, List[Tup
 def update_exon_idxs_dict(gene_seqs_dict: Dict[str, str], exon_indices_dict:  Dict[str, List[Tuple[int, int]]],
                           allele_strand_dict: Dict[str, str]) -> Tuple[Dict[str, str], Dict[str, List[Tuple[int, int]]]]:
     """
-    get the first portion (REGION_OF_GENE_TO_CUT in globals) of the gene alleles
+    get the initial portion (REGION_OF_GENE_TO_CUT in globals) of the gene alleles
 
-    :param gene_seqs_dict:  dictionary of allele scaffold ID -> sequences of concatenated exons of the alleles
+    :param gene_seqs_dict:  dictionary of allele scaffold_id ID -> sequences of concatenated exons of the alleles
     :param exon_indices_dict: dictionary with original start & end indices of all exons
     :param allele_strand_dict:
-    :return:
+    :return: updated gene_seqs_dict and updated exon_indices_dict
     """
     updated_exon_indices_dict = {allele: [] for allele in exon_indices_dict}
     updated_gene_seqs_dict = {}
@@ -258,39 +281,44 @@ def update_exon_idxs_dict(gene_seqs_dict: Dict[str, str], exon_indices_dict:  Di
 def get_legit_exons_regions(annotations_file_path: str, out_path: str, genome_fasta_file: str, min_nucs_for_amplicon: int) -> \
         Tuple[Dict[str, List[Tuple[int, int]]], Dict[str, str], Dict[str, Dict[int, int]]]:
     """
+    create dictionaries with necessary parameters of exon regions
 
     :param annotations_file_path: path to GFF file with annotations of the genome
     :param out_path: path to output directory where algorithm results will be saved
     :param genome_fasta_file: path to input FASTA format file of the genome
     :param min_nucs_for_amplicon: minimum necessary number of nucleotides on exon sequence to construct a potential amplicon
-    :return: dictionary of exon number -> list of tuples of allele IDs and their sequences
+    :return: a dictionary of allele id -> list of start, end indices of exons which are properly aligned, a dictionary
+      of allele id -> allele strand and a dictionary of allele ID -> dictionary of properly aligned exon number
+      -> original number of the exon
     """
 
     # Create list of DataFrames each representing an allele and its exons
-    alleles_df_lst = annotations_to_lst_df(annotations_file_path)
+    alleles_df_lst = annotations_to_alleles_lst_df(annotations_file_path)
+    #
     gene_seqs_dict = dict()  # keys are allele IDs, values are strings of concatenated CDSs sequences
     exon_indices_dict = dict()  # keys are allele IDs, values are zips of exon start and end indices
     allele_strand_dict = dict()
     concat_CDSs_path = out_path + "/concat_CDSs.fasta"
     aligned_concat_CDSs_path = out_path + "/aligned_concat_CDSs.fasta"
-
+    # Fill dictionaries of gene_seqs_dict, exon_indices_dict and allele_strand_dict:
     for allele_df in alleles_df_lst:
         exons_seqs_lst = get_genomic_sites(out_path, genome_fasta_file, allele_df)  # extract exons from genome FASTA
         allele_exons_indices_zip = zip(allele_df['start'].to_list(),
                                        allele_df['end'].to_list())  # save start and end indices of exons by their order
         allele_exons_indices_lst = [(int(start), int(end)) for start, end in allele_exons_indices_zip]
-        allele_ID = allele_df['seqname'].iloc[0]
+        allele_ID = allele_df['allele_id'].iloc[0]
         allele_str = "".join([exons_seqs_lst[i] for i in range(1, len(exons_seqs_lst), 2)])  # create a single string of all the exon sequences concatenated
         gene_seqs_dict[allele_ID] = allele_str
         exon_indices_dict[allele_ID] = allele_exons_indices_lst
         allele_strand_dict[allele_ID] = allele_df['strand'].iloc[0]
+    #
     updated_gene_seqs_dict, updated_exon_indices_dict = update_exon_idxs_dict(gene_seqs_dict, exon_indices_dict, allele_strand_dict)
     genomic_sites_dict_to_fasta(updated_gene_seqs_dict, concat_CDSs_path)  # save alleles in FASTA file
     call_mafft(concat_CDSs_path, aligned_concat_CDSs_path)  # create an MSA of the alleles of the gene
     alleles_exons_aligned_dict, alignment_len = genes_fasta_to_dict(aligned_concat_CDSs_path)  # save the aligned CDSs to a dict
-    aligned_overlapping_exon_idxs_dict = get_overlapping_exons(updated_exon_indices_dict, alleles_exons_aligned_dict, alignment_len, min_nucs_for_amplicon)
-    aligned_to_original_exon_num_dict = get_original_indices_dict(aligned_overlapping_exon_idxs_dict, updated_exon_indices_dict)
-    return aligned_overlapping_exon_idxs_dict, allele_strand_dict, aligned_to_original_exon_num_dict
+    algn_overlap_exon_idxs_dict = get_overlapping_exons(updated_exon_indices_dict, alleles_exons_aligned_dict, alignment_len, min_nucs_for_amplicon)
+    algn_to_orig_exon_num_dict = get_original_indices_dict(algn_overlap_exon_idxs_dict, updated_exon_indices_dict)
+    return algn_overlap_exon_idxs_dict, allele_strand_dict, algn_to_orig_exon_num_dict
 
 
 def get_exon_params_dict(aligned_overlapping_exons_dict: Dict[str, List[Tuple[int, int]]], exon_num: int,
@@ -298,19 +326,20 @@ def get_exon_params_dict(aligned_overlapping_exons_dict: Dict[str, List[Tuple[in
     """
     create a dictionary of overlapping exons with their attributes
 
-    :param aligned_overlapping_exons_dict: dictionary of allele scaffold -> list of tuples exon start,end indices.
+    :param aligned_overlapping_exons_dict: dictionary of allele id -> list of tuples exon start,end indices.
     :param exon_num: current exon number.
     :param exon_surrounding_seq_len: number of nucleotides from each side of the exon.
-    :param allele_strand_dict: dictionary of allele scaffold -> strand in genome fasta file.
+    :param allele_strand_dict: dictionary of allele id -> strand in genome fasta file.
     :return: dictionary of overlapping exons with their attributes.
     """
-    exon_params_dict = {'seqname': [], 'new_start': [], 'end': [], 'attribute': [], 'score': [], 'strand': []}
+    exon_params_dict = {'seqname': [], 'new_start': [], 'end': [], 'allele_id': [], 'score': [], 'strand': []}
     for allele in aligned_overlapping_exons_dict:
-        exon_params_dict['seqname'].append(allele)
+        scaffold_id = allele.split(";")[0]
+        exon_params_dict['seqname'].append(scaffold_id)
         exon_params_dict['new_start'].append(
             aligned_overlapping_exons_dict[allele][exon_num][0] - exon_surrounding_seq_len - 1)
         exon_params_dict['end'].append(aligned_overlapping_exons_dict[allele][exon_num][1] + exon_surrounding_seq_len)
-        exon_params_dict['attribute'].append(exon_num)
+        exon_params_dict['allele_id'].append(allele)
         exon_params_dict['score'].append(".")
         exon_params_dict['strand'].append(allele_strand_dict[allele])
     return exon_params_dict
@@ -336,8 +365,8 @@ def delete_files_with_prefix(directory, prefix):
 
 
 def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_surrounding_region: int, cut_location: int,
-                          annotations_file_path,
-                          out_path: str, genome_fasta_file: str) -> Tuple[Dict[int, List[Tuple[str, str]]], Dict[str, Dict[int, int]]]:
+                          annotations_file_path: str, out_path: str,
+                          genome_fasta_file: str) -> Tuple[Dict[int, List[Tuple[str, str]]], Dict[str, Dict[int, int]]]:
     """
 
     :param max_amplicon_len: maximum length of the amplicon, defined by user
@@ -352,21 +381,20 @@ def extract_exons_regions(max_amplicon_len: int, primer_length: int, target_surr
     """
     print("extracting exon regions".upper().center(40, "#"))
     min_nucs_for_amplicon = primer_length + target_surrounding_region + cut_location
-    aligned_overlapping_exon_idxs_dict, allele_strand_dict, aligned_to_original_exon_num_dict = get_legit_exons_regions(annotations_file_path,
-                                                                                               out_path,
-                                                                                               genome_fasta_file, min_nucs_for_amplicon)
+    legit_exon_regions_res = get_legit_exons_regions(annotations_file_path, out_path, genome_fasta_file, min_nucs_for_amplicon)
+    algn_overlap_exon_idxs_dict, allele_strand_dict, algn_to_orig_exon_num_dict = legit_exon_regions_res
     exon_surrounding_seq_len = max_amplicon_len - cut_location - target_surrounding_region - primer_length
     aligned_exons_regions_dict = {}
-    num_of_exons = len(aligned_overlapping_exon_idxs_dict[list(aligned_overlapping_exon_idxs_dict.keys())[0]])
+    num_of_exons = len(algn_overlap_exon_idxs_dict[list(algn_overlap_exon_idxs_dict.keys())[0]])
     for exon_num in range(num_of_exons):
         exon_regions_path = out_path + f"/exon_{exon_num + 1}_regions.fasta"
-        aligned_exons_regions_path = out_path + f"/aligned_exon_{exon_num + 1}_regions.fasta"
-        exon_dict = get_exon_params_dict(aligned_overlapping_exon_idxs_dict, exon_num, exon_surrounding_seq_len, allele_strand_dict)
+        exon_dict = get_exon_params_dict(algn_overlap_exon_idxs_dict, exon_num, exon_surrounding_seq_len, allele_strand_dict)
         exon_region = pd.DataFrame.from_dict(exon_dict)
         genomic_sites_list = get_genomic_sites(out_path, genome_fasta_file, exon_region)  # extract exon regions from genome FASTA
         genomic_sites_dict_to_fasta(genomic_sites_list, exon_regions_path)  # save exon regions in FASTA file
+        aligned_exons_regions_path = out_path + f"/aligned_exon_{exon_num + 1}_regions.fasta"
         call_mafft(exon_regions_path, aligned_exons_regions_path)  # create an MSA of the alleles of the exon
         exon_region_aligned_lst = genes_fasta_to_list(aligned_exons_regions_path)  # save the aligned exon regions in a list
         aligned_exons_regions_dict[exon_num + 1] = exon_region_aligned_lst  # add the list of aligned exon regions to a dictionary
     delete_files_with_prefix(out_path, "exon")
-    return aligned_exons_regions_dict, aligned_to_original_exon_num_dict
+    return aligned_exons_regions_dict, algn_to_orig_exon_num_dict

@@ -11,7 +11,7 @@ from Amplicon_construction.Target_Obj import Target_Obj, Combined_Target_Obj, Mu
 
 
 def valid_distance_for_multiplex(multiplex_target: MultiplexTarget, max_amplicon_len: int, primer_length: int,
-                          target_surrounding_region: int) -> bool:
+                                target_surrounding_region: int) -> bool:
     max_dist = max_amplicon_len - 2 * primer_length - 2 * target_surrounding_region
     if multiplex_target.down_end - multiplex_target.up_start > max_dist:
         return False
@@ -104,7 +104,7 @@ def get_ungapped_target_seq(position_targets_lst: List[Target_Obj], exon_alleles
     upstream to the PAM sequence.
 
     :param position_targets_lst: list of Target_Obj objects
-    :param exon_alleles_lst: list of tuples representing alleles where tuple[0] is scaffold name
+    :param exon_alleles_lst: list of tuples representing alleles where tuple[0] is scaffold_id name
     (example format: ">scaffold10132:437703-438762(+)") and tuple[1] is allele sequence
     :param target_len: number of nucleotides in sgRNA target: PAM + protospacer
     """
@@ -140,8 +140,9 @@ def get_all_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
     same indices from the other alleles. Save the targets in a Target_Obj and save the Target_Obj that start at the same
     indices in dictionary of start_index: list of Target_Obj.
 
-    :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name
-    (example format: ">scaffold10132:437703-438762(+)") and tuple[1] is allele sequence.
+    :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is
+    allele_id parameters (example format: ">scaffold10132;437000::scaffold10132:437703-438762(+)") and tuple[1] is
+    allele sequence.
     :param pams:
     :param max_amplicon_len: maximum length of the amplicon
     :param primer_length: minimum length of the primer sequence
@@ -155,7 +156,7 @@ def get_all_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
     for exon_num in gene_sequences_dict:  # iterate over every exon of the gene
         exon_targets = {}
         exon_alleles_lst = gene_sequences_dict[exon_num]
-        for allele in exon_alleles_lst:  # iterate over every allele (scaffold) of the exon
+        for allele in exon_alleles_lst:  # iterate over every allele of the exon
             exon_region_seq = allele[1]
             # get list of all targets (as Target_Obj) for current allele
             allele_targets_list = find_targets_in_sequence(exon_region_seq, pams, max_amplicon_len, primer_length,
@@ -163,16 +164,17 @@ def get_all_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
             # iterate over all targets found on current allele to save them and their parallels (on the other alleles) to a dictionary
             for target in allele_targets_list:
                 position_targets_lst = []
-                # iterate over every allele (scaffold) of the exon to get all the current target's parallels
+                # iterate over every allele of the exon to get all the current target's parallels
                 for i in range(len(exon_alleles_lst)):
-                    scaffold = exon_alleles_lst[i][0].split(":")[0][1:]
+                    allele_id = exon_alleles_lst[i][0].split("::")[0][1:]
+                    scaffold_id = allele_id.split(";")[0]
                     if target.strand == "+":
                         cur_allele_target_seq = exon_alleles_lst[i][1][target.start_idx:target.end_idx + 1]
                     else:
                         cur_allele_target_seq = give_complementary(
                             exon_alleles_lst[i][1][target.start_idx:target.end_idx + 1])
                     position_targets_lst.append(
-                        Target_Obj(cur_allele_target_seq, target.start_idx, target.end_idx, target.strand, scaffold))
+                        Target_Obj(cur_allele_target_seq, target.start_idx, target.end_idx, target.strand, scaffold_id, allele_id=allele_id))
                 get_ungapped_target_seq(position_targets_lst, exon_alleles_lst, target_len)
                 if target.start_idx not in exon_targets:
                     exon_targets[target.start_idx] = position_targets_lst
@@ -217,7 +219,7 @@ def all_perms(initial_seq: str, list_of_seqs: List[str], list_of_differences: Li
 
 def get_initial_seq(comb_target: Combined_Target_Obj, snp_abundant_targets_scaffolds: List[str]) -> str:
     for target in comb_target.targets_list:
-        if target.scaffold not in snp_abundant_targets_scaffolds:
+        if target.scaffold_id not in snp_abundant_targets_scaffolds:
             return target.seq
 
 
@@ -227,7 +229,7 @@ def extract_polymorphic_sites(comb_target_snps_dict: Dict[int, Dict[str, List[st
     Extract a list of tuples of polymorphic site (SNPs) indices and the nucleotides they contain. Exclude nucleotides
     of "problematic" alleles (snp_abundant_targets_scaffolds).
 
-    :param comb_target_snps_dict: dictionary of SNP index -> dictionary of nucleotide -> list of scaffold IDs which have
+    :param comb_target_snps_dict: dictionary of SNP index -> dictionary of nucleotide -> list of scaffold_id IDs which have
     this nucleotide in the given SNP index
     :param snp_abundant_targets_scaffolds:
     :return: list of tuples of polymorphisms and their locations: (index, set of nucleotides). e.g. [(0, [T,G]), (3, [A,T])]
@@ -237,9 +239,9 @@ def extract_polymorphic_sites(comb_target_snps_dict: Dict[int, Dict[str, List[st
         pos_nucs = []
         for nuc in comb_target_snps_dict[index]:
             single_scaffold_with_current_nuc = len(
-                comb_target_snps_dict[index][nuc]) == 1  # only one scaffold has current nucleotide
+                comb_target_snps_dict[index][nuc]) == 1  # only one scaffold_id has current nucleotide
             snp_abundant_target_scaffold = comb_target_snps_dict[index][nuc][
-                                               0] in snp_abundant_targets_scaffolds  # first (and maybe only) scaffold is abundant with SNPs
+                                               0] in snp_abundant_targets_scaffolds  # first (and maybe only) scaffold_id is abundant with SNPs
             if not (single_scaffold_with_current_nuc and snp_abundant_target_scaffold):
                 pos_nucs.append(nuc)
         list_of_differences.append((index, pos_nucs))
@@ -258,8 +260,8 @@ def calculate_off_scores(relevant_targets_dict: [Dict[int, List[Combined_Target_
     """
     Calculate the MOFF scores of every potential sgRNA against every target sequence of the Combined target and store
     the scores in Combined target's offscore_dict. Offscore_dict example:
-    {"CCGGCTATGACAACCTTCAGAGG": {"scaffold346": 0.4, "scaffold406": 0.3, "scaffold68253": 0.9},
-     "CCGACTATGACAACCTTCAGAGG": {"scaffold346": 0.2, "scaffold406": 0.4, "scaffold68253": 0.8}}
+    {"CCGGCTATGACAACCTTCAGAGG": {"scaffold346;10000": 0.4, "scaffold406;10000": 0.3, "scaffold68253;10000": 0.9},
+     "CCGACTATGACAACCTTCAGAGG": {"scaffold346;10000": 0.2, "scaffold406;10000": 0.4, "scaffold68253;10000": 0.8}}
 
     :param relevant_targets_dict:
     :param pam_idxs:
@@ -270,14 +272,14 @@ def calculate_off_scores(relevant_targets_dict: [Dict[int, List[Combined_Target_
         for comb_target in relevant_targets_dict[exon_num]:
             comb_on_targets = []
             comb_off_targets = []
-            comb_target.offscores_dict = {}  # dictionary of {sgRNA sequence: {target scaffold ID: MOFF score}}
+            comb_target.offscores_dict = {}  # dictionary of {sgRNA sequence: {target allele_id ID: MOFF score}}
             for sg in comb_target.sg_perm:
-                comb_target.offscores_dict[sg] = {}  # dictionary of {target scaffold ID: MOFF score}
+                comb_target.offscores_dict[sg] = {}  # dictionary of {target allele_id ID: MOFF score}
                 for target in comb_target.targets_list:
-                    faulty_pam = False  # check if targets which are not in k_scaffolds have faulty PAMs (not "NGG")
+                    faulty_pam = False  # check if targets which are not in k_alleles have faulty PAMs (not "NGG")
                     for pam_idx in pam_idxs:
                         if target.seq[pam_idx - 1] != "G":
-                            comb_target.offscores_dict[sg][target.scaffold] = 0.0
+                            comb_target.offscores_dict[sg][target.allele_id] = 0.0
                             faulty_pam = True
                             break
 
@@ -294,7 +296,7 @@ def calculate_off_scores(relevant_targets_dict: [Dict[int, List[Combined_Target_
             for sg in comb_target.sg_perm:
                 for target in comb_target.targets_list:
                     if f"{sg},{target.ungapped_seq}" in scores_dict:
-                        comb_target.offscores_dict[sg][target.scaffold] = scores_dict[f"{sg},{target.ungapped_seq}"]
+                        comb_target.offscores_dict[sg][target.allele_id] = scores_dict[f"{sg},{target.ungapped_seq}"]
     print("Combined targets MOFF scores updated")
 
 
@@ -315,8 +317,8 @@ def calculate_sg_rank_scores(relevant_targets_dict: Dict[int, List[Combined_Targ
             chosen_sg = ""
             cut_alleles = set()
             for sg in comb_target.offscores_dict:
-                combs_of_k = combinations(list(comb_target.offscores_dict[sg].items()),
-                                          k)  # all combinations of size k of {target scaffold: score} for current sg
+                # all combinations of size k of {target allele_id: score} for current sg:
+                combs_of_k = combinations(list(comb_target.offscores_dict[sg].items()), k)
                 for combo in combs_of_k:
                     product_k = prod(pair[1] for pair in combo)  # product of k "on" target scores
                     n_minus_k_lst = [pair for pair in list(comb_target.offscores_dict[sg].items()) if pair not in combo]
@@ -325,7 +327,7 @@ def calculate_sg_rank_scores(relevant_targets_dict: Dict[int, List[Combined_Targ
                     if tot_score > max_sg_score:
                         max_sg_score = tot_score
                         chosen_sg = sg
-                        cut_alleles = {pair[0] for pair in combo}
+                        cut_alleles = {pair[0] for pair in combo}  # set of size k of allele ids
             comb_target.chosen_sg = chosen_sg  # without PAM
             comb_target.chosen_sg_score = max_sg_score
             comb_target.cut_alleles = cut_alleles
@@ -345,41 +347,42 @@ def create_sgrna_permutations(relevant_targets_dict: Dict[int, List[Combined_Tar
     for exon_num in relevant_targets_dict:
         comb_target_lst = relevant_targets_dict[exon_num]
         for comb_target in comb_target_lst:
-            scaffold_to_num_polymorphic_sites = {target.scaffold: 0 for target in comb_target.targets_list}
-            number_to_scaffold_dict = {i: target.scaffold for i, target in enumerate(comb_target.targets_list)}
+            allele_to_num_polymorphic_sites = {target.allele_id: 0 for target in comb_target.targets_list}
+            number_to_allele_dict = {i: target.allele_id for i, target in enumerate(comb_target.targets_list)}
             nucs_tuple_per_index_lst = zip(*[target.ungapped_seq for target in comb_target.targets_list])
-            comb_target_snps_dict = {}  # {snp_position: {nucleotide: list of scaffold_IDs}}
+            comb_target_snps_dict = {}  # {snp_position: {nucleotide: list of allele_ids}}
             for index, nucs in enumerate(nucs_tuple_per_index_lst):
                 if not all(nucs[0] == nucleotide for nucleotide in nucs):  # SNP at current index
-                    pos_target_dict = {}  # {nucleotide: list of scaffold_IDs}
+                    pos_target_dict = {}  # {nucleotide: list of allele_ids}
                     for i in range(len(nucs)):
                         if nucs[i].upper() not in pos_target_dict:
-                            pos_target_dict[nucs[i].upper()] = [number_to_scaffold_dict[i]]
+                            pos_target_dict[nucs[i].upper()] = [number_to_allele_dict[i]]
                         else:
-                            pos_target_dict[nucs[i].upper()].append(number_to_scaffold_dict[i])
+                            pos_target_dict[nucs[i].upper()].append(number_to_allele_dict[i])
                     for nuc in pos_target_dict:
                         if len(pos_target_dict[nuc]) == 1:
-                            scaffold_to_num_polymorphic_sites[pos_target_dict[nuc][0]] += 1
+                            allele_to_num_polymorphic_sites[pos_target_dict[nuc][0]] += 1
                     comb_target_snps_dict[index] = pos_target_dict
                 if index == pam_idxs[0] - 3:
                     break
-            snp_abundant_targets_scaffolds = []
+            snp_abundant_targets_alleles = []
             if len(comb_target_snps_dict) > MAX_POLYMORPHIC_SITES:
-                for scaffold in scaffold_to_num_polymorphic_sites:
-                    if scaffold_to_num_polymorphic_sites[scaffold] >= len(
-                            comb_target_snps_dict) / 2:  # check if any of the targets is "accountable" for more than half of the SNPs
-                        snp_abundant_targets_scaffolds.append(scaffold)
-                if len(snp_abundant_targets_scaffolds) < 1:  # none of the targets is "accountable" for more than half of the SNPs. Target will not be used.
+                for allele in allele_to_num_polymorphic_sites:
+                    # check if any of the targets is "accountable" for more than half of the SNPs
+                    if allele_to_num_polymorphic_sites[allele] >= len(comb_target_snps_dict) / 2:
+                        snp_abundant_targets_alleles.append(allele)
+                # none of the targets is "accountable" for more than half of the SNPs. Target will not be used.
+                if len(snp_abundant_targets_alleles) < 1:
                     comb_target.sg_perm = []
                     continue
                 else:
                     list_of_differences = extract_polymorphic_sites(comb_target_snps_dict,
-                                                                    snp_abundant_targets_scaffolds)
-                    initial_seq = get_initial_seq(comb_target, snp_abundant_targets_scaffolds)
+                                                                    snp_abundant_targets_alleles)
+                    initial_seq = get_initial_seq(comb_target, snp_abundant_targets_alleles)
                     comb_target.sg_perm = all_perms(initial_seq, [], list_of_differences)
             else:
-                list_of_differences = extract_polymorphic_sites(comb_target_snps_dict, snp_abundant_targets_scaffolds)
-                initial_seq = get_initial_seq(comb_target, snp_abundant_targets_scaffolds)
+                list_of_differences = extract_polymorphic_sites(comb_target_snps_dict, snp_abundant_targets_alleles)
+                initial_seq = get_initial_seq(comb_target, snp_abundant_targets_alleles)
                 comb_target.sg_perm = all_perms(initial_seq, [], list_of_differences)
     print("Combined targets sgRNA permutations created")
 
@@ -416,8 +419,9 @@ def get_snp_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams:
                     k: int) -> Dict[int, List[Combined_Target_Obj]]:
     """
 
-    :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name
-    (example format: ">scaffold10132:437703-438762(+)") and tuple[1] is allele sequence.
+    :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is
+    allele_id parameters (example format: ">scaffold10132;437000::scaffold10132:437703-438762(+)") and tuple[1] is
+    allele sequence.
     :param pams: tuple of PAM sequences of the Cas protein in use
     :param max_amplicon_len: maximum length of the amplicon
     :param primer_length: minimum length of the primer sequence
@@ -446,7 +450,7 @@ def get_targets(gene_sequences_dict: Dict[int, List[Tuple[str, str]]], pams: Tup
                 ) -> Dict[int, List]:
     """
 
-    :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold name 
+    :param gene_sequences_dict: dictionary of exon num -> list of tuples representing alleles where tuple[0] is scaffold_id name
     (example format: ">scaffold10132:437703-438762(+)") and tuple[1] is allele sequence.
     :param pams: tuple of PAM sequences of the Cas protein in use
     :param max_amplicon_len: maximum length of the amplicon

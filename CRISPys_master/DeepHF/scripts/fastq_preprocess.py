@@ -200,10 +200,10 @@ def fq2df(config, report_df):
 
 
 #########################################################################################
-# 5 - delete all the sequences with wrong scaffold
+# 5 - delete all the sequences with wrong scaffold_id
 def drop_scaffold(config, report_df):
     print('\n\n######################################')
-    print('5. Dropping scaffold')
+    print('5. Dropping scaffold_id')
 
     drop_scaffold_list = report_df.loc['drop_scaffold', :]
     dataframes_path = config.fastq_path + 'dataframes/'
@@ -214,7 +214,7 @@ def drop_scaffold(config, report_df):
             file_index = 0
             while os.path.exists(config.fastq_path + 'dataframes/' + file_name + f'_{file_index}_df.pkl'):
                 file_path = config.fastq_path + 'dataframes/' + file_name + f'_{file_index}_df.pkl'
-                print(f'Dropping scaffold in file: {file_path}')
+                print(f'Dropping scaffold_id in file: {file_path}')
                 scaffold_df = pd.read_pickle(file_path)
                 scaffold_df = scaffold_df[scaffold_df['read'].str.find(scaffold_sequence) == 20]
                 gRNAs_line = scaffold_df.apply(lambda x: x['read'][:20], axis =1)
@@ -228,14 +228,14 @@ def drop_scaffold(config, report_df):
             report_df.loc['drop_scaffold', file_name] = 1
             report_df.to_csv(config.fastq_path + 'report.csv')
         else:
-            print(f'{file_name} scaffold has already been dropped')
+            print(f'{file_name} scaffold_id has already been dropped')
 
 
 #########################################################################################
 # 6 - unite all processed dataframes
 def unite_df(config, report_df):
     print('\n\n######################################')
-    print('6. Uniting scaffold dataframes')
+    print('6. Uniting scaffold_id dataframes')
     unify_dataframes_list = report_df.loc['unify_dataframes', :]
     dataframes_path = config.fastq_path + 'dataframes/'
 
@@ -260,7 +260,7 @@ def unite_df(config, report_df):
             report_df.to_csv(config.fastq_path + 'report.csv')
 
         else:
-            print(f'{file_name} scaffold files has already been united')
+            print(f'{file_name} scaffold_id files has already been united')
 
 
 #########################################################################################

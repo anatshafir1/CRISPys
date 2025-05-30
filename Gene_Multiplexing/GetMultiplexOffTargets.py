@@ -28,12 +28,12 @@ def create_bwa_multiplex_input_fasta(multiplex_targets_list: List[MultiplexTarge
 
 def search_multiplex_off_targets(multiplex_targets_list: List[MultiplexTarget], out_path: str, genome_fasta_file: str,
                                  pams: Tuple[str], gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]]):
-    from Amplicon_construction.AmpliconConstruction import get_gene_scaffold_positions
+    from Amplicon_construction.AmpliconConstruction import get_gene_alleles_positions
     print("searching for multiplex off targets".upper().center(40, "#"))
     bwa_input_fasta = create_bwa_multiplex_input_fasta(multiplex_targets_list, out_path)
     off_targets_sam = run_bwa(bwa_input_fasta, genome_fasta_file, out_path)
     off_targets_df = extract_off_targets(off_targets_sam, genome_fasta_file, pams)
-    candidates_scaffold_positions = get_gene_scaffold_positions(gene_exon_regions_seqs_dict)
+    candidates_scaffold_positions = get_gene_alleles_positions(gene_exon_regions_seqs_dict)
     filtered_off_targets_df = remove_on_targets_df(off_targets_df, candidates_scaffold_positions)
     calc_off_scores_for_df(filtered_off_targets_df)
     return filtered_off_targets_df

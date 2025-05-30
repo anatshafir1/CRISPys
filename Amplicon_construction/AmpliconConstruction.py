@@ -397,26 +397,28 @@ def save_results_to_csv(res_amplicons_lst: List[Amplicon_Obj], out_path: str, k:
         df.to_csv(out_path + "/results_trivial.csv", index=False)
 
 
-def get_gene_scaffold_positions(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]]) -> Dict[str, Tuple[int, int]]:
+def get_gene_alleles_positions(gene_exon_regions_seqs_dict: Dict[int, List[Tuple[str, str]]]) -> Dict[
+    str, List[Tuple[int, int]]]:
     """
-    Create a dictionary of allele scaffold: start,end indices.
+    Create a dictionary of allele scaffold_id: start,end indices.
 
     :param gene_exon_regions_seqs_dict: dictionary of exon number -> list of tuples of allele IDs and their sequences.
-    :return: dictionary of allele scaffold: start,end indices.
+    :return: dictionary of allele scaffold_id -> List of start,end indices.
     """
-    scaffolds = []
-    positions = []
+    candidates_scaffold_positions = {}
     last_exon_num = len(gene_exon_regions_seqs_dict)
     for first_exon, last_exon in zip(gene_exon_regions_seqs_dict[1], gene_exon_regions_seqs_dict[last_exon_num]):
         if first_exon[0][-2] == "+":  # consider strand
-            gene_start = int(first_exon[0].split(":")[1][:-3].split("-")[0])
-            gene_end = int(last_exon[0].split(":")[1][:-3].split("-")[1])
+            gene_start = int(first_exon[0].split("::")[1].split(":")[1][:-3].split("-")[0])
+            gene_end = int(last_exon[0].split("::")[1].split(":")[1][:-3].split("-")[1])
         else:
-            gene_start = int(last_exon[0].split(":")[1][:-3].split("-")[0])
-            gene_end = int(first_exon[0].split(":")[1][:-3].split("-")[1])
-        scaffolds.append(first_exon[0].split(":")[0][1:])
-        positions.append((gene_start, gene_end))
-    candidates_scaffold_positions = {scaffolds[i]: positions[i] for i in range(len(scaffolds))}
+            gene_start = int(last_exon[0].split("::")[1].split(":")[1][:-3].split("-")[0])
+            gene_end = int(first_exon[0].split("::")[1].split(":")[1][:-3].split("-")[1])
+        scaffold_id = first_exon[0].split("::")[0].split(";")[0][1:]
+        if scaffold_id in candidates_scaffold_positions:
+            candidates_scaffold_positions[scaffold_id].append((gene_start, gene_end))
+        else:
+            candidates_scaffold_positions[scaffold_id] = [(gene_start, gene_end)]
     return candidates_scaffold_positions
 
 
@@ -435,7 +437,8 @@ def filter_redundancies_and_sort(candidate_amplicons_list: List[Amplicon_Obj], k
                                          amplicon.snps_mean, len(amplicon.snps)), reverse=True)
     else:
         sorted_amplicon_obj = sorted(candidate_amplicons_list,
-                                     key=lambda amplicon: (amplicon.snps_median, amplicon.snps_mean, len(amplicon.snps)),
+                                     key=lambda amplicon: (
+                                         amplicon.snps_median, amplicon.snps_mean, len(amplicon.snps)),
                                      reverse=True)
     filtered_candidates = []
     for candidate in sorted_amplicon_obj:
@@ -487,11 +490,12 @@ def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_sur
                                                    primer_length, distinct_alleles_num, target_surrounding_region,
                                                    min_amplicon_len, k, target_len, 0)
     filt_sorted_candidate_amplicons_list = filter_redundancies_and_sort(candidate_amplicons_list, k)
-    # create a dictionary of current gene scaffold:
-    candidates_scaffold_positions = get_gene_scaffold_positions(gene_exon_regions_seqs_dict)
+    # create a dictionary of current gene scaffold_id:
+    candidates_scaffold_positions = get_gene_alleles_positions(gene_exon_regions_seqs_dict)
     if filter_off_targets:  # find gRNA off-targets and filter amplicons by scores, then get primers.
-        off_trg_filt_sorted_candidate_amplicons = filt_off_targets(filt_sorted_candidate_amplicons_list.copy(), genome_fasta_file,
-                                                               out_path, pams, candidates_scaffold_positions, k)
+        off_trg_filt_sorted_candidate_amplicons = filt_off_targets(filt_sorted_candidate_amplicons_list.copy(),
+                                                                   genome_fasta_file,
+                                                                   out_path, pams, candidates_scaffold_positions, k)
         if len(off_trg_filt_sorted_candidate_amplicons) == 0:
             print("Zero Amplicons left after filtering strong Off-Targets")
             sys.exit()
@@ -503,7 +507,8 @@ def get_amplicons(max_amplicon_len_category: int, primer_length: int, target_sur
                                                 original_exon_indices_dict, max_amplicon_len, gene_snps_dict, k,
                                                 min_amplicon_len)
     else:  # Get primers, then find gRNA off-targets.
-        amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, filt_sorted_candidate_amplicons_list, out_path,
+        amplicon_obj_with_primers = get_primers(gene_exon_regions_seqs_dict, filt_sorted_candidate_amplicons_list,
+                                                out_path,
                                                 primer3_core_path, n, amplicon_ranges[max_amplicon_len_category - 1],
                                                 distinct_alleles_num, target_surrounding_region, filter_off_targets,
                                                 genome_fasta_file, pams, candidates_scaffold_positions,
