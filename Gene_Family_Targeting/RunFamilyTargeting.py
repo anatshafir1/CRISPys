@@ -89,15 +89,15 @@ def get_gene_family_amps(max_amplicon_len_category: int, primer_length: int, tar
                   annotations_file_path: str, out_path: str, genome_fasta_file: str, distinct_alleles_num: int,
                   pams: Tuple[str], target_len: int, primer3_core_path: str, n: int, filter_off_targets: int,
                   family_targeting: int):
-    # crispys_input_fasta = create_crispys_input_fasta(annotations_file_path, out_path, genome_fasta_file)
-    # res_grnas = CRISPys_main(crispys_input_fasta, out_path, output_name, genes_of_interest_file, alg, where_in_gene, omega,
-    #                    off_scoring_function, on_scoring_function, start_with_g, internal_node_candidates,
-    #                    max_target_polymorphic_sites, crispys_pams, slim_output, set_cover, min_desired_genes_fraction,
-    #                    singletons, singletons_on_target_function, number_of_singletons, max_gap_distance, export_tree,
-    #                    run4chips)
-    with open("/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/output/test/tool4_test/crispys_out.p",
-              "rb") as file:
-        res_grnas = pickle.load(file)
+    crispys_input_fasta = create_crispys_input_fasta(annotations_file_path, out_path, genome_fasta_file)
+    res_grnas = CRISPys_main(crispys_input_fasta, out_path, output_name, genes_of_interest_file, alg, where_in_gene, omega,
+                       off_scoring_function, on_scoring_function, start_with_g, internal_node_candidates,
+                       max_target_polymorphic_sites, crispys_pams, slim_output, set_cover, min_desired_genes_fraction,
+                       singletons, singletons_on_target_function, number_of_singletons, max_gap_distance, export_tree,
+                       run4chips)
+    # with open("/groups/itay_mayrose/josefbrook/projects/sgRNA_Polyploids_Design/output/test/tool4_test/crispys_out.p",
+    #           "rb") as file:
+    #     res_grnas = pickle.load(file)
     amplicon_ranges = [(200, 300), (300, 500), (500, 1000)]
     max_amplicon_len = max(amplicon_ranges[max_amplicon_len_category - 1])
     min_amplicon_len = min(amplicon_ranges[max_amplicon_len_category - 1])
