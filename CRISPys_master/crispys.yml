@@ -1,4 +1,4 @@
-name: crispys
+name: sgRNA_Polyploids_Design
 channels:
   - bioconda
   - conda-forge
